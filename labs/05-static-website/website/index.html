@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AWS Static Website Lab</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: linear-gradient(135deg, #0f1923 0%, #1a2a3a 50%, #0d2137 100%);
+            color: #e0e0e0;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 2rem;
+            padding: 3rem;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            backdrop-filter: blur(10px);
+            text-align: center;
+        }
+
+        .aws-logo {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+        }
+
+        h1 {
+            font-size: 2.2rem;
+            color: #ff9900;
+            margin-bottom: 0.5rem;
+        }
+
+        .subtitle {
+            font-size: 1.1rem;
+            color: #8899aa;
+            margin-bottom: 2rem;
+        }
+
+        .architecture {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin: 2rem 0;
+            text-align: left;
+        }
+
+        .architecture h2 {
+            color: #ff9900;
+            font-size: 1rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 1rem;
+        }
+
+        .flow {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+            font-family: monospace;
+            font-size: 0.95rem;
+        }
+
+        .flow .service {
+            background: rgba(255, 153, 0, 0.15);
+            border: 1px solid rgba(255, 153, 0, 0.3);
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            color: #ff9900;
+        }
+
+        .flow .arrow {
+            color: #556677;
+            font-size: 1.2rem;
+        }
+
+        .info {
+            margin-top: 2rem;
+            padding: 1rem;
+            background: rgba(255, 153, 0, 0.08);
+            border-left: 3px solid #ff9900;
+            border-radius: 0 8px 8px 0;
+            text-align: left;
+            font-size: 0.9rem;
+            line-height: 1.6;
+        }
+
+        .info p {
+            margin-bottom: 0.5rem;
+        }
+
+        .footer {
+            margin-top: 2rem;
+            font-size: 0.8rem;
+            color: #556677;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="aws-logo">&#9729;</div>
+        <h1>AWS Static Website Lab</h1>
+        <p class="subtitle">Lab 05 - Solutions Architect Study</p>
+
+        <div class="architecture">
+            <h2>Architecture</h2>
+            <div class="flow">
+                <span class="service">Browser</span>
+                <span class="arrow">&rarr;</span>
+                <span class="service">CloudFront CDN</span>
+                <span class="arrow">&rarr;</span>
+                <span class="service">S3 Bucket</span>
+            </div>
+        </div>
+
+        <div class="info">
+            <p>This page is being served from an <strong>Amazon S3</strong> bucket through <strong>Amazon CloudFront</strong>, a global content delivery network.</p>
+            <p>CloudFront caches the content at edge locations worldwide, reducing latency for users regardless of their geographic location.</p>
+            <p>The S3 bucket has <strong>all public access blocked</strong> and is only accessible via <strong>Origin Access Control (OAC)</strong>, ensuring secure content delivery.</p>
+        </div>
+
+        <div class="footer">
+            <p>Deployed with Terraform | AWS Solutions Architect Lab</p>
+        </div>
+    </div>
+</body>
+</html>
