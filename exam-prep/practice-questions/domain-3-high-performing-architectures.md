@@ -299,6 +299,36 @@ D) Copiar datos a Aurora y hacer queries SQL
 
 ## Pregunta 15
 
+There is a new compliance rule in your company that audits every Windows and Linux EC2 instances each month to view any performance issues. They have more than a hundred EC2 instances running in production, and each must have a logging function that collects various system details regarding that instance. The SysOps team will periodically review these logs and analyze their contents using AWS Analytics tools, and the result will need to be retained in an S3 bucket.
+
+In this scenario, what is the most efficient way to collect and analyze logs from the instances with minimal effort?
+
+A) Install the unified CloudWatch Logs agent in each instance which will automatically collect and push data to CloudWatch Logs. Analyze the log data with CloudWatch Logs Insights.
+B) Install AWS Inspector Agent in each instance which will collect and push data to CloudWatch Logs periodically. Set up a CloudWatch dashboard to properly analyze the log data of all instances.
+C) Install AWS SDK in each instance and create a custom daemon script that would collect and push data to CloudWatch Logs periodically. Enable CloudWatch detailed monitoring and use CloudWatch Logs Insights to analyze the log data of all instances.
+D) Install the AWS Systems Manager Agent (SSM Agent) in each instance which will automatically collect and push data to CloudWatch Logs. Analyze the log data with CloudWatch Logs Insights.
+
+<details>
+<summary>Ver respuesta</summary>
+
+**Respuesta: A**
+
+El **CloudWatch Unified Agent** es la herramienta diseñada específicamente para recopilar logs y métricas del sistema (RAM, disco, procesos, etc.) de instancias EC2 (Windows y Linux) y enviarlas a CloudWatch Logs automáticamente. **CloudWatch Logs Insights** permite analizar esos logs con un lenguaje de queries. Los logs se pueden exportar a S3 para retención.
+
+Por qué las demás son incorrectas:
+- **B) Inspector Agent**: AWS Inspector es para **evaluación de vulnerabilidades de seguridad** (CVEs, exposición de red), no para recopilar logs de rendimiento del sistema. Herramienta equivocada para el caso de uso.
+- **C) AWS SDK + daemon custom**: Funcionaría técnicamente, pero crear un daemon custom NO es "minimal effort". El CloudWatch Agent ya hace esto out-of-the-box sin escribir código.
+- **D) SSM Agent**: El SSM Agent es para **gestión remota** de instancias (ejecutar comandos, parchear, inventario). No recopila ni envía logs del sistema a CloudWatch Logs. SSM podría usarse para *instalar* el CloudWatch Agent, pero no hace la recopilación en sí.
+
+**Patrón del examen**: Cuando la pregunta dice "minimal effort" o "most efficient", descarta opciones que impliquen código custom si existe un servicio gestionado que lo hace. El CloudWatch Unified Agent es la respuesta estándar para "recopilar logs y métricas del sistema de EC2".
+
+**Servicios/conceptos clave:** CloudWatch Unified Agent, CloudWatch Logs, CloudWatch Logs Insights, diferencia entre Inspector/SSM/CloudWatch Agent
+</details>
+
+---
+
+## Pregunta 16
+
 Una empresa global necesita que sus APIs estén disponibles con latencia ultra-baja y IPs estáticas para que sus clientes empresariales las incluyan en sus allowlists de firewall. Actualmente usan ALB en us-east-1. ¿Cuál es la mejor solución?
 
 A) Desplegar ALBs en múltiples regiones con Route 53 Latency-based routing

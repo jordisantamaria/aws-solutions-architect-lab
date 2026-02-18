@@ -111,7 +111,33 @@ Region
     └── Private Subnet: Route 0.0.0.0/0 -> NAT GW C
 ```
 
-> **Tip para el examen:** NAT Gateway es la respuesta correcta para el 99% de preguntas sobre acceso a Internet desde subnets privadas. NAT Instance solo aparece si preguntan por la opción más barata o con Security Groups.
+### Coste: NAT Gateway vs NAT Instance
+
+| Escenario | NAT Gateway | NAT Instance (t3.micro) |
+|-----------|------------|------------------------|
+| 1 AZ (sin HA) | ~$32/mes + $0.045/GB procesado | ~$7.50/mes (sin coste por GB) |
+| 3 AZs (HA) | ~$97/mes + datos | ~$22.50/mes |
+| 3 AZs + 500 GB datos/mes | ~$120/mes | ~$22.50/mes |
+
+- NAT Gateway es significativamente más caro pero **zero mantenimiento** (no hay SO que parchear, escala automáticamente a 100 Gbps, AWS gestiona la disponibilidad dentro de la AZ).
+- NAT Instance es más barato pero **tú gestionas todo** (parches, monitoring, failover, escalado manual).
+- En **producción**, el coste de horas de ingeniero gestionando NAT Instances supera el coste del Gateway.
+- En **dev/test o side projects**, NAT Instance con t3.nano (~$3.74/mes) es razonable para ahorrar.
+- Con NAT Instance puedes usar **un solo NAT para todas las AZs** (aceptando el riesgo de single point of failure). Con NAT Gateway necesitas uno por AZ obligatoriamente para HA.
+- **Regional NAT Gateway** (nuevo): Creas un solo NAT Gateway regional que se expande automáticamente a las AZs donde hay tráfico. El coste por AZ es el mismo ($0.045/h/AZ), pero si tu workload deja de usar una AZ, deja de cobrar por ella automáticamente.
+
+### Tip de ahorro: VPC Gateway Endpoint para S3/DynamoDB
+
+Si instancias en subnets privadas acceden frecuentemente a S3 o DynamoDB, ese tráfico pasa por el NAT Gateway y pagas $0.045/GB de data processing. **Esto es innecesario.** Un VPC Gateway Endpoint enruta el tráfico directamente a S3/DynamoDB por la red interna de AWS, **sin coste**.
+
+```
+SIN Endpoint:  EC2 (privada) → NAT Gateway ($0.045/GB) → Internet → S3
+CON Endpoint:  EC2 (privada) → VPC Gateway Endpoint ($0)  → S3 (directo)
+```
+
+Los Gateway VPC Endpoints son gratuitos y soportan S3 y DynamoDB. Si tu subnet privada mueve 1 TB/mes a S3, te ahorras $45/mes solo en data processing del NAT.
+
+> **Tip para el examen:** NAT Gateway es la respuesta correcta para el 99% de preguntas sobre acceso a Internet desde subnets privadas. NAT Instance solo aparece si preguntan por "la opción más barata" o "security groups en el NAT". Si preguntan "reducir costes de NAT Gateway cuando se accede a S3" → **VPC Gateway Endpoint**.
 
 ---
 

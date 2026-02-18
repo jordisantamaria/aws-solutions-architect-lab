@@ -110,6 +110,29 @@ El nombre de un tipo de instancia sigue el formato: `m5a.xlarge`
   - Acciones posibles: `terminate`, `stop`, `hibernate`.
 - **Spot Block** (deprecated en muchas regiones): Reserva Spot por 1-6 horas sin interrupción.
 
+### Spot Instances en ETL y procesamiento con SLA
+
+Spot es hasta 90% más barato, pero la interrupción de 2 minutos impide dar SLA de hora exacta con Spot puro. Estrategias para mitigarlo:
+
+- **Spot con fallback a On-Demand**: AWS Batch permite mezclar ambos en el Compute Environment. Intenta Spot primero, si falla usa On-Demand. Mayoría de días: barato. Días de mala suerte: cumples SLA igualmente.
+- **Margen de tiempo**: Si el ETL debe estar listo a las 08:00, lanzar a las 04:00 con Spot. Aunque se interrumpa 2-3 veces, sobra tiempo.
+- **Checkpointing + transacciones por batch**: El job procesa datos en chunks (ej: 10K registros) dentro de transacciones de DB. Cada chunk completado se marca en una tabla de control. Si Spot se interrumpe, la transacción en curso hace rollback (sin datos parciales) y el job relanzado retoma desde el último chunk completado.
+- **SIGTERM handler**: Cuando Spot va a interrumpir, envía señal SIGTERM al contenedor. Tu código captura la señal y termina el chunk actual limpiamente antes de los 2 min de gracia (luego AWS envía SIGKILL).
+- **Staging table pattern**: El ETL escribe en una tabla temporal (staging). Solo cuando TODO está procesado, una operación atómica (INSERT INTO final SELECT FROM staging) mueve los datos a la tabla real. Si muere durante staging → tabla final intacta.
+- **Diversificación de tipos de instancia**: Configurar múltiples tipos (c5.xlarge, c5a.xlarge, c6i.xlarge). Si un tipo se reclama, Batch usa otro. Reduce la tasa de interrupción real.
+
+Cuándo usar cada opción:
+- ETL crítico con hora exacta (facturación, compliance) → **On-Demand** o Spot+fallback.
+- ETL con ventana amplia (noche entera) → **Spot** con reintentos.
+- ETL de backfill sin deadline → **Spot puro** (máximo ahorro).
+
+¿Cuándo compensa el esfuerzo de ingeniería de Spot?
+- Spot requiere diseñar para interrupción (checkpointing, idempotencia, SIGTERM handling). Ese esfuerzo solo se amortiza a **gran escala** (cientos/miles de $/mes de compute).
+- Para un ETL diario de 30 min, el ahorro Spot es ~$1.8/mes. No compensa la complejidad adicional. Mejor usar **On-Demand** o **Savings Plans** (~66% descuento sin interrupciones, compromiso 1-3 años).
+- Para clusters de decenas de instancias, pipelines masivos, ML training o CI/CD a escala → Spot con patrones de resiliencia compensa con creces (ahorros de miles de $/mes).
+
+> **Tip para el examen:** Si la pregunta dice "tolerante a fallos" o "puede interrumpirse" → Spot. Si dice "debe completarse a una hora exacta" → On-Demand o Spot con fallback a On-Demand. Si dice "reducir costes sin interrupción y con compromiso" → Savings Plans o Reserved Instances.
+
 ### Dedicated Hosts vs Dedicated Instances
 
 | Característica | Dedicated Host | Dedicated Instance |
@@ -406,6 +429,15 @@ AWS Lambda es un servicio de cómputo **serverless** que ejecuta código en resp
 - Para acceder a Internet desde Lambda en VPC: necesitas un **NAT Gateway** en una subnet pública.
 - Para acceder a servicios AWS desde Lambda en VPC sin Internet: usa **VPC Endpoints**.
 
+### Lambda + EFS: superar el límite de 10 GB de librerías
+
+- Lambda puede montar un **EFS (Elastic File System)** como filesystem.
+- Caso de uso: librerías Python que pesan más de 10 GB (límite de container image). Instalas las librerías en EFS una vez, Lambda las importa desde ahí con `PYTHONPATH=/mnt/libs`.
+- EFS no tiene límite práctico de tamaño (petabytes).
+- **Requisito**: Lambda debe estar en VPC (para acceder a EFS).
+- **Tradeoff**: Cold start más lento (montar EFS + cargar libs grandes). En warm start, EFS ya está montado y es rápido.
+- Si se invoca frecuentemente (warm starts) → buena opción. Si es esporádico y el cold start de 30-60s no es aceptable → mejor Fargate Task con imagen Docker grande (sin límite de tamaño).
+
 ### Lambda Destinations
 
 - Configuran a dónde enviar el resultado de una invocación (exitosa o fallida).
@@ -541,6 +573,17 @@ Blue/Green:       env-blue[v1] | env-green[v2] -> swap URL -> env-green[v2] acti
 
 AWS Batch permite ejecutar **trabajos de procesamiento por lotes** (batch jobs) a cualquier escala de forma eficiente.
 
+### Por qué existe AWS Batch: el límite de 15 minutos de Lambda
+
+AWS Lambda tiene un **timeout máximo de 15 minutos**. Para cualquier procesamiento que supere ese límite, necesitas otra solución. AWS Batch es la respuesta natural cuando tienes **trabajos de larga duración, intensivos en recursos y orientados a lotes** (no sirven peticiones HTTP, sino procesamiento en background).
+
+Ejemplos típicos:
+- ETL masivos que procesan millones de registros (horas).
+- Rendering de video o animación 3D (minutos a horas por frame).
+- Simulaciones científicas y financieras (Monte Carlo, CFD, genómica).
+- Training de modelos ML que no justifican SageMaker.
+- Procesamiento de imágenes/datos satelitales a gran escala.
+
 ### Conceptos
 
 | Concepto | Descripción |
@@ -549,19 +592,153 @@ AWS Batch permite ejecutar **trabajos de procesamiento por lotes** (batch jobs) 
 | **Job Definition** | Plantilla que define cómo ejecutar un job (imagen Docker, vCPU, memoria, variables de entorno, IAM role) |
 | **Job Queue** | Cola donde se envían los jobs. Asociada a uno o más Compute Environments con prioridades |
 | **Compute Environment** | Recursos de cómputo que ejecutan los jobs. Managed (AWS gestiona EC2/Spot) o Unmanaged (tú gestionas) |
+| **Array Jobs** | Un solo job que se divide en múltiples child jobs (ej: procesar 1000 archivos en paralelo) |
+| **Job Dependencies** | Un job puede depender de que otro(s) finalicen antes de ejecutarse |
+
+### Cómo funciona el flujo
+
+```
+[Tu código envía job] → Job Queue → Scheduler → Compute Environment → Contenedor ejecuta el job
+                            ↑                          ↑
+                     Prioridades entre          EC2 On-Demand/Spot
+                     múltiples colas               o Fargate
+```
+
+1. Defines un **Job Definition** (imagen Docker, recursos necesarios).
+2. Envías un **Job** a una **Job Queue**.
+3. AWS Batch **scheduler** evalúa las colas por prioridad y los recursos disponibles.
+4. AWS Batch aprovisiona/escala el **Compute Environment** automáticamente (si es Managed).
+5. El job se ejecuta en un contenedor. Cuando termina, los recursos se liberan.
+6. Si no hay más jobs, el Compute Environment puede escalar a **0 instancias** (coste cero).
 
 ### Batch vs Lambda
 
 | Característica | AWS Batch | AWS Lambda |
 |---------------|-----------|------------|
-| **Duración** | Sin límite | Máximo 15 minutos |
+| **Duración** | **Sin límite** | Máximo 15 minutos |
 | **Runtime** | Cualquier (contenedor Docker) | Runtimes soportados |
-| **Almacenamiento** | Volúmenes EBS montados | 10 GB en /tmp |
+| **Almacenamiento** | Volúmenes EBS montados (sin límite práctico) | 10 GB en /tmp |
 | **Servidor** | EC2 (gestionadas por Batch) o Fargate | Serverless |
-| **Inicio** | Depende (puede tardar en aprovisionar EC2) | Rápido (cold start: segundos) |
-| **Caso de uso** | Procesamiento largo, intensivo en recursos | Procesamiento corto, event-driven |
+| **Inicio** | Lento (puede tardar minutos en aprovisionar EC2) | Rápido (cold start: ms a segundos) |
+| **GPUs** | Sí (instancias P/G) | No |
+| **Coste mínimo** | 0 (escala a 0 cuando no hay jobs) | 0 (pago por invocación) |
+| **Caso de uso** | Procesamiento largo, intensivo en recursos, por lotes | Procesamiento corto, event-driven, tiempo real |
 
-> **Tip para el examen:** Si el procesamiento dura más de 15 minutos o necesita más de 10 GB de disco, no puede ser Lambda. Usa **AWS Batch**. Batch es ideal para ETL masivos, rendering de video, simulaciones científicas.
+> **Tip para el examen:** Si el procesamiento dura más de 15 minutos o necesita más de 10 GB de disco o GPUs, no puede ser Lambda. Usa **AWS Batch**. Batch es ideal para ETL masivos, rendering de video, simulaciones científicas.
+
+### Batch vs Fargate (standalone): cuándo usar cada uno
+
+Esta es una distinción clave: **Fargate también puede ejecutar procesos largos** (no tiene límite de 15 minutos). Entonces, ¿cuándo usar Batch y cuándo Fargate directamente?
+
+| Característica | AWS Batch | ECS/EKS con Fargate (standalone) |
+|---------------|-----------|----------------------------------|
+| **Modelo mental** | "Tengo 10,000 jobs que procesar" | "Tengo un servicio o tarea que ejecutar" |
+| **Orquestación de jobs** | Sí: colas, prioridades, dependencias entre jobs, array jobs | No nativo. Tú programas la orquestación (Step Functions, EventBridge, etc.) |
+| **Escala a 0** | Sí, automático cuando no hay jobs en la cola | Sí (si usas Fargate Tasks puntuales, no Services) |
+| **Scheduling de jobs** | Integrado (EventBridge + Job Queue) | Tú lo construyes (EventBridge → ECS RunTask) |
+| **Spot Instances** | Sí (Managed CE con Spot). Batch gestiona interrupciones y reintenta | Solo con EC2 launch type (Fargate no soporta Spot directamente en tasks) |
+| **GPUs** | Sí (con EC2 Compute Environment) | No (Fargate no soporta GPUs) |
+| **Compute** | EC2 (On-Demand/Spot) **o** Fargate | Solo Fargate |
+| **Dependencias entre tareas** | Nativo (job A depende de job B) | Via Step Functions o código propio |
+| **Reintentos automáticos** | Sí (configurable en Job Definition: attempts, timeout) | No nativo. Lo manejas tú |
+| **Coste** | EC2/Spot: más barato para cargas grandes. Fargate: igual precio que Fargate standalone | Fargate: pago por vCPU+memoria por segundo |
+| **Complejidad de setup** | Más conceptos (Job Def, Job Queue, CE) pero más automatizado | Menos conceptos pero más trabajo manual de orquestación |
+| **Ideal para** | **Procesamiento por lotes a gran escala**: miles de jobs independientes o con dependencias | **Tareas o servicios de larga duración**: una API, un worker, un cron job puntual |
+
+### Cuándo elegir cada uno (decision tree)
+
+```
+¿Tu proceso dura más de 15 minutos?
+├── No → Lambda (si cabe en sus límites)
+└── Sí → ¿Es procesamiento por lotes (muchos jobs)?
+    ├── Sí → ¿Necesitas GPUs o Spot Instances?
+    │   ├── Sí → AWS Batch con EC2 Compute Environment
+    │   └── No → ¿Necesitas colas, prioridades, dependencias entre jobs?
+    │       ├── Sí → AWS Batch (con EC2 o Fargate CE)
+    │       └── No → Fargate Task (más simple si es un job puntual)
+    └── No → ¿Es un servicio long-running (API, worker permanente)?
+        └── Sí → ECS/EKS con Fargate (Service)
+```
+
+### Ejemplo práctico: procesar 10,000 imágenes
+
+**Con AWS Batch:**
+- Creas un Job Definition con tu contenedor que procesa una imagen.
+- Envías 10,000 jobs (o un Array Job de size 10,000).
+- Batch aprovisiona instancias Spot automáticamente, ejecuta los jobs en paralelo, gestiona fallos y reintentos.
+- Cuando terminan, escala a 0. Coste mínimo gracias a Spot.
+
+**Con Fargate standalone:**
+- Creas una Task Definition con tu contenedor.
+- Necesitas un orquestador (Step Functions, Lambda, o tu propia app) que lance 10,000 ECS RunTask.
+- Tú gestionas el paralelismo, los reintentos, el tracking del progreso.
+- No puedes usar Spot, pagas Fargate completo.
+
+**Conclusión:** Para lotes grandes, Batch simplifica enormemente la orquestación.
+
+### Ejemplo práctico: un worker que procesa mensajes de SQS continuamente
+
+**Con Fargate (mejor opción):**
+- ECS Service con Fargate, una Task que hace long-polling a SQS.
+- El Service mantiene la Task corriendo 24/7.
+- Escalas con Application Auto Scaling basado en la profundidad de la cola SQS.
+
+**Con AWS Batch (no ideal):**
+- Batch está diseñado para jobs que terminan. No para servicios permanentes.
+- Tendrías que relanzar jobs periódicamente, lo que complica la arquitectura.
+
+**Conclusión:** Para servicios long-running, Fargate con ECS/EKS es mejor.
+
+### Ejemplo práctico: webapp donde el usuario sube un Excel y se procesan simulaciones (30 min)
+
+El servidor web (EC2) no debe ejecutar el procesamiento pesado: bloquearía las peticiones de otros usuarios. Hay que **delegar** el trabajo a otro servicio.
+
+**Arquitectura general (independiente de la solución elegida):**
+
+```
+Usuario sube Excel
+  → API (EC2/ALB) recibe el archivo
+  → Guarda el Excel en S3
+  → Dispara el procesamiento (Fargate Task o Batch Job)
+  → Responde al usuario: "Tu archivo se está procesando"
+  → [30 min después] El contenedor termina, escribe resultado en S3/RDS
+  → Notifica al usuario (WebSocket, SNS+email, o el usuario hace polling)
+```
+
+**Si hay pocos uploads al día → Fargate Task (ECS RunTask):**
+- Tu API llama a `ecs:RunTask` con la referencia al archivo en S3.
+- Fargate lanza un contenedor, ejecuta los cálculos, muere al terminar.
+- Simple, directo, sin infraestructura permanente. Coste solo por los 30 min de vCPU+memoria.
+
+**Si hay decenas/cientos de uploads concurrentes → AWS Batch:**
+- Tu API envía un Job a una Job Queue con la referencia al S3 key.
+- Batch encola, prioriza (ej: usuarios premium primero), aprovisiona capacidad, ejecuta.
+- Reintentos automáticos si un job falla. Spot Instances para abaratar.
+- Escala a 0 cuando no hay jobs pendientes.
+
+**Si los cálculos son matemáticos/paralelizables y necesitas GPU → AWS Batch con EC2 CE (GPU):**
+- Fargate **no soporta GPU**. Necesitas Batch con EC2 Compute Environment e instancias GPU (g4dn, g5, p3...).
+- GPU compensa si el workload es masivamente paralelo a nivel matemático: operaciones matriciales, ML inference, simulaciones Monte Carlo. La GPU tiene miles de CUDA cores que ejecutan la **misma operación sobre muchos datos** (SIMD).
+- GPU **no** compensa si el cálculo es lógica de negocio (if/else, lookups, validaciones). Los branches y la lógica condicional son lo peor para GPU.
+- Las instancias GPU son ~3-18x más caras por hora, pero si reducen el tiempo de 30 min a 2 min, el coste total por job es menor.
+- Ejemplo: CPU c5.xlarge 30 min = ~$0.085/job vs GPU g4dn.xlarge 2 min = ~$0.018/job. Pero si GPU solo reduce a 25 min = ~$0.22/job (más caro).
+- Usar **Spot Instances con GPU** (hasta ~70% descuento) abarata más aún. Batch gestiona las interrupciones.
+
+**Si las filas son independientes pero los cálculos NO son GPU-friendly → Batch Array Jobs (CPU):**
+- Divide el fichero en N chunks y procesa cada uno en un contenedor CPU separado.
+- Ejemplo: 1000 filas / 10 contenedores = 100 filas/contenedor. Cálculo: ~3 min por contenedor.
+- **Ojo con el provisioning:** cada contenedor necesita tiempo de arranque (EC2: ~3-5 min, Fargate: ~1-2 min). El tiempo real es cálculo + provisioning.
+- El coste total es **mayor** que 1 solo contenedor (pagas el provisioning de cada uno), pero el usuario espera mucho menos. Es un tradeoff dinero vs tiempo de espera.
+- Ejemplo realista: 1 CPU 30 min = ~$0.085. 5 Fargate Tasks ~8 min = ~$0.10. Pagas un poco más por reducir la espera de 30 min a 8 min.
+- Mitigación: usar menos contenedores más grandes (3 en vez de 10) reduce el overhead de provisioning.
+- No requiere reescribir código para CUDA.
+
+**Lo que NO usarías:**
+- **Lambda**: Límite de 15 min. No cabe un proceso de 30 min.
+- **EC2 dedicado para procesamiento**: Pagas 24/7 aunque nadie suba excels.
+- **Fargate Service (24/7)**: Un Service está corriendo siempre. Quieres Tasks puntuales que mueran al acabar.
+
+> **Tip para el examen:** AWS Batch = muchos jobs por lotes, colas con prioridades, dependencias, Spot. Fargate Task = tarea puntual sin gestionar infraestructura. Si la pregunta menciona "batch processing", "job scheduling", "procesamiento masivo" → **AWS Batch**. Si menciona "ejecutar una tarea containerizada puntual sin gestionar servidores" → **Fargate Task (ECS RunTask)**.
 
 ---
 
@@ -675,12 +852,15 @@ AWS Batch permite ejecutar **trabajos de procesamiento por lotes** (batch jobs) 
 - **Blue/Green**: Environments separados, swap URL.
 - Beanstalk crea y gestiona los recursos (EC2, ALB, ASG, RDS, etc.) pero tú tienes control total sobre ellos.
 
-### Batch
+### Batch vs Fargate para procesos largos
 
-- Para procesamiento largo (sin límite de tiempo, a diferencia de los 15 min de Lambda).
-- Puede usar **Spot Instances** para reducir costes.
-- Usa contenedores Docker.
-- AWS gestiona la infraestructura de cómputo (Managed Compute Environment).
+- **Lambda limit = 15 min**. Si necesitas más → Batch o Fargate.
+- **AWS Batch**: Para **lotes masivos** (miles de jobs). Ofrece colas, prioridades, dependencias, array jobs, reintentos y **Spot Instances**.
+- **Fargate (standalone)**: Para **servicios o tareas puntuales** long-running. Más simple pero sin orquestación de jobs nativa.
+- Batch puede usar **Fargate como Compute Environment** (no necesariamente EC2).
+- Batch puede usar **Spot Instances** (con EC2 CE) para reducir costes hasta 90%.
+- Si la pregunta dice "batch processing", "job queue", "miles de jobs" → **AWS Batch**.
+- Si dice "servicio containerizado sin gestionar servidores" → **Fargate con ECS/EKS**.
 
 ### Edge Computing
 

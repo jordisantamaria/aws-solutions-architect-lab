@@ -7,6 +7,8 @@
 - [Lógica de Evaluación de Políticas](#lógica-de-evaluación-de-políticas)
 - [IAM Best Practices](#iam-best-practices)
 - [AWS Organizations](#aws-organizations)
+- [AWS Control Tower](#aws-control-tower)
+- [AWS RAM (Resource Access Manager)](#aws-ram-resource-access-manager)
 - [STS y AssumeRole](#sts-y-assumerole)
 - [AWS IAM Identity Center (SSO)](#aws-iam-identity-center-sso)
 - [AWS KMS](#aws-kms)
@@ -209,6 +211,119 @@ AWS Organizations permite gestionar múltiples cuentas AWS centralmente.
 - **Descuentos por volumen** se agregan entre cuentas (ej: S3, EC2).
 - Las **Reserved Instances** se comparten entre cuentas de la organización (a menos que se desactive).
 - Permite rastrear costes por cuenta individual con AWS Cost Explorer.
+
+---
+
+## AWS Control Tower
+
+Servicio para configurar y gobernar un **entorno multi-cuenta seguro** basado en mejores prácticas. Se construye sobre AWS Organizations.
+
+### Qué problema resuelve
+
+Configurar un entorno multi-cuenta manualmente requiere: crear cuentas, configurar SSO, aplicar SCPs, configurar logging centralizado, etc. **Control Tower automatiza todo esto**.
+
+### Componentes principales
+
+| Componente | Descripción |
+|-----------|-------------|
+| **Landing Zone** | Entorno multi-cuenta pre-configurado con mejores prácticas. Incluye cuentas de logging, audit, y la estructura de OUs |
+| **Account Factory** | Provisión automatizada de nuevas cuentas AWS con configuración estandarizada. Usa AWS Service Catalog bajo el capó |
+| **Guardrails (Controls)** | Reglas de gobernanza aplicadas a las OUs. Pueden ser preventivas (SCP) o detectivas (AWS Config Rules) |
+| **Dashboard** | Vista centralizada del estado de compliance de todas las cuentas y guardrails |
+
+### Tipos de Guardrails
+
+| Tipo | Mecanismo | Ejemplo |
+|------|-----------|---------|
+| **Preventive** | SCP (Service Control Policy) | "No permitir eliminar CloudTrail logs" |
+| **Detective** | AWS Config Rules | "Detectar si un bucket S3 es público" |
+| **Proactive** | CloudFormation Hooks | "Bloquear despliegue de recursos no conformes antes de crearlos" |
+
+### Niveles de Guardrails
+
+| Nivel | Descripción |
+|-------|-------------|
+| **Mandatory** | Siempre habilitados. No se pueden desactivar (ej: prohibir cambios en la cuenta de logging) |
+| **Strongly Recommended** | Basados en mejores prácticas de AWS (ej: habilitar cifrado en EBS) |
+| **Elective** | Opcionales, para requisitos específicos de la empresa |
+
+### Estructura de Landing Zone
+
+```
+Management Account (root)
+├── Security OU
+│   ├── Log Archive Account      → Almacena CloudTrail y Config logs de TODAS las cuentas
+│   └── Audit Account            → Acceso cross-account para auditoría y compliance
+├── Sandbox OU
+│   └── Dev accounts             → Para experimentación con guardrails relajados
+├── Production OU
+│   └── Prod accounts            → Guardrails estrictos
+└── Guardrails aplicados por OU
+```
+
+### Control Tower vs Organizations
+
+| Característica | Organizations (solo) | Control Tower |
+|---------------|---------------------|---------------|
+| **Crear cuentas** | Manual o API | Account Factory (automatizado, estandarizado) |
+| **Guardrails** | SCPs manuales | Guardrails predefinidos (preventivos + detectivos) |
+| **Logging centralizado** | Configurar manualmente | Pre-configurado (Log Archive Account) |
+| **Dashboard de compliance** | No | Sí |
+| **Best practices automáticas** | No | Sí (Landing Zone) |
+
+> **Tip para el examen:** Si la pregunta menciona "configurar entorno multi-cuenta con mejores prácticas", "landing zone", "gobernanza multi-cuenta automatizada", "Account Factory" → **Control Tower**. Si solo necesitas agrupar cuentas y aplicar SCPs manualmente → **Organizations**. Control Tower usa Organizations bajo el capó.
+
+---
+
+## AWS RAM (Resource Access Manager)
+
+Servicio para **compartir recursos AWS entre cuentas** de forma segura, sin necesidad de crear duplicados.
+
+### Recursos que se pueden compartir
+
+| Recurso | Caso de uso |
+|---------|------------|
+| **VPC Subnets** | Cuentas diferentes lanzan recursos en subnets compartidas de una VPC central |
+| **Transit Gateway** | Compartir un Transit Gateway entre cuentas sin que cada una cree el suyo |
+| **Route 53 Resolver Rules** | Compartir reglas de resolución DNS |
+| **License Manager** | Compartir configuraciones de licencias |
+| **Aurora DB Cluster** | Compartir un cluster Aurora entre cuentas |
+| **AWS CodeBuild Projects** | Compartir proyectos de build |
+| **EC2 (Dedicated Hosts, Capacity Reservations)** | Compartir hosts dedicados |
+
+### Caso de uso más común: VPC Subnet Sharing
+
+```
+Cuenta A (Network Account): Crea la VPC y las subnets
+    │
+    ├── Comparte subnet-private-1 via RAM → Cuenta B
+    ├── Comparte subnet-private-2 via RAM → Cuenta C
+    │
+    ▼
+Cuenta B: Lanza EC2/RDS/Lambda en subnet-private-1 (de la VPC de Cuenta A)
+Cuenta C: Lanza EC2/RDS/Lambda en subnet-private-2 (de la VPC de Cuenta A)
+```
+
+- Los recursos de cada cuenta están **aislados** (cada cuenta gestiona sus security groups, instancias, etc.).
+- La VPC y las subnets las **gestiona solo la cuenta propietaria**.
+- Reduce la complejidad de VPC peering entre muchas cuentas.
+
+### RAM con AWS Organizations
+
+- Si las cuentas están en la misma Organization, RAM puede compartir automáticamente sin invitaciones.
+- Si no están en la misma Organization, se envía una invitación que la otra cuenta debe aceptar.
+
+### RAM vs otras alternativas
+
+| Necesidad | Solución |
+|-----------|---------|
+| "Compartir una subnet entre cuentas" | **RAM** |
+| "Compartir un Transit Gateway entre cuentas" | **RAM** |
+| "Acceder a recursos de otra cuenta via API" | **STS AssumeRole (cross-account)** |
+| "Compartir un bucket S3 con otra cuenta" | **S3 Bucket Policy** (no necesitas RAM) |
+| "Compartir una AMI con otra cuenta" | **AMI Sharing** (no necesitas RAM) |
+
+> **Tip para el examen:** Si la pregunta menciona "compartir VPC subnets entre cuentas", "compartir Transit Gateway entre cuentas", "compartir recursos entre cuentas de una Organization" → **RAM**. No confundir con cross-account IAM roles (STS AssumeRole), que es para acceder a APIs, no para compartir recursos de red.
 
 ---
 
@@ -503,6 +618,21 @@ Amazon Cognito proporciona autenticación, autorización y gestión de usuarios 
 - SCPs no aplican a la **Management Account**.
 - SCPs no aplican a **service-linked roles**.
 - SCPs afectan a **todos los usuarios y roles** de la cuenta, incluido el root de la cuenta member.
+
+### Control Tower
+
+- **"Configurar entorno multi-cuenta con best practices"** → Control Tower.
+- **"Landing Zone"** → Control Tower.
+- **"Account Factory"** → Control Tower (provisión automatizada de cuentas).
+- **Guardrails preventivos** = SCPs. **Guardrails detectivos** = Config Rules.
+- Control Tower usa Organizations bajo el capó, pero automatiza toda la configuración.
+
+### RAM (Resource Access Manager)
+
+- **"Compartir subnets entre cuentas"** → RAM.
+- **"Compartir Transit Gateway entre cuentas"** → RAM.
+- No confundir con cross-account roles (STS AssumeRole) que es para acceso a APIs.
+- En Organizations, RAM comparte sin invitaciones. Fuera, requiere aceptar invitación.
 
 ### Cifrado
 
