@@ -2,6 +2,18 @@
 
 Servicios que aparecen en preguntas del examen como opciones correctas o distractores. No necesitan sección entera pero necesitas saber qué hacen para elegir o descartar.
 
+## Tabla de Contenidos
+
+- [Marketing y Comunicación](#marketing-y-comunicación)
+- [Governance y Compliance](#governance-y-compliance)
+- [Almacenamiento y Análisis](#almacenamiento-y-análisis)
+- [Seguridad adicional](#seguridad-adicional)
+- [Transferencia de datos](#transferencia-de-datos)
+- [Integración de aplicaciones](#integración-de-aplicaciones)
+- [Compute adicional](#compute-adicional)
+- [Machine Learning adicional](#machine-learning-adicional)
+- [Cheat sheet: servicios que se confunden](#cheat-sheet-servicios-que-se-confunden)
+
 ---
 
 ## Marketing y Comunicación

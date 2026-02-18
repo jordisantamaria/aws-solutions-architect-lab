@@ -1,5 +1,17 @@
 # Servicios AI/ML Managed de AWS
 
+## Tabla de Contenidos
+
+- [Concepto clave](#concepto-clave)
+- [Servicios por categoría](#servicios-por-categoría)
+- [Pipeline típico: call center analytics](#pipeline-típico-call-center-analytics)
+- [Pipeline típico: procesamiento de documentos](#pipeline-típico-procesamiento-de-documentos)
+- [Cheat sheet para el examen](#cheat-sheet-para-el-examen)
+- [Servicios que se confunden frecuentemente](#servicios-que-se-confunden-frecuentemente)
+- [Tips para el examen](#tips-para-el-examen)
+
+---
+
 ## Concepto clave
 
 AWS ofrece servicios de AI/ML **fully managed** que no requieren entrenar ni mantener modelos. Solo llamas a una API y obtienes el resultado. Esto es lo que pregunta el examen — no necesitas saber ML, necesitas saber **qué servicio usar para cada caso**.
