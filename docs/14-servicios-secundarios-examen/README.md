@@ -8,9 +8,7 @@ Servicios que aparecen en preguntas del examen como opciones correctas o distrac
 - [Governance y Compliance](#governance-y-compliance)
 - [Almacenamiento y Análisis](#almacenamiento-y-análisis)
 - [Seguridad adicional](#seguridad-adicional)
-- [Transferencia de datos](#transferencia-de-datos)
 - [Integración de aplicaciones](#integración-de-aplicaciones)
-- [Compute adicional](#compute-adicional)
 - [Machine Learning adicional](#machine-learning-adicional)
 - [Cheat sheet: servicios que se confunden](#cheat-sheet-servicios-que-se-confunden)
 
@@ -86,31 +84,6 @@ Casos de uso:
 ```
 Connect:  atención al cliente (el cliente te llama/escribe)
 Pinpoint: marketing (tú envías mensajes al cliente)
-```
-
----
-
-### Amazon SES (Simple Email Service)
-**Servicio de envío de email transaccional y marketing**
-
-- Envío de emails a escala (miles por segundo)
-- Email transaccional (confirmación de registro, recibos, etc.)
-- Email marketing masivo
-- Gestión de bounces y quejas
-- Email receiving (recibir emails y procesarlos con Lambda/S3)
-
-**Para el examen:**
-```
-"Enviar emails transaccionales a escala"     → SES
-"Email marketing masivo"                      → SES o Pinpoint
-"Recibir emails y procesarlos"               → SES (email receiving)
-```
-
-**SES vs Pinpoint vs SNS:**
-```
-SES:      email a escala (transaccional + marketing)
-Pinpoint: marketing multicanal (email + SMS + push + journeys)
-SNS:      notificaciones (email simple, SMS simple, pub/sub)
 ```
 
 ---
@@ -224,23 +197,6 @@ IAM Access Analyzer: "¿Quién TIENE acceso?"         (permisos)
 
 ## Seguridad adicional
 
-### Amazon Macie
-**Descubrir y proteger datos sensibles en S3**
-
-- Escanea S3 buscando PII (nombres, emails, tarjetas de crédito, SSN)
-- Machine learning para detectar datos sensibles
-- Alertas cuando encuentra datos expuestos
-- Integración con Security Hub
-
-```
-Para el examen:
-  "Detectar PII en S3"                                → Macie
-  "Datos sensibles expuestos en S3"                    → Macie
-  "Cumplir GDPR detectando datos personales en S3"     → Macie
-```
-
----
-
 ### AWS Network Firewall
 **Firewall managed para VPC**
 
@@ -266,31 +222,6 @@ WAF:               protección de apps web HTTP/HTTPS (Layer 7)
 
 ---
 
-## Transferencia de datos
-
-### AWS Transfer Family
-**Servidores SFTP/FTPS/FTP managed que guardan en S3**
-
-- Clientes externos suben ficheros por SFTP → van a S3 automáticamente
-- No gestionas servidor FTP
-- Compatible con clientes FTP existentes
-
-```
-Para el examen:
-  "SFTP", "FTP", "FTPS" + "S3"              → Transfer Family
-  "Clientes externos suben ficheros"         → Transfer Family
-  "Migrar servidor FTP a AWS"                → Transfer Family
-```
-
-**Transfer Family vs DataSync vs Storage Gateway:**
-```
-Transfer Family:   terceros suben ficheros por SFTP → S3
-DataSync:          mover datos de on-premise a AWS (migración)
-Storage Gateway:   puente continuo on-premise ↔ AWS
-```
-
----
-
 ## Integración de aplicaciones
 
 ### Amazon AppFlow
@@ -305,70 +236,6 @@ Storage Gateway:   puente continuo on-premise ↔ AWS
 Para el examen:
   "Integrar Salesforce con S3"                → AppFlow
   "Transferir datos de SaaS a AWS sin código"  → AppFlow
-```
-
----
-
-### AWS Glue DataBrew
-**Preparación de datos visual sin código**
-
-- Limpiar, normalizar, transformar datos
-- Interfaz visual (no necesitas Spark/código)
-- Recetas de transformación reutilizables
-
-```
-Para el examen:
-  "ETL sin código", "data preparation visual"  → Glue DataBrew
-  "ETL con código (Spark)"                      → Glue ETL
-```
-
----
-
-## Compute adicional
-
-### AWS Wavelength
-**Compute en el edge de redes 5G**
-
-- EC2/ECS en data centers de operadoras telecom
-- Ultra-baja latencia para apps móviles
-- Gaming, AR/VR, video streaming en tiempo real
-
-```
-Para el examen:
-  "Ultra-baja latencia para dispositivos 5G"   → Wavelength
-  "Edge computing en red móvil"                 → Wavelength
-```
-
----
-
-### AWS Outposts
-**Infraestructura AWS en tu data center**
-
-- Rack físico de AWS en tu oficina/data center
-- Mismas APIs de AWS (EC2, EBS, S3, RDS, EKS)
-- Para cuando necesitas AWS pero con data residency on-premise
-
-```
-Para el examen:
-  "AWS en tu propio data center"                → Outposts
-  "Data residency on-premise con APIs AWS"      → Outposts
-  "Latencia ultra-baja a sistemas on-premise"   → Outposts
-```
-
----
-
-### AWS Local Zones
-**Extensión de una región AWS más cerca de usuarios**
-
-- Mini data centers de AWS en ciudades específicas
-- Para latencia baja sin montar Outposts
-- Mismos servicios pero más cerca geográficamente
-
-```
-Para el examen:
-  "Baja latencia en una ciudad específica"      → Local Zones
-  "AWS más cerca de los usuarios finales"       → Local Zones o CloudFront
-  "AWS en tu propio hardware"                   → Outposts (NO Local Zones)
 ```
 
 ---
