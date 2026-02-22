@@ -2,6 +2,7 @@
 
 ## Índice
 
+- [Tipos de almacenamiento: Block vs File vs Object](#tipos-de-almacenamiento-block-vs-file-vs-object)
 - [Amazon S3](#amazon-s3)
 - [Clases de almacenamiento S3](#clases-de-almacenamiento-s3)
 - [Características de S3](#características-de-s3)
@@ -15,6 +16,38 @@
 - [AWS Snow Family](#aws-snow-family)
 - [AWS DataSync vs Transfer Family](#aws-datasync-vs-transfer-family)
 - [Tips para el examen](#tips-para-el-examen)
+
+---
+
+## Tipos de almacenamiento: Block vs File vs Object
+
+Antes de ver los servicios individuales, es fundamental entender los tres modelos de almacenamiento porque el examen pregunta cuál usar en cada escenario.
+
+| | Block Storage | File Storage | Object Storage |
+|---|---|---|---|
+| **Analogía** | Un disco duro conectado a tu PC | Una carpeta compartida en red (NAS) | Un almacén de paquetes con etiqueta |
+| **Unidad** | Bloques de bytes (como sectores de disco) | Archivos organizados en directorios | Objetos con key + metadata |
+| **Acceso** | Directo, byte a byte | Por ruta jerárquica (NFS/SMB) | Por HTTP (GET/PUT) |
+| **Modificación parcial** | Sí (cambiar 1 byte) | Sí (editar un fichero) | **No** (reescribir el objeto entero) |
+| **Latencia** | Sub-milisegundo | Milisegundos | Milisegundos a cientos de ms |
+| **El SO lo ve como** | Un disco local (le pone su filesystem: NTFS, ext4) | Un punto de montaje de red | No se monta; se accede por API |
+| **Caso de uso** | Bases de datos, trading apps, boot volumes | Ficheros compartidos, home dirs, CMS | Backups, media, data lakes, web assets |
+| **Servicios AWS** | **EBS**, FSx for NetApp ONTAP (iSCSI) | **EFS** (NFS), **FSx** (SMB/NFS) | **S3** |
+
+### Por qué importa la distinción para el examen
+
+```
+App transaccional (BD, trading)  →  necesita leer/escribir bloques individuales rápido
+                                 →  Block Storage (EBS o iSCSI)
+
+Ficheros compartidos entre servers →  necesita rutas /datos/informe.pdf accesibles por varios servers
+                                   →  File Storage (EFS o FSx)
+
+Almacenar millones de objetos      →  no necesita edición parcial, escala infinita
+                                   →  Object Storage (S3)
+```
+
+> **Tip para el examen:** Si el escenario dice "low-latency block storage" compartido multi-AZ, EBS no sirve (es single-AZ). La respuesta es **FSx for NetApp ONTAP con iSCSI**, que expone block storage por red accesible desde múltiples AZs. Si solo dice "block storage single-AZ", la respuesta es **EBS**.
 
 ---
 
@@ -60,7 +93,33 @@ Mueve automáticamente los objetos entre niveles sin impacto en rendimiento ni c
 | **Glacier Flexible Retrieval** | 1-5 min | 3-5 hrs | 5-12 hrs |
 | **Glacier Deep Archive** | No disponible | 12 hrs | 48 hrs |
 
-> **Clave para el examen**: Glacier Instant Retrieval ofrece acceso en milisegundos. Glacier Flexible Retrieval requiere restauración previa. Deep Archive es la opción más barata pero con tiempos de recuperación de horas.
+**Detalle de cada tipo de retrieval:**
+```
+Expedited:  1-5 minutos, hasta 150 MB/s throughput
+            ⚠️ Sin provisioned capacity → puede fallar en alta demanda
+            Con provisioned capacity → GARANTIZADO siempre disponible
+
+Standard:   3-5 horas, para datos que no son urgentes
+
+Bulk:       5-12 horas, lo más barato, para grandes volúmenes sin prisa
+```
+
+**Provisioned Retrieval Capacity:**
+```
+Problema: Expedited retrieval usa capacidad compartida de AWS
+          En momentos de alta demanda, tu request puede ser rechazado
+
+Solución: Compras "provisioned capacity" (~$100/mes por unidad)
+          → Garantiza que Expedited SIEMPRE funciona
+          → Cada unidad = 3 retrievals cada 5 min + 150 MB/s throughput
+
+Cuándo usarlo:
+  - Compliance que exige acceso garantizado ("under all circumstances")
+  - Auditorías sorpresa que necesitan datos en minutos
+  - SLA estricto de recuperación de datos
+```
+
+> **Clave para el examen**: Glacier Instant Retrieval ofrece acceso en milisegundos. Glacier Flexible Retrieval requiere restauración previa. Deep Archive es la opción más barata pero con tiempos de recuperación de horas. Si el enunciado pide acceso garantizado en minutos "under all circumstances" → Expedited + Provisioned Retrieval Capacity.
 
 ---
 
@@ -113,10 +172,57 @@ Glacier Instant → Glacier Flexible → Glacier Deep Archive
 
 | Método | Gestión de claves | Cuándo usar |
 |---|---|---|
-| **SSE-S3** | AWS gestiona las claves. AES-256. Header: `x-amz-server-side-encryption: AES256` | Por defecto. Sin requisitos de auditoría de claves |
-| **SSE-KMS** | AWS KMS gestiona las claves. Header: `x-amz-server-side-encryption: aws:kms` | Auditoría con CloudTrail, control de rotación de claves |
-| **SSE-C** | El cliente proporciona la clave en cada request. Solo HTTPS | Control total de claves por el cliente |
-| **Client-Side** | El cliente cifra antes de enviar | Cifrado end-to-end, el cliente gestiona todo |
+#### Server-Side Encryption (SSE) — AWS cifra después de recibir el objeto
+
+| Método | Quién gestiona la clave | Datos viajan sin cifrar a AWS? | Clave en AWS? |
+|---|---|---|---|
+| **SSE-S3** | AWS completamente (AES-256) | Sí (cifrados en tránsito por HTTPS, pero AWS los ve) | Sí |
+| **SSE-KMS** | AWS KMS (tú controlas la key policy) | Sí | Sí |
+| **SSE-C** | Tú proporcionas la clave en cada request | Sí (solo HTTPS) | No se almacena (AWS la usa y descarta) |
+
+```
+Cliente  ──── objeto en claro (HTTPS) ────►  S3  ──► cifra con la clave ──► almacena cifrado
+```
+
+En los tres casos SSE, AWS recibe el objeto sin cifrar (protegido por HTTPS en tránsito) y lo cifra antes de escribirlo a disco.
+
+#### Client-Side Encryption — El cliente cifra ANTES de enviar
+
+| Variante | Master key | Master key sale del cliente? | Datos sin cifrar llegan a AWS? |
+|---|---|---|---|
+| **Client-Side con KMS key** | AWS KMS genera la data key | Sí (pides la data key a KMS via API) | **No** |
+| **Client-Side con client-side master key** | Tú la gestionas localmente | **No** (nunca sale de tu entorno) | **No** |
+
+```
+Client-Side con KMS:
+Cliente ──► pide data key a KMS ──► cifra localmente ──► sube cifrado a S3
+
+Client-Side con client master key:
+Cliente ──► genera data key con su master key local ──► cifra localmente ──► sube cifrado a S3
+                (la master key NUNCA sale del cliente)
+```
+
+**Con client-side encryption el objeto en S3 es ilegible.** No se puede ver desde la consola de AWS, ni con acceso directo al bucket. Para leerlo hay que descargarlo y descifrarlo con la master key correspondiente.
+
+**Cómo funciona (envelope encryption):**
+1. El SDK genera una **data key** aleatoria para cada objeto.
+2. Cifra el objeto con esa data key.
+3. Cifra la data key con la **master key** (KMS o local).
+4. Sube el objeto cifrado + la data key cifrada como metadata (`x-amz-meta-x-amz-key`).
+5. Para leer: descarga, descifra la data key con la master key, descifra el objeto con la data key.
+
+> Si pierdes la master key, **pierdes los datos para siempre**. AWS no puede ayudarte.
+
+#### Cuándo usar cada método (para el examen)
+
+| Requisito del escenario | Método |
+|---|---|
+| Sin requisitos especiales, cifrado básico | **SSE-S3** (por defecto) |
+| Auditoría de uso de claves con CloudTrail | **SSE-KMS** |
+| "El cliente debe controlar la clave" pero acepta que AWS cifre | **SSE-C** |
+| "Los datos no deben llegar sin cifrar a AWS" | **Client-Side** |
+| "La master key no debe salir del entorno del cliente / no debe ir a AWS" | **Client-Side con client-side master key** |
+| "Datos no cifrados ni master key deben llegar a AWS" | **Client-Side con client-side master key** |
 
 > **Clave para el examen**: SSE-KMS tiene un límite de cuota de API de KMS (5,500-30,000 requests/s según región). Para cargas masivas, considerar SSE-S3 o S3 Bucket Keys (reduce llamadas a KMS un 99%).
 
@@ -396,8 +502,11 @@ Servicios de sistemas de archivos de alto rendimiento gestionados por AWS.
 - Snapshots, replicación, clonación instantánea.
 - Compresión y deduplicación de datos.
 - Point-in-time cloning.
+- **Multi-AZ** para alta disponibilidad.
 
-**Cuándo usar**: Migración de workloads NetApp on-premises, necesidad de multi-protocolo, entornos heterogéneos.
+**iSCSI = block storage por red:** El protocolo iSCSI hace que la instancia vea el almacenamiento remoto como un disco local (block device). Esto lo diferencia de FSx for Windows (solo file/SMB) y EFS (solo file/NFS). Es el único FSx que ofrece **block storage compartido multi-AZ**.
+
+**Cuándo usar**: Migración de workloads NetApp on-premises, necesidad de multi-protocolo, entornos heterogéneos, **block storage compartido multi-AZ** (trading, bases de datos Windows).
 
 ### FSx for OpenZFS
 
@@ -433,14 +542,56 @@ Servicio de almacenamiento híbrido que conecta infraestructura on-premises con 
 | **Volume Gateway - Stored** | S3 (con EBS snapshots) | iSCSI | Todos los datos locales | Backups de volúmenes completos |
 | **Tape Gateway** | S3 y Glacier | iSCSI VTL | Sí | Reemplazo de cintas físicas (backup) |
 
-**Notas importantes:**
+### S3 File Gateway — Detalle
 
-- **S3 File Gateway**: Los archivos se almacenan como objetos S3. Se pueden usar lifecycle policies. Integra con Active Directory para autenticación SMB.
+Es una VM (o appliance) que se instala on-premises y expone una carpeta compartida **NFS/SMB**. Los servidores on-premises la ven como un file share normal, pero los datos se almacenan en S3.
+
+```
+On-premises                                          AWS
+┌────────────────────────────┐          ┌─────────────────────────┐
+│  Servidor ──► \\gateway\docs (SMB) │          │  Amazon S3              │
+│                │                   │          │  (todos los datos)      │
+│         ┌──────▼──────────┐        │  sube    │                         │
+│         │ S3 File Gateway │ ────────────────► │  Lifecycle Policy:      │
+│         │ [Local Cache]   │        │  auto    │  0-6m: S3 Standard      │
+│         │ SSD con datos   │        │          │  6m+: Glacier           │
+│         │ recientes       │        │          └─────────────────────────┘
+│         └─────────────────┘        │
+└────────────────────────────────────┘
+```
+
+**Cómo funciona el local cache:**
+- Al subir un fichero: se guarda en cache local **y** se sube a S3 automáticamente.
+- Al leer un fichero reciente: se lee del cache local (baja latencia, sin coste de egress).
+- Al leer un fichero antiguo (no en cache): se descarga de S3 y entra en cache. Lecturas siguientes son locales.
+- El cache usa LRU (Least Recently Used): evicta los ficheros menos accedidos para hacer espacio.
+
+**Beneficios:**
+- Los empleados ven una carpeta SMB normal — no saben que los datos están en S3.
+- Integra con **Active Directory** para autenticación SMB.
+- Se pueden aplicar **S3 Lifecycle Policies** (mover a Glacier tras X meses).
+- Reduce **data egress charges**: lecturas frecuentes se sirven del cache local, no de S3.
+
+### Notas importantes sobre los demás tipos
+
 - **Volume Gateway - Cached**: Solo los datos más accedidos se mantienen localmente; el dataset completo está en S3.
 - **Volume Gateway - Stored**: Todos los datos están on-premises con backups asíncronos a S3.
-- **Tape Gateway**: Compatible con software de backup existente (NetBackup, Veeam, etc.). Las cintas virtuales se archivan en S3 Glacier o Deep Archive.
+- **Tape Gateway**: Compatible con software de backup existente (NetBackup, Veeam, etc.). Las cintas virtuales se archivan en S3 Glacier o Deep Archive. Protocolo iSCSI VTL (no SMB/NFS).
 
-> **Clave para el examen**: Si la pregunta menciona "caché local" + "acceso a S3", piensa en Storage Gateway. Si menciona "migración de cintas de backup", piensa en Tape Gateway.
+### Storage Gateway vs DataSync
+
+| | S3 File Gateway | DataSync |
+|---|---|---|
+| **Propósito** | Acceso híbrido continuo (on-premises ↔ S3) | Migración/sincronización de datos (one-time o scheduled) |
+| **Local cache** | **Sí** (baja latencia para datos recientes) | **No** |
+| **Protocolo** | NFS, SMB (como un file share normal) | Agente que transfiere datos |
+| **Patrón** | Los usuarios acceden a ficheros diariamente | Copiar/mover datos de A a B |
+
+> **Clave para el examen:**
+> - "Cache local" + "acceso a ficheros on-premises" + "datos en S3" → **S3 File Gateway**.
+> - "SMB + Active Directory + lifecycle a Glacier" → **S3 File Gateway**.
+> - "Migración de cintas de backup" → **Tape Gateway**.
+> - "Migración de datos NFS/SMB a AWS (sin cache)" → **DataSync**.
 
 ---
 
@@ -550,6 +701,14 @@ Dispositivos físicos para transferencia de datos offline y edge computing.
 1. **"Almacenamiento compartido entre múltiples instancias Linux"** → EFS.
 2. **"Almacenamiento compartido cross-AZ"** → EFS.
 3. **"Windows file share"** → NO es EFS, es FSx for Windows.
+
+### FSx
+
+1. **"Windows file share con Active Directory"** → FSx for Windows.
+2. **"HPC, ML, alto throughput en Linux"** → FSx for Lustre.
+3. **"Multi-protocolo (NFS + SMB + iSCSI)"** → FSx for NetApp ONTAP.
+4. **"Block storage compartido multi-AZ"** o **"low-latency block storage + Windows + multi-AZ"** → FSx for NetApp ONTAP con iSCSI (no EBS, que es single-AZ).
+5. **"Migración de ZFS on-premises"** → FSx for OpenZFS.
 
 ### Storage Gateway
 

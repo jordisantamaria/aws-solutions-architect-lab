@@ -16,6 +16,7 @@
 - [AWS CloudHSM](#aws-cloudhsm)
 - [AWS WAF, Shield y Shield Advanced](#aws-waf-shield-y-shield-advanced)
 - [Amazon Cognito](#amazon-cognito)
+- [AWS Directory Service (Active Directory)](#aws-directory-service-active-directory)
 - [Servicios de Detección y Seguridad](#servicios-de-detección-y-seguridad)
 - [AWS Certificate Manager (ACM)](#aws-certificate-manager-acm)
 - [Security Exam Tips](#security-exam-tips)
@@ -357,6 +358,48 @@ AWS Security Token Service (STS) es un servicio global que permite obtener **cre
 - Duración configurable (15 minutos a 12 horas según el caso).
 - No se pueden revocar individualmente, pero el rol puede tener su policy modificada.
 
+### Federation + IAM Policy Variables (acceso per-user a S3)
+
+Escenario típico del examen: 1000+ empleados de una empresa con AD corporativo necesitan acceso cada uno a su propia carpeta en S3, con SSO.
+
+**No creas 1000 IAM users.** Usas federation + un solo IAM Role con policy variables:
+
+```
+Empleado ──► AD corporativo (SSO)
+                 │
+                 ▼
+         Federation proxy / IdP (SAML 2.0)
+                 │
+                 ▼
+         STS: AssumeRoleWithSAML → credenciales temporales
+                 │
+                 ▼
+         IAM Role con policy variable → acceso solo a su carpeta en S3
+```
+
+**La policy usa `${aws:userid}` que se reemplaza automáticamente** por la identidad del usuario federado:
+
+```json
+{
+  "Effect": "Allow",
+  "Action": ["s3:GetObject", "s3:PutObject"],
+  "Resource": "arn:aws:s3:::empresa-docs/${aws:userid}/*"
+}
+```
+
+Cuando Juan se autentica, `${aws:userid}` se resuelve a `juan` → solo puede acceder a `s3://empresa-docs/juan/*`. María ve solo `maria/*`. **Un solo Role, una sola policy, miles de usuarios.**
+
+**Variables de policy disponibles:**
+
+| Variable | Se reemplaza por | Ejemplo |
+|---|---|---|
+| `${aws:userid}` | ID del usuario (o role-id:session-name en federation) | `AROA12345:juan` |
+| `${aws:username}` | Nombre del usuario IAM | `juan` |
+| `${aws:PrincipalTag/department}` | Tag de la sesión federada | `ingenieria` |
+| `${s3:prefix}` | Prefijo solicitado en la operación S3 | `home/juan/` |
+
+> **Tip para el examen:** Si la pregunta dice "miles de usuarios corporativos + SSO + carpeta individual en S3" → **Federation (SAML/IdP) + STS + IAM Role con policy variables**. Nunca crear un IAM user por empleado.
+
 ---
 
 ## AWS IAM Identity Center (SSO)
@@ -477,7 +520,37 @@ CloudHSM proporciona módulos de seguridad de hardware (HSM) dedicados en la nub
 | **Algoritmos** | Simétricos y asimétricos | Simétricos, asimétricos y hashing |
 | **Casos de uso** | Cifrado general, integración servicios AWS | Compliance regulatorio estricto (FIPS 140-2 L3), SSL/TLS offloading, PKI |
 
-> **Tip para el examen:** Si la pregunta menciona **FIPS 140-2 Level 3** o **single-tenant HSM** o **control total de las claves criptográficas**, la respuesta es **CloudHSM**. Si menciona integración fácil con servicios AWS, es **KMS**.
+### Custom Key Store (KMS + CloudHSM)
+
+Un custom key store conecta KMS con tu CloudHSM cluster. Obtienes **lo mejor de ambos mundos**:
+
+- **De KMS**: integración nativa con servicios AWS (S3, EBS, RDS, etc.).
+- **De CloudHSM**: control total sobre el hardware donde vive el material de clave.
+
+```
+Sin custom key store:                    Con custom key store:
+App → KMS → HSM compartido de AWS        App → KMS → Tu CloudHSM dedicado
+(fácil pero sin control total)           (fácil + control total)
+```
+
+**Capacidades exclusivas del custom key store:**
+- **Eliminar material de clave inmediatamente** de AWS (imposible con claves KMS normales, que tienen periodo de espera de 7-30 días).
+- **Auditar uso de claves en los logs de CloudHSM**, independientemente de CloudTrail.
+- El material de clave es **non-extractable**: nunca sale del HSM en texto plano.
+
+### Tipos de KMS Keys (para el examen)
+
+| Tipo | Quién la controla | Rotación | Puedes borrarla | Ejemplo |
+|---|---|---|---|---|
+| **AWS Owned Key** | AWS completamente | AWS decide | No | Cifrado por defecto de S3 (SSE-S3) |
+| **AWS Managed Key** | AWS la gestiona, tú la usas | Automática (~1 año) | No | `aws/s3`, `aws/ebs`, `aws/rds` |
+| **Customer Managed Key** | Tú la controlas | Opcional | Sí (7-30 días espera) | Claves que tú creas en KMS |
+| **Customer Managed Key en Custom Key Store** | Tú la controlas + control del HSM | Opcional | Sí (inmediato, borrando del HSM) | Claves en KMS respaldadas por CloudHSM |
+
+> **Tip para el examen:**
+> - **FIPS 140-2 Level 3** o **single-tenant HSM** o **control total de las claves** → **CloudHSM**.
+> - **Integración fácil con servicios AWS + control total + eliminar material inmediatamente** → **KMS con custom key store (CloudHSM)**.
+> - **Auditar uso de claves independientemente de CloudTrail** → **Custom key store** (los logs de CloudHSM son independientes).
 
 ---
 
@@ -540,6 +613,66 @@ Amazon Cognito proporciona autenticación, autorización y gestión de usuarios 
 3. Con esas credenciales, el cliente accede directamente a servicios AWS (S3, API Gateway, etc.).
 
 > **Tip para el examen:** User Pools = autenticación (quién eres). Identity Pools = autorización (qué puedes hacer en AWS). Muchas preguntas intentan confundirte entre ambos.
+
+---
+
+## AWS Directory Service (Active Directory)
+
+### Qué es Active Directory
+
+**Active Directory (AD)** es el sistema de Microsoft para gestionar identidades en una organización. Es la "base de datos de empleados" que controla autenticación (quién eres) y autorización (a qué tienes acceso) en entornos Windows.
+
+```
+Active Directory (on-premises típico)
+├── Usuarios: juan@empresa.com, maria@empresa.com
+├── Grupos: Ingeniería, RRHH, Finanzas
+├── Permisos: Ingeniería → acceso a \\servidor\codigo
+│             RRHH → acceso a \\servidor\nominas
+└── Políticas: Contraseña mínimo 12 caracteres, bloqueo tras 3 intentos
+```
+
+Cuando un empleado hace login en su PC Windows, el PC consulta al AD: "¿existe este usuario y es correcta su contraseña?". Una vez autenticado, AD determina a qué carpetas compartidas, aplicaciones e impresoras tiene acceso.
+
+### AWS Directory Service
+
+Las empresas que migran a AWS no quieren recrear miles de usuarios en IAM. AWS Directory Service ofrece tres formas de usar Active Directory en la nube:
+
+| Tipo | Qué es | AD on-premises? | Caso de uso |
+|---|---|---|---|
+| **AWS Managed Microsoft AD** | AD completo gestionado por AWS. Soporta trust bidireccional con AD on-premises | Opcional (funciona standalone o conectado) | FSx for Windows, RDS SQL Server, WorkSpaces, SSO, entornos híbridos |
+| **AD Connector** | Proxy que redirige todas las peticiones al AD on-premises. No almacena datos en AWS | **Requerido** (sin AD on-premises no funciona) | Empresas que quieren usar su AD existente sin replicar datos en AWS |
+| **Simple AD** | AD básico standalone basado en Samba. Sin conexión a AD on-premises | No soportado | Empresas pequeñas sin AD existente que necesitan funcionalidad AD básica |
+
+```
+AWS Managed Microsoft AD:
+  Usuarios AWS  ──►  AWS Managed AD  ◄──  trust  ──►  AD on-premises
+                     (AD completo)                     (usuarios corporativos)
+                     Usuarios de ambos lados se ven mutuamente
+
+AD Connector:
+  Usuarios AWS  ──►  AD Connector  ──────────────────►  AD on-premises
+                     (solo proxy)                        (todo vive aquí)
+
+Simple AD:
+  Usuarios AWS  ──►  Simple AD
+                     (standalone, básico)
+```
+
+### Integración con servicios AWS
+
+| Servicio | Cómo usa AD |
+|---|---|
+| **FSx for Windows File Server** | Se "une" (join) al dominio AD. Los usuarios acceden con sus credenciales de empresa |
+| **RDS for SQL Server** | Autenticación Windows integrada via Managed AD |
+| **Amazon WorkSpaces** | Escritorios virtuales con login de AD corporativo |
+| **IAM Identity Center (SSO)** | Login único con credenciales de AD para la consola AWS y apps |
+| **Amazon EC2 Windows** | Las instancias pueden unirse al dominio AD |
+
+> **Tip para el examen:**
+> - "SharePoint / Windows file share + Active Directory en AWS" → **FSx for Windows File Server + AWS Managed Microsoft AD** (no EFS, que es solo Linux).
+> - "Usar AD on-premises existente sin almacenar datos de directorio en AWS" → **AD Connector**.
+> - "AD gestionado en la nube con trust a on-premises" → **AWS Managed Microsoft AD**.
+> - "AD básico sin conexión on-premises, presupuesto bajo" → **Simple AD**.
 
 ---
 
@@ -612,6 +745,7 @@ Amazon Cognito proporciona autenticación, autorización y gestión de usuarios 
 - Las **access keys** son para acceso programático; usuario/contraseña para la consola.
 - **Roles** son la forma recomendada de dar permisos a servicios AWS (no access keys).
 - **Permission Boundaries** limitan el máximo de permisos, no otorgan permisos.
+- **"Miles de usuarios corporativos + SSO + carpeta per-user en S3"** → Federation + STS + IAM Role con policy variables (`${aws:userid}`). Nunca crear un IAM user por empleado.
 
 ### Organizations y SCPs
 
@@ -660,6 +794,13 @@ Amazon Cognito proporciona autenticación, autorización y gestión de usuarios 
 - **Identity Pools** = credenciales temporales de AWS.
 - Para dar acceso directo a S3 desde una app móvil: User Pool + Identity Pool.
 - ALB puede autenticar contra Cognito User Pools o proveedores OIDC.
+
+### Active Directory
+
+- **"Migrar Windows workloads con Active Directory"** → AWS Managed Microsoft AD (+ FSx for Windows para file shares).
+- **"Usar AD on-premises sin replicar en AWS"** → AD Connector.
+- **"Windows file share + AD"** → FSx for Windows (no EFS). EFS = solo Linux/NFS.
+- **AWS Managed AD** soporta trust bidireccional con AD on-premises. AD Connector solo redirige.
 
 ### Detección
 

@@ -4,6 +4,7 @@
 
 - [VPC Fundamentals](#vpc-fundamentals)
 - [Internet Gateway vs NAT Gateway vs NAT Instance](#internet-gateway-vs-nat-gateway-vs-nat-instance)
+- [IPv6 Networking y Egress-Only Internet Gateway](#ipv6-networking-y-egress-only-internet-gateway)
 - [Security Groups vs NACLs](#security-groups-vs-nacls)
 - [VPC Peering](#vpc-peering)
 - [Transit Gateway](#transit-gateway)
@@ -85,7 +86,7 @@ Una **Virtual Private Cloud (VPC)** es una red virtual aislada lógicamente dent
 
 | Característica | Internet Gateway (IGW) | NAT Gateway | NAT Instance |
 |---------------|----------------------|-------------|--------------|
-| **Propósito** | Permitir comunicación bidireccional entre VPC e Internet | Permitir que subnets privadas accedan a Internet (solo salida) | Igual que NAT Gateway (legacy) |
+| **Propósito** | Permitir comunicación bidireccional entre VPC e Internet | Permitir que subnets privadas accedan a Internet (solo salida, **solo IPv4**) | Igual que NAT Gateway (legacy) |
 | **Dirección del tráfico** | Entrante y saliente | Solo saliente (outbound) | Solo saliente (outbound) |
 | **Adjunto a** | VPC (1 IGW por VPC) | Subnet pública específica | Subnet pública (instancia EC2) |
 | **Altamente disponible** | Sí (por diseño, redundante dentro de la Región) | Sí dentro de una AZ (crear uno por AZ para HA) | No (debes configurar failover manualmente) |
@@ -137,7 +138,62 @@ CON Endpoint:  EC2 (privada) → VPC Gateway Endpoint ($0)  → S3 (directo)
 
 Los Gateway VPC Endpoints son gratuitos y soportan S3 y DynamoDB. Si tu subnet privada mueve 1 TB/mes a S3, te ahorras $45/mes solo en data processing del NAT.
 
-> **Tip para el examen:** NAT Gateway es la respuesta correcta para el 99% de preguntas sobre acceso a Internet desde subnets privadas. NAT Instance solo aparece si preguntan por "la opción más barata" o "security groups en el NAT". Si preguntan "reducir costes de NAT Gateway cuando se accede a S3" → **VPC Gateway Endpoint**.
+> **Tip para el examen:** NAT Gateway es la respuesta correcta para el 99% de preguntas sobre acceso a Internet desde subnets privadas. NAT Instance solo aparece si preguntan por "la opción más barata" o "security groups en el NAT". Si preguntan "reducir costes de NAT Gateway cuando se accede a S3" → **VPC Gateway Endpoint**. Si preguntan por **IPv6 outbound-only** → **Egress-Only Internet Gateway** (NAT Gateway no soporta IPv6).
+
+---
+
+## IPv6 Networking y Egress-Only Internet Gateway
+
+### IPv6 en VPC
+
+- Al crear una VPC, puedes asignar un bloque CIDR IPv6 `/56` proporcionado por Amazon (o traer el tuyo via BYOIP).
+- Cada subnet puede recibir un bloque IPv6 `/64`.
+- A diferencia de IPv4, **todas las direcciones IPv6 son públicas** (no existe el concepto de rango privado RFC 1918).
+- Una instancia con IPv6 en una subnet pública con IGW tiene comunicación bidireccional con Internet via IPv6.
+
+### Egress-Only Internet Gateway
+
+Es el equivalente del NAT Gateway pero **exclusivamente para IPv6**. Permite que las instancias inicien conexiones salientes a Internet via IPv6, pero **bloquea conexiones entrantes iniciadas desde Internet**.
+
+| Característica | NAT Gateway | Egress-Only Internet Gateway |
+|---------------|-------------|------------------------------|
+| **Protocolo** | **Solo IPv4** | **Solo IPv6** |
+| **Propósito** | Outbound IPv4 desde subnets privadas | Outbound IPv6 desde subnets privadas |
+| **Bloquea inbound** | Sí (solo permite tráfico de retorno) | Sí (solo permite tráfico de retorno) |
+| **Es stateful** | Sí | Sí |
+| **Adjunto a** | Subnet pública específica | VPC (como el IGW) |
+| **Coste** | ~$0.045/h + $0.045/GB procesado | **Gratis** (solo pagas por datos transferidos) |
+
+### Configuración en Route Table
+
+```
+Route Table de subnet privada (dual-stack IPv4 + IPv6):
+
+| Destino         | Target                              |
+|-----------------|-------------------------------------|
+| 10.0.0.0/16     | local                               |
+| 0.0.0.0/0       | nat-xxx (NAT Gateway - IPv4)        |
+| ::/0            | eigw-xxx (Egress-Only IGW - IPv6)   |
+```
+
+### Por qué NAT Gateway no funciona para IPv6
+
+NAT (Network Address Translation) traduce IPs privadas a una IP pública. Pero en IPv6 **no existen IPs privadas** — todas son públicas y globalmente únicas. No hay traducción que hacer. Por eso AWS creó un mecanismo diferente: el Egress-Only Internet Gateway, que simplemente filtra la dirección del tráfico (permite saliente, bloquea entrante) sin hacer NAT.
+
+### Inspección de tráfico: Network Firewall vs Traffic Mirroring vs Firewall Manager
+
+Si una pregunta del examen combina IPv6 outbound con inspección de tráfico, estos son los servicios relevantes:
+
+| Servicio | Propósito | Cuándo usarlo |
+|----------|-----------|---------------|
+| **AWS Network Firewall** | Firewall managed con inspección profunda (IDS/IPS, Layer 3-7) | "Inspeccionar tráfico", "filtrar tráfico", "IDS/IPS" |
+| **VPC Traffic Mirroring** | Copia del tráfico de red para análisis (no bloquea, solo observa) | "Capturar tráfico para análisis", "packet capture" |
+| **AWS Firewall Manager** | Gestión centralizada de reglas de firewall across múltiples cuentas/VPCs | "Gestionar reglas de firewall en toda la organización" |
+
+> **Tip para el examen:**
+> - "IPv6 + solo salida + bloquear inbound" → **Egress-Only Internet Gateway** (no NAT Gateway).
+> - "Inspección de tráfico + filtrado" → **AWS Network Firewall** (no Traffic Mirroring, que solo copia; no Firewall Manager, que solo gestiona reglas).
+> - "Copiar tráfico para análisis offline" → **Traffic Mirroring**.
 
 ---
 
@@ -528,6 +584,28 @@ Amazon CloudFront es la CDN (Content Delivery Network) de AWS, distribuida globa
   - CloudFront primero respeta los headers `Cache-Control` del origin.
 - **Origin Request Policy**: Define qué headers/cookies/query strings se envían al origin (sin afectar la cache key).
 
+### Origin Groups (Origin Failover)
+
+Un Origin Group contiene un **primary** y un **secondary** origin. Si el primary devuelve errores (500, 502, 503, 504), CloudFront automáticamente reintenta la request con el secondary.
+
+```
+Sin Origin Group:
+  CloudFront ──► Origin (ALB) ──► falla con 504 ──► usuario ve error 504
+
+Con Origin Group:
+  CloudFront ──► Primary (ALB eu-west-1) ──► falla con 504
+                     │
+                     ▼ (automático, transparente)
+                 Secondary (ALB us-east-1) ──► responde OK ──► usuario no se entera
+```
+
+**Casos de uso:**
+- **HA del origin**: primary en una región, secondary en otra.
+- **S3 failover**: primary = S3 bucket principal, secondary = S3 bucket réplica en otra región.
+- **Fallback a contenido estático**: primary = ALB (dinámico), secondary = S3 (página de mantenimiento).
+
+No siempre necesitas un origin group — solo cuando necesitas alta disponibilidad del origin o estás viendo errores 5xx frecuentes.
+
 ### CloudFront Functions vs Lambda@Edge
 
 | Característica | CloudFront Functions | Lambda@Edge |
@@ -539,6 +617,41 @@ Amazon CloudFront es la CDN (Content Delivery Network) de AWS, distribuida globa
 | **Memoria** | 2 MB | 128 MB - 10 GB |
 | **Acceso red** | No | Sí |
 | **Caso de uso** | Manipulación headers, URL rewrites/redirects, cache key normalization | Cambios complejos, acceso a servicios externos, modificación de body |
+
+### Lambda@Edge para autenticación
+
+Lambda@Edge puede actuar como **middleware de autenticación en el edge**, validando tokens (JWT) antes de que la request llegue a tu origin. No reemplaza el login de tu app — solo verifica tokens en requests posteriores.
+
+```
+1. Login (primera vez):
+   Usuario ──► CloudFront ──► Origin (tu app) ──► valida user/password ──► devuelve JWT
+   (esto sigue siendo tu app, como siempre)
+
+2. Requests posteriores (rutas protegidas):
+   Usuario envía JWT ──► CloudFront Edge ──► Lambda@Edge verifica JWT
+                                                 │
+                                            ¿JWT válido?
+                                            ├── Sí → pasa al origin
+                                            └── No → devuelve 302 redirect a /login
+                                                     (el origin nunca se entera)
+```
+
+**Se configura por Behavior** (path pattern). Solo las rutas protegidas ejecutan Lambda@Edge:
+
+```
+CloudFront Distribution (Behaviors)
+├── /login*        → Pasa directo al origin (sin Lambda@Edge)
+├── /api/auth/*    → Pasa directo al origin (sin Lambda@Edge)
+├── /static/*      → Sirve de S3 (sin Lambda@Edge)
+└── /api/*         → Lambda@Edge valida JWT antes de pasar al origin
+```
+
+**Beneficios:**
+- Requests con token inválido se rechazan en el edge, **sin cargar al origin**.
+- La validación de JWT es rápida (verificar firma, sin consultar DB).
+- El usuario se autentica contra el edge más cercano (~5ms) en vez del origin lejano (~200ms).
+
+> **Tip para el examen:** Si la pregunta dice "reducir latencia de autenticación" o "ejecutar lógica de auth en el edge" → **Lambda@Edge**. Si dice "manipulación simple de headers o URL rewrites" → **CloudFront Functions** (más rápido y barato).
 
 ### Signed URLs vs Signed Cookies
 
@@ -598,7 +711,8 @@ AWS Global Accelerator mejora la disponibilidad y el rendimiento del tráfico gl
 ### Gateways y NAT
 
 - **1 IGW por VPC**. Sin IGW, no hay acceso a Internet.
-- NAT Gateway está en una subnet pública y permite salida a Internet desde subnets privadas.
+- NAT Gateway está en una subnet pública y permite salida a Internet desde subnets privadas. **Solo IPv4.**
+- **Egress-Only Internet Gateway** es el equivalente del NAT Gateway para **IPv6** (outbound-only, bloquea inbound).
 - Para HA de NAT, crear **un NAT Gateway por AZ**.
 - NAT Gateway no soporta Security Groups (NAT Instance sí).
 
@@ -646,3 +760,6 @@ AWS Global Accelerator mejora la disponibilidad y el rendimiento del tráfico gl
 - **Global Accelerator**: 2 IPs anycast estáticas. No cachea. Para TCP/UDP.
 - CloudFront Functions para operaciones simples y rápidas. Lambda@Edge para lógica compleja.
 - Signed URLs para archivos individuales. Signed Cookies para múltiples archivos.
+- **Origin Group**: primary + secondary origin. Si el primary devuelve 5xx, CloudFront reintenta con el secondary automáticamente. Para HA del origin.
+- **"Errores 504 en CloudFront"** → Origin Group (failover automático) o revisar timeouts del origin.
+- **"Reducir latencia de autenticación"** → Lambda@Edge (valida JWT en el edge sin ir al origin).

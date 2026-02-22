@@ -516,6 +516,95 @@ Lambda puede consumir eventos de servicios como SQS, Kinesis, DynamoDB Streams y
 
 > **Tip para el examen:** Si la pregunta dice "Kubernetes" o "portabilidad multi-cloud" o "equipo con experiencia Kubernetes" -> EKS. Si dice "contenedores sin gestionar servidores" -> Fargate. Si dice "contenedores simples en AWS" -> ECS.
 
+### Conceptos básicos de Kubernetes (EKS)
+
+```
+Concepto     Qué es                                 Analogía
+─────────────────────────────────────────────────────────────
+Container    App empaquetada (Docker image)          Una app ejecutable
+Pod          Unidad mínima de K8s (1+ containers)    Un apartamento
+Node         Servidor (EC2) donde corren pods        Un edificio
+Cluster      Conjunto de nodes                       El barrio
+```
+
+```
+EKS Cluster
+  ├── Node 1 (EC2)
+  │   ├── Pod (web-app)
+  │   ├── Pod (api)
+  │   └── Pod (worker)
+  └── Node 2 (EC2)
+      ├── Pod (web-app)     ← réplica
+      └── Pod (api)         ← réplica
+```
+
+### Scaling en EKS: dos niveles
+
+```
+Nivel 1 - PODS (scaling de la aplicación):
+  "Necesito más copias de mi app"
+
+Nivel 2 - NODES (scaling de la infraestructura):
+  "Necesito más servidores donde corran los pods"
+```
+
+**Scaling de Pods:**
+
+```
+Horizontal Pod Autoscaler (HPA):
+  - Crea MÁS pods cuando hay demanda (más copias de la app)
+  - Basado en métricas (CPU, memoria, custom)
+  - Requiere: Kubernetes Metrics Server instalado
+  - Para: tráfico variable, apps stateless
+  → Equivalente a Auto Scaling en EC2
+
+Vertical Pod Autoscaler (VPA):
+  - Hace el pod MÁS GRANDE (más CPU/RAM al mismo pod)
+  - Requiere reiniciar el pod → disruptivo
+  - Para: apps que no pueden escalar horizontalmente
+  → Menos común en el examen
+```
+
+**Scaling de Nodes:**
+
+```
+Karpenter (recomendado):
+  - Diseñado por AWS para EKS
+  - Aprovisiona nodes en segundos (directo con EC2, sin ASG)
+  - Elige instance type óptimo automáticamente
+  - Menos configuración = menos overhead operativo
+  - ✅ Preferido en el examen cuando dice "least operational overhead"
+
+Cluster Autoscaler (legacy):
+  - Herramienta original de Kubernetes
+  - Funciona via Auto Scaling Groups (ASG)
+  - Más lento (minutos vs segundos)
+  - Más configuración manual (node groups, instance types)
+```
+
+**Flujo completo de scaling:**
+
+```
+Tráfico sube
+  → HPA detecta CPU alta → crea más pods
+  → Pods no caben en nodes actuales → pending pods
+  → Karpenter detecta pending pods → lanza nuevos nodes (EC2)
+  → Pods se programan en los nuevos nodes
+
+Tráfico baja
+  → HPA reduce pods
+  → Karpenter detecta nodes infrautilizados → los termina
+```
+
+**Para el examen:**
+```
+"Scale pods based on demand"              → HPA + Metrics Server
+"Scale nodes automatically"               → Karpenter (least overhead)
+"EKS scaling with least overhead"         → Karpenter + HPA
+"Kubernetes autoscaling"                  → HPA (pods) + Karpenter (nodes)
+"Resize pods without adding replicas"     → VPA (menos común)
+```
+
 ---
 
 ## Elastic Beanstalk

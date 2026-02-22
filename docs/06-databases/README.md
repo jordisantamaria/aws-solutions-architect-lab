@@ -100,6 +100,87 @@ Amazon Relational Database Service es un servicio gestionado de bases de datos r
 
 > **Clave**: Restaurar un backup o snapshot **siempre crea una nueva instancia RDS** con un nuevo endpoint.
 
+### IAM DB Authentication
+
+Método de autenticación que reemplaza usuario/contraseña por tokens temporales generados via IAM. Soportado en **MySQL** y **PostgreSQL**.
+
+**Autenticación tradicional vs IAM DB Auth:**
+
+```
+Tradicional:
+  App en EC2 ──► conecta con usuario="admin" password="s3cret123"
+                 (contraseña almacenada en config o Secrets Manager)
+
+IAM DB Auth:
+  1. EC2 tiene un IAM Role con permiso rds-db:connect
+  2. App pide token ──► API de RDS genera token firmado con credenciales del IAM Role
+  3. App conecta con usuario="iam_user" password=TOKEN
+                   (el token expira en 15 minutos)
+```
+
+**El token no se almacena.** La app genera un token nuevo cada vez que necesita una conexión. Si la conexión ya está abierta, sigue funcionando. Para una nueva conexión, pide otro token.
+
+**Beneficios:**
+- No hay contraseñas que gestionar, rotar ni que puedan filtrarse.
+- El tráfico está cifrado con SSL automáticamente.
+- Control de acceso centralizado con IAM policies (quién puede conectarse a qué DB).
+- En EC2: usa las credenciales del **instance profile** (IAM Role) automáticamente, sin configuración adicional.
+
+**Limitaciones:**
+- Solo MySQL y PostgreSQL (no Oracle, SQL Server ni MariaDB en RDS).
+- Máximo **256 conexiones por segundo** con IAM auth (no es para alto throughput de conexiones).
+- El token dura **15 minutos** (pero las conexiones ya establecidas no se cortan).
+
+> **Tip para el examen:** Si la pregunta dice "authentication token" o "profile credentials of EC2" para conectar a RDS → **IAM DB Authentication**. No confundir con simplemente asignar un IAM Role a EC2 (eso da permisos a la API de AWS, no autenticación directa a la base de datos). No confundir con SSL (que cifra la conexión pero no cambia el método de autenticación).
+
+### Acceso a RDS privado (para desarrollo y mantenimiento)
+
+RDS debe estar en una subnet privada (sin acceso directo desde Internet). Para conectarse desde tu portátil con herramientas como pgAdmin o DBeaver, hay varias opciones de menos a más complejidad:
+
+| Método | Necesita EC2? | Necesita VPN? | Complejidad |
+|---|---|---|---|
+| **EC2 Instance Connect Endpoint** | No | No | Baja |
+| **SSM Port Forwarding** | Sí (privada, sin SSH) | No | Baja |
+| **Client VPN** | No | Sí | Media |
+| **Bastion + SSH tunnel** | Sí (pública, con SSH) | No | Alta |
+
+#### EC2 Instance Connect Endpoint (recomendado)
+
+Permite crear un túnel directo a recursos privados **sin necesidad de EC2 intermediarias ni VPN**. Se crea como un endpoint dentro de la VPC y el acceso se controla exclusivamente con IAM y Security Groups.
+
+```
+Tu portátil ──► EC2 Instance Connect Endpoint ──► RDS (subnet privada)
+                (túnel seguro via API de AWS)
+                No hay bastion, no hay VPN, no hay SSH
+```
+
+Se usa con el CLI de AWS:
+```bash
+aws ec2-instance-connect open-tunnel \
+  --instance-connect-endpoint-id eice-xxxx \
+  --remote-host-address mydb.xxxx.rds.amazonaws.com \
+  --remote-port 5432 \
+  --local-port 5432
+
+# pgAdmin conecta a localhost:5432 como si RDS fuera local
+```
+
+**Requisitos:**
+- Crear un EC2 Instance Connect Endpoint en una subnet de la VPC.
+- Security Group del endpoint con acceso al puerto de RDS.
+- Permisos IAM para `ec2-instance-connect:OpenTunnel`.
+
+#### SSM Session Manager con Port Forwarding
+
+Requiere una instancia EC2 privada con SSM Agent (viene preinstalado por defecto), pero **no necesita bastion ni puertos SSH abiertos**:
+
+```
+Tu portátil ──► SSM Session Manager ──► EC2 (privada) ──► RDS
+                (túnel por API de AWS)   (solo necesita SSM Agent)
+```
+
+> **Tip para el examen:** Si la pregunta dice "acceso seguro a recursos privados sin bastion ni SSH" → **SSM Session Manager** o **EC2 Instance Connect Endpoint**. Si dice "acceso a RDS privado sin EC2 intermediaria" → **EC2 Instance Connect Endpoint**.
+
 ---
 
 ## RDS Proxy
@@ -182,6 +263,45 @@ Base de datos relacional propietaria de AWS, compatible con **MySQL** y **Postgr
 - Ejecutar inferencias ML directamente desde consultas SQL.
 - Caso de uso: Detección de fraude, análisis de sentimiento, recomendaciones.
 
+### Aurora Native Functions y Stored Procedures (invocar Lambda)
+
+Aurora puede **llamar a AWS Lambda directamente desde dentro de la base de datos**, usando native functions o stored procedures. Esto permite reaccionar a cambios en los datos (INSERT, UPDATE, DELETE) desde la propia DB.
+
+```
+App borra un registro ──► Aurora ejecuta trigger/stored procedure
+                              │
+                              ▼
+                         Llama a Lambda (native function)
+                              │
+                              ▼
+                         Lambda procesa (envía a SQS, SNS, etc.)
+```
+
+**Ejemplo (Aurora MySQL):**
+```sql
+-- Stored procedure que invoca Lambda al borrar un coche:
+CALL mysql.lambda_async(
+    'arn:aws:lambda:eu-west-1:123456:function:procesar-venta',
+    '{"car_id": 123, "action": "sold"}'
+);
+```
+
+**Requisitos:**
+- Aurora MySQL o Aurora PostgreSQL (RDS estándar no lo soporta).
+- El cluster Aurora necesita un IAM Role con permisos para invocar Lambda.
+- Conectividad de red entre Aurora y Lambda (NAT Gateway o VPC endpoint para Lambda).
+
+#### RDS Event Subscription vs Native Functions
+
+| | RDS Event Subscription | Native Function / Stored Procedure |
+|---|---|---|
+| **Detecta** | Eventos **operacionales** (failover, backup, maintenance) | Cambios **en los datos** (INSERT, UPDATE, DELETE) |
+| **Ejemplo** | "La instancia se reinició" | "Se borró el registro con id=123" |
+| **Destino** | SNS | Lambda (directamente desde la DB) |
+| **Solo Aurora?** | No (funciona con cualquier RDS) | **Sí** (solo Aurora puede invocar Lambda) |
+
+> **Tip para el examen:** Si la pregunta dice "reaccionar cuando se modifica/borra un registro en Aurora" → **native function o stored procedure que invoca Lambda**. No confundir con RDS Event Subscription, que solo detecta eventos de infraestructura (failovers, backups), no cambios en los datos.
+
 ### Otras características de Aurora
 
 | Característica | Descripción |
@@ -211,7 +331,36 @@ Base de datos NoSQL serverless, totalmente gestionada, con rendimiento de milise
 | **Partition Key (PK)** | Clave primaria simple. Debe ser única. | `user_id` |
 | **Partition Key + Sort Key (PK + SK)** | Clave compuesta. La combinación debe ser única. | `user_id` + `timestamp` |
 
-La **Partition Key** determina en qué partición se almacena el item. Una buena elección de PK garantiza distribución uniforme.
+La **Partition Key** determina en qué partición se almacena el item. DynamoDB aplica una función hash interna sobre el valor de la PK para decidir en qué partición física va cada item.
+
+### Cardinalidad de la Partition Key (hot partitions)
+
+La elección de la PK es la decisión de diseño más importante en DynamoDB. La capacidad provisionada (RCU/WCU) se reparte **uniformemente entre las particiones**. Si una partición recibe más tráfico que las demás, se produce **throttling** aunque la tabla tenga capacidad total sobrante.
+
+**Alta cardinalidad** = muchos valores distintos = buena distribución:
+
+```
+PK = user_id  →  millones de valores distintos  →  tráfico repartido entre muchas particiones
+PK = order_id →  millones de valores distintos  →  tráfico repartido entre muchas particiones
+```
+
+**Baja cardinalidad** = pocos valores distintos = "hot partition":
+
+```
+PK = status ("active"/"inactive")  →  solo 2 valores  →  todo el tráfico va a 2 particiones
+PK = country_code                  →  ~200 valores     →  particiones de US/CN reciben el 80% del tráfico
+```
+
+**Ejemplo numérico:**
+- Tabla con 10,000 WCU provisionados y 10 particiones → cada partición recibe 1,000 WCU.
+- Si usas `status` como PK (2 valores), el 90% de writes van a la partición "active" → esa partición tiene 1,000 WCU pero recibe 9,000 → **throttling**, aunque la tabla tenga 9,000 WCU sin usar en otras particiones.
+
+**Soluciones para hot partitions:**
+- Elegir una PK con **alta cardinalidad** (user_id, order_id, session_id).
+- **Write Sharding**: Añadir un sufijo aleatorio a la PK (ej: `status#1`, `status#2`, ..., `status#10`) para forzar distribución.
+- Usar claves compuestas (PK + SK) para tener más combinaciones únicas.
+
+> **Tip para el examen:** Si preguntan "distribuir workload uniformemente" o "utilizar throughput eficientemente" en DynamoDB → **partition key con alta cardinalidad**. Si dicen "hot partition" o "throttling con capacidad sobrante" → el problema es una PK con baja cardinalidad.
 
 ### Índices secundarios
 
@@ -334,11 +483,37 @@ Servicio de caché en memoria gestionado. Soporta dos motores:
 
 ### ElastiCache - Seguridad
 
-- **Redis AUTH**: Autenticación con token/password.
-- **In-transit encryption** (TLS).
-- **At-rest encryption**.
-- Soporta IAM authentication para Redis.
-- Security Groups para control de red.
+ElastiCache Redis tiene tres capas de seguridad independientes:
+
+| Capa | Qué protege | Cómo |
+|---|---|---|
+| **At-rest encryption** | Datos almacenados en disco/memoria | Cifrado con KMS. Se habilita al crear el cluster. |
+| **In-transit encryption** | Datos en tránsito entre cliente y Redis | TLS. Se habilita con `--transit-encryption-enabled`. |
+| **Autenticación** | Quién puede ejecutar comandos | Redis AUTH o IAM authentication. |
+
+#### Redis AUTH vs IAM Authentication
+
+| | Redis AUTH | IAM Authentication |
+|---|---|---|
+| **Credencial** | Password estático (auth-token) | Token temporal generado via IAM |
+| **Duración** | Long-lived (no expira hasta que lo cambies) | Short-lived (expira automáticamente) |
+| **Requisito** | **Requiere in-transit encryption (TLS)** | Requiere in-transit encryption (TLS) |
+| **Gestión** | Tú gestionas el password | IAM gestiona credenciales |
+| **Caso de uso** | Apps que necesitan credenciales fijas | Apps que ya usan IAM Roles (EC2, Lambda) |
+
+```
+Redis AUTH:
+  Cliente ──► AUTH mi-password ──► Redis acepta ──► MULTI / SET / EXEC funcionan
+              (password fijo, long-lived, requiere TLS habilitado)
+
+IAM Authentication:
+  App ──► genera token IAM ──► AUTH token-temporal ──► Redis acepta
+          (token expira, short-lived)
+```
+
+**Importante:** Redis AUTH **no funciona sin in-transit encryption**. El flag `--auth-token` solo se puede usar junto con `--transit-encryption-enabled`. Si solo habilitas at-rest encryption o solo TLS sin auth-token, no hay autenticación de usuarios.
+
+- Security Groups para control de red (quién puede conectarse al puerto de Redis).
 
 ---
 
@@ -563,6 +738,7 @@ Base de datos de **series temporales** serverless y totalmente gestionada.
 4. **"Lambda + RDS con problemas de conexiones"** → RDS Proxy (connection pooling).
 5. **"Restaurar RDS"** → Siempre crea una NUEVA instancia.
 6. **"Cifrar RDS existente no cifrado"** → Snapshot → copiar con cifrado → restaurar.
+7. **"Autenticación con token / profile credentials de EC2 a RDS"** → IAM DB Authentication (no un IAM Role a secas, no SSL).
 
 ### Aurora
 
@@ -571,6 +747,7 @@ Base de datos de **series temporales** serverless y totalmente gestionada.
 9. **"Clonar DB para testing"** → Aurora Cloning (copy-on-write).
 10. **"Lecturas globales cross-region con < 1s de lag"** → Aurora Global Database.
 11. **"Capacidad variable, serverless relacional"** → Aurora Serverless v2.
+12. **"Reaccionar a cambios en datos de Aurora (INSERT/UPDATE/DELETE)"** → Native function o stored procedure que invoca Lambda. No confundir con RDS Event Subscription (solo eventos de infraestructura).
 
 ### DynamoDB
 
@@ -586,6 +763,8 @@ Base de datos de **series temporales** serverless y totalmente gestionada.
 18. **"Cache con HA y persistencia"** → ElastiCache Redis.
 19. **"Cache simple, multi-threaded"** → ElastiCache Memcached.
 20. **"Sesiones de usuario stateless"** → ElastiCache Redis (o DynamoDB).
+21. **"Autenticar usuarios con password antes de ejecutar comandos Redis"** → Redis AUTH (`--auth-token` + `--transit-encryption-enabled`). Ambos flags son obligatorios juntos.
+22. **"Short-lived credentials para Redis"** → IAM Authentication. **"Long-lived credentials"** → Redis AUTH.
 
 ### Redshift
 
