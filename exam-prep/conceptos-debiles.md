@@ -142,6 +142,34 @@
 - Config vs CloudTrail: Config = compliance de configuración, CloudTrail = quién hizo qué (API calls)
 - **Clave examen**: "detect/check non-compliant" + "least effort" → AWS Config rule
 
+## Amazon WorkSpaces + Directory Services
+
+- **WorkSpaces**: escritorios virtuales en la nube (DaaS), Windows/Linux, reemplazan PCs físicos
+- **AWS Directory Service**: integra Active Directory con AWS
+  - AD Connector: proxy a AD on-prem (no guarda datos en AWS)
+  - AWS Managed Microsoft AD: AD completo en AWS con trust a on-prem
+- **Patrón típico**: VPN (conecta redes) + Directory Service (autenticación AD) + WorkSpaces (escritorios)
+- ClassicLink = deprecated, conectaba EC2-Classic con VPC (ya no relevante)
+
+## IAM: Autenticación vs Autorización
+
+- **Autenticación** (quién eres): Console = password, CLI/API = Access Keys, EC2 = IAM Role
+- **Autorización** (qué puedes hacer): IAM Policies
+- IAM User nuevo: NO tiene password, NO tiene access keys, NO tiene permisos → no puede hacer nada
+- Para API calls se necesitan AMBOS: Access Keys (autenticación) + IAM Policy (autorización)
+- Best practice: IAM Identity Center (SSO) con credenciales temporales en vez de access keys permanentes
+- MFA es extra de seguridad, no requisito para API calls
+
+## S3 Encryption: SSE-S3 vs SSE-KMS vs SSE-C
+
+- **SSE-S3**: AWS gestiona todo, gratis, sin audit trail, sin control de keys. Default.
+- **SSE-KMS**: KMS gestiona master key, envelope encryption, audit trail en CloudTrail, rotación automática configurable, $1/key/mes
+- **SSE-C**: tú proporcionas la key en cada request, sin audit trail, rotación manual, si pierdes key pierdes datos
+- **Envelope encryption**: master key (nunca sale de KMS) → encripta data key → encripta datos. Cada objeto su propia data key.
+- **Rotación KMS**: crea nuevo key material, mantiene viejo para decrypt, key ID no cambia, transparente
+- **Audit trail**: solo SSE-KMS genera logs en CloudTrail (quién, qué key, cuándo)
+- **Clave examen**: "envelope encryption" + "audit trail" + "key rotation" → SSE-KMS
+
 ## SSL/TLS: Wildcard vs SAN vs SNI
 
 - **Wildcard** (*.dominio.com): solo subdominios del MISMO dominio. No sirve para dominios distintos.
@@ -169,6 +197,14 @@
 - **NO tiene encriptación nativa** — añadir VPN sobre DX si se necesita encriptar
 - **HA**: 2 locations × 2 conexiones, o DX + VPN Site-to-Site como backup económico
 - **Clave examen**: "consistent latency" / "high bandwidth" + on-prem → DX. "Quickly"/"immediately" → VPN (DX tarda meses)
+- **DX Gateway**: recurso global, conecta 1 DX con múltiples VPCs/TGWs sin conexiones físicas adicionales
+- **3 formas de conectar DX con VPCs**:
+  1. DX + Private VIF → 1 VPC (simple, no escala)
+  2. DX + DX GW + Private VIFs → múltiples VPCs (límite 10, VPCs no hablan entre sí)
+  3. DX + DX GW + Transit VIF + TGW → todas las VPCs/cuentas (escala, transitivo) ← best practice
+- **Transit Gateway**: hub central, conecta VPCs/VPNs/DX, transitivo, multi-cuenta con RAM, escala a miles
+- VPC Peering NO es transitivo, NO se asocia con DX Gateway, no escala (n*(n-1)/2 peerings)
+- **Clave examen**: "multiple accounts" + "existing DX" + "least overhead" → DX Gateway + Transit Gateway
 
 ## EC2 Placement Groups
 
