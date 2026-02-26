@@ -579,3 +579,89 @@
 - Para notificaciones: EventBridge captura eventos de TA → SNS notifica
 - **AWS Config** NO monitoriza service quotas → Config es para compliance de configuración de recursos
 
+## NAT Gateway vs NAT Instance
+
+- Ambos dan acceso de salida a Internet a EC2 en subnet privada, sin permitir entrada
+- **NAT Gateway**: gestionado, HA automática, escala solo, ~$32/mes. Recomendado por AWS
+- **NAT Instance**: EC2 normal haciendo NAT, tú gestionas todo, pero puede ser más barato (t3.nano ~$3/mes)
+- **Clave examen**: pregunta dice "managed" / "least overhead" → NAT Gateway. Dice "cost-effective" / "cheapest" → NAT Instance
+
+## Aurora Cloning
+
+- Crea copia de la DB en **segundos** usando copy-on-write (no copia datos, comparte punteros)
+- Sin impacto en producción, casi sin coste de storage adicional
+- Solo disponible en **Aurora**, no en RDS normal
+- RDS alternativa = snapshot + restore → tarda horas para DBs grandes
+- mysqldump = tarda horas + consume CPU de producción
+- **Clave examen**: "copiar DB rápido sin impacto" → Aurora Cloning
+- "Cost-effective" no siempre = servicio más barato. A veces el más eficiente ahorra más en total
+
+## Egress-Only Internet Gateway vs NAT Gateway
+
+- **Egress-Only IGW**: solo **IPv6**. Permite salida, bloquea entrada. Gratis.
+- **NAT Gateway**: solo **IPv4**. Permite salida, bloquea entrada. ~$32/mes.
+- **Clave examen**: IPv4 → NAT Gateway. IPv6 → Egress-Only IGW. Nunca al revés.
+
+## EBS Encryption By Default
+
+- Se activa a nivel de **región**, no por volumen individual
+- Cifra automáticamente nuevos volúmenes y restores de snapshots sin cifrar
+- EBS siempre usa keys **simétricas** (AES-256). Asimétricas (RSA, ECC) NO sirven para EBS
+- Snapshots cifrados → volúmenes restaurados siempre cifrados (no se puede descifrar)
+- **Clave examen**: "automatically encrypt all new volumes" → Encryption By Default (región)
+
+## Cluster Placement Group - Insufficient Capacity
+
+- Cluster PG pone instancias en el **mismo rack físico** → capacidad limitada del rack
+- "Insufficient capacity error" = el rack actual no tiene espacio para más instancias
+- Solución: **Stop + Start** todas las instancias → AWS las reubica en un rack con más capacidad
+- **Stop ≠ Reboot**: Stop+Start puede cambiar host físico. Reboot NO cambia host
+- NO crear otro Placement Group → separaría instancias en racks distintos, pierde baja latencia
+
+## S3 Storage Classes - Minimum Storage Duration
+
+- **S3 Standard**: sin mínimo. Pagas solo lo que usas
+- **S3 Standard-IA / One Zone-IA**: mínimo **30 días**. Borras antes → pagas 30 días igual
+- **Glacier Flexible**: mínimo **90 días**
+- **Glacier Deep Archive**: mínimo **180 días**
+- **Clave examen**: datos temporales (horas, pocos días) → **S3 Standard** es más barato que IA/Glacier por el mínimo de duración
+
+## DynamoDB vs Redshift - Cuándo usar cada uno
+
+- **DynamoDB**: key-value, latencia en **milisegundos**, operaciones individuales (get/put). Real-time
+- **Redshift**: data warehouse, consultas SQL sobre TB de datos, latencia en **segundos/minutos**. Analytics
+- **Clave examen**: "millisecond response" / "real-time" → DynamoDB. "Analytics" / "reporting" / "historical" → Redshift
+- Kinesis Data Streams = real-time (ms). Firehose = near real-time (mínimo 60s buffer)
+
+## Kinesis Shards
+
+- Cada shard: 1 MB/s entrada, 2 MB/s salida, 1000 records/s
+- Más tráfico → **UpdateShardCount** (añadir shards). Menos tráfico → **MergeShards** (reducir)
+- PartitionKey determina a qué shard va cada registro (hash)
+- Kinesis NO tiene auto-scaling nativo como ASG. Se escala manualmente con UpdateShardCount
+- **Clave examen**: "Kinesis lento" / "performance degraded" → aumentar shards
+
+## Global Accelerator
+
+- Proporciona **2 IPs estáticas AnyCast** que nunca cambian, enrutan a recursos en cualquier región
+- Funciona con on-premises: tráfico va a las 2 IPs → red global AWS → ALB más cercano
+- Endpoints soportados: ALB, NLB, EC2 instances, Elastic IP. NO IPs privadas directamente
+- **Global Accelerator vs CloudFront**: GA = enruta tráfico capa 4 (red). CloudFront = cachea contenido capa 7 (HTTP)
+- **Clave examen**: "static IP" + "multiple regions" o "whitelist" + "reduce IPs" → Global Accelerator
+
+## ECS Scaling - Dos niveles
+
+- **ECS Service** (tasks/containers): escala por CPU del servicio, memoria del servicio, requests por target
+- **ECS Cluster** (EC2 instances): escala por CPU/memoria del servicio, Capacity Provider
+- Son capas distintas: más tasks necesitan más EC2s donde correr
+- ALB no tiene métrica de CPU (es managed). "ALB CPU high" es trampa
+- "ALB endpoint unreachable" no es métrica de scaling, es health check
+
+## ACM Certificate Expiration Monitoring
+
+- ACM publica métrica **DaysToExpiry** en CloudWatch automáticamente
+- ACM emite eventos en **AWS Health** cuando certificado está por expirar
+- Ambos se capturan con **EventBridge** → SNS para notificar
+- Certificados ACM en ALB se **renuevan automáticamente** (si DNS validation funciona)
+- ACM Private CA NO renueva automáticamente → más overhead, no recomendado como solución
+
