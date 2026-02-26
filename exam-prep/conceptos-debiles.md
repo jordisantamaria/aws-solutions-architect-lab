@@ -86,6 +86,33 @@
 - Stop normal: pierde RAM → boot lento. Hibernate: restaura RAM → boot rápido
 - **Trampa examen**: "enable hibernate" (en existente, imposible) vs "migrate to instance with hibernate" (correcto)
 
+## Instance Store vs EBS como Root Volume
+
+- **EBS-Backed**: root en EBS, puede stop/start, snapshots, datos persisten al stop. Terminate borra por default (configurable).
+- **Instance Store-Backed**: root en disco local del host, NO puede hacer stop (solo terminate), NO snapshots, datos se PIERDEN al terminar o si host falla.
+- Instance Store como volumen adicional: para cache, temp files, scratch data, altísimo IOPS (NVMe). NUNCA para datos no reproducibles.
+- **Clave examen**: "Instance Store-Backed AMI" + "terminate" → datos eliminados permanentemente
+
+## Tipos de EBS
+
+- **SSD**: gp2/gp3 (general, boot), io1/io2 (provisioned IOPS, DBs grandes, multi-attach solo io)
+- **HDD**: st1 (throughput optimized, big data), sc1 (cold, datos fríos). HDD NO puede ser boot volume.
+- **Magnetic** (standard): legacy, el más barato por GB, acceso infrecuente, puede ser boot volume
+- "Spot volumes" NO existe (Spot es tipo de instancia). "SR-IOV volumes" NO existe (SR-IOV es networking).
+- Multi-attach: solo io1/io2, solo misma AZ (no multi-AZ). gp3 NO soporta multi-attach.
+- **IOPS ratio**: io1 = 50 IOPS/GB, io2 = 500 IOPS/GB. Fórmula: Max IOPS = GB × ratio.
+- **Queue length**: SSD → low queue (baja latencia). HDD → high queue (máximo throughput).
+- io1 mínimo 100 IOPS, máximo absoluto 64,000. io2 Block Express hasta 256,000.
+
+## S3 vs EFS vs FSx vs EBS
+
+- **S3**: object storage, HTTP API, NO soporta NFS/SMB, NO se monta como filesystem
+- **EFS**: NFS v4, Linux, multi-AZ, miles de EC2 simultáneas, serverless, directorios reales
+- **FSx Windows**: SMB, Windows, Active Directory
+- **FSx Lustre**: HPC, Linux, parallel filesystem de alto rendimiento
+- **EBS**: block storage, 1 EC2 (multi-attach io solo misma AZ)
+- **Clave examen**: "NFS" + "Linux" + "multiple servers" → EFS. "SMB" + "Windows" → FSx Windows
+
 ## AWS Storage Gateway
 
 - Bridge entre on-premises y AWS. VM/appliance en tu datacenter que conecta con AWS.
@@ -115,6 +142,34 @@
 - DynamoDB NO puede ser origin de CloudFront
 - **Clave examen**: si dice "created with CLI" → Auto Scaling probablemente no está habilitado
 
+## RDS: Multi-AZ (Standby) vs Read Replica
+
+- **Multi-AZ Standby**: alta disponibilidad. Replicación SÍNCRONA (0 data loss), failover AUTOMÁTICO (~60-120s), NO puedes leer de ella, misma región otra AZ.
+- **Read Replica**: escalar lecturas. Replicación ASÍNCRONA (puede haber lag), promote MANUAL, SÍ puedes leer, puede estar en otra región.
+- Multi-AZ: endpoint DNS no cambia tras failover. Read Replica: endpoint cambia al promover.
+- Aurora combina ambos: replicas legibles + failover automático + hasta 15 replicas.
+- **Clave examen**: "AZ outage" + "automatic failover" → Multi-AZ. "Scale reads" → Read Replica.
+
+## Aurora Failover
+
+- **Con replicas**: flips CNAME del endpoint → replica se promueve a primary (~30s). Siempre CNAME, nunca A record.
+- **Sin replicas (single instance)**: crea nueva instancia en **otra AZ primero**, si no puede → AZ original (~10-15 min)
+- Aurora usa CNAME, no A record. Connection string no cambia tras failover.
+
+## RDS Stop vs Snapshot+Terminate
+
+- **RDS Stop**: no pagas compute pero auto-reinicia después de **7 días máximo**. Sigues pagando storage.
+- **Snapshot + Terminate**: no pagas compute ni storage de instancia. Solo snapshot storage ($0.05/GB). Restauras cuando necesitas.
+- Para DBs de uso intermitente (testing, dev) → Snapshot + Terminate es más cost-effective
+- Restaurar desde snapshot tarda unos minutos
+
+## RDS: Basic vs Enhanced Monitoring
+
+- **Basic** (gratis, hypervisor): CPU Utilization, Database Connections, Freeable Memory, IOPS, Latency, Swap — ve desde "fuera"
+- **Enhanced** (extra, agente dentro del SO): OS processes, RDS child processes, CPU por core, memory breakdown, file system — ve desde "dentro"
+- Truco: si suena a "sistema operativo" o "procesos" → Enhanced. Si suena a "métrica general de DB" → Basic.
+- Enhanced explica el POR QUÉ (qué proceso usa la CPU), Basic solo el QUÉ (CPU al 90%)
+
 ## Lambda: Execution Role vs Resource Policy + KMS
 
 - **Execution Role** (IAM Role): qué puede hacer Lambda HACIA FUERA (S3, DynamoDB, KMS, etc.)
@@ -131,6 +186,15 @@
 - **AWS Budgets**: alertas de presupuesto. Notifica via SNS/email cuando llegas a un límite. Puede ejecutar acciones (parar instancias). NO tiene API para extraer datos de coste. Para: "avísame si gasto más de $X"
 - **Clave examen**: "programmatically access costs" + "forecast" → Cost Explorer API
 
+## ALB Access Logs + Monitoring
+
+- **Access Logs**: DESHABILITADOS por defecto. Se habilitan en ALB attributes → van a S3 cada 5 min (.gz)
+  - Contienen: client IP, latencias, status codes, request URL, user-agent, por cada request
+- **CloudWatch Metrics**: habilitadas por defecto. Métricas AGREGADAS (RequestCount, ResponseTime). No por request.
+- **CloudTrail**: registra quién modificó el ALB (API management calls), NO requests HTTP de clientes.
+- **X-Ray**: distributed tracing entre servicios, no access logs del ALB.
+- **Clave examen**: "client IP" + "latencies" + "every request" → ALB access logs (S3)
+
 ## AWS Config
 
 - **Auditor 24/7**: registra configuración de recursos, evalúa compliance con reglas, remedia
@@ -141,6 +205,21 @@
 - Config vs Tag Policies: Config detecta falta de tags, Tag Policies solo estandarizan nombres
 - Config vs CloudTrail: Config = compliance de configuración, CloudTrail = quién hizo qué (API calls)
 - **Clave examen**: "detect/check non-compliant" + "least effort" → AWS Config rule
+
+## CloudTrail Defaults
+
+- Habilitado por defecto en todas las cuentas
+- Logs encriptados con **SSE-S3 (AES-256) por defecto** — no necesitas configurar nada
+- Management events capturados por defecto. Data events son opcionales.
+- Destino: S3 (no Glacier directamente). CloudTrail usa AES-256, no AES-128.
+- Opcional: SSE-KMS (audit trail de quién lee logs), multi-region trail, CloudWatch Logs integration
+
+## Service Health Dashboard vs Personal Health Dashboard
+
+- **Service Health Dashboard**: estado GENERAL de todos los servicios AWS, público, no específico de tu cuenta
+- **Personal Health Dashboard (PHD)**: eventos que afectan a TUS recursos específicos (retiro de hardware, mantenimiento, degradación)
+- PHD se integra con EventBridge para automatizar notificaciones
+- **Clave examen**: "events affecting YOUR resources" / "upcoming events" → Personal Health Dashboard + EventBridge + SNS
 
 ## Amazon WorkSpaces + Directory Services
 
@@ -170,6 +249,16 @@
 - **Audit trail**: solo SSE-KMS genera logs en CloudTrail (quién, qué key, cuándo)
 - **Clave examen**: "envelope encryption" + "audit trail" + "key rotation" → SSE-KMS
 
+## Clases de S3 y Retrieval Times
+
+- **ms retrieval**: Standard, Intelligent-Tiering, Standard-IA, One Zone-IA, Glacier Instant
+- **min-hrs**: Glacier Flexible (1min-12hrs)
+- **12-48hrs**: Glacier Deep Archive
+- **One Zone-IA**: 20% más barato que Standard-IA, 1 sola AZ, para datos **reproducibles**
+- **Intelligent-Tiering**: auto-mueve entre tiers, cobra monitoring fee. Útil si NO sabes el patrón de acceso.
+- Lifecycle rules se pueden aplicar a **prefixes específicos** (cada prefix distinta clase)
+- **Clave examen**: "reproducible" + "ms retrieval" + "cost-effective" → One Zone-IA. "No retrieval requirement" → Glacier
+
 ## SSL/TLS: Wildcard vs SAN vs SNI
 
 - **Wildcard** (*.dominio.com): solo subdominios del MISMO dominio. No sirve para dominios distintos.
@@ -177,6 +266,62 @@
 - **SNI** (Server Name Indication): ALB con múltiples certificados en 1 listener. Añadir dominio = subir nuevo cert sin tocar los existentes. ACM gratis.
 - CloudFront dedicated IPs = $600/mes por cert (opción pre-SNI, cara)
 - **Clave examen**: "multiple different domains" + "without reprovision" + "cost-effective" → SNI en ALB con múltiples certs ACM
+
+## Dónde importar certificados SSL/TLS
+
+- **ACM (AWS Certificate Manager)**: servicio principal, genera certs gratis + importa de terceros, renovación automática
+- **IAM Certificate Store**: método legacy, solo importar (no genera), sin renovación auto, para regiones sin ACM
+- Los dos son válidos para importar certs de CA externas
+- CloudFront USA certs pero no los almacena (los obtiene de ACM/IAM). Certs para CF deben estar en **us-east-1**
+- S3 NO es un servicio de gestión de certs, no se puede asociar con ALB/CloudFront
+
+## S3 Transfer Acceleration vs Snow Family
+
+- **Transfer Acceleration**: usa edge locations + AWS backbone para acelerar uploads cross-continent. $0.04/GB extra.
+  - Mejora throughput efectivo (reduce latencia/packet loss), NO aumenta tu ancho de banda
+  - Cross-continent: 130-500% mejora. Cerca del bucket: ~0% (no vale la pena)
+  - Solo para uploads (downloads → CloudFront)
+  - No sirve para migraciones masivas, el cuello de botella es el volumen no la ruta
+- **Snowball Edge**: dispositivo físico 80TB, envío por correo, ~1-2 semanas total
+- **Snowcone**: 8-14TB, 2kg, entornos remotos
+- **Snowmobile**: 100PB, camión literal, exabytes
+- **Regla**: si tarda >1 semana por internet → Snowball. Calcular: TB × 8000 / Mbps = segundos
+- 250TB por 100Mbps = 231 días → 4 Snowballs = 1-2 semanas
+- Direct Connect tarda meses en establecer, no sirve para migración urgente
+- **Snowball NO importa directamente a Glacier** — solo a S3 Standard, luego lifecycle a Glacier
+- **S3 Gateway Endpoint ≠ Storage Gateway**: endpoint es ruta de red en VPC, Storage Gateway es VM/appliance on-prem
+- "Tape backup" on-prem → **Tape Gateway** (Storage Gateway). Software de backup no cambia.
+- Glacier Deep Archive ($0.00099/GB) es 4x más barato que Flexible Retrieval ($0.004/GB)
+- **Clave examen**: "10 years" + "once/twice a year" + "cost-effective" → Glacier Deep Archive
+
+## DataSync vs Storage Gateway
+
+- **DataSync**: MOVER datos de A a B (migración o sync recurrente). Rápido (10Gbps), incremental, scheduling. Para: "migrar 50TB a S3"
+- **Storage Gateway**: USAR AWS storage desde on-prem continuamente. Bridge permanente, cache local. Para: "mis apps necesitan acceso a S3 cada día"
+- "Tape backup continuo" → Storage Gateway (Tape). "Migrar datos existentes" → DataSync
+- DataSync soporta: on-prem NFS/SMB → S3/EFS/FSx, y S3↔S3 cross-region/account
+- DataSync puede ir por **internet** (default) o por **Direct Connect** (via service/VPC endpoint, red privada)
+- Si ya tienen DX → DataSync over service endpoint (no por internet)
+
+## AWS DRS (Elastic Disaster Recovery) + Estrategias DR
+
+- **DRS**: agente en servers on-prem, replicación continua block-level a staging area en AWS (EBS). Sin EC2 corriendo. Al desastre → lanza EC2 desde volumes.
+- RPO: segundos (replicación continua). RTO: minutos (lanzar EC2s)
+- **4 estrategias DR** (de barato/lento a caro/rápido):
+  1. **Backup & Restore**: datos en S3/Glacier, nada corriendo. RPO/RTO: horas. 💰
+  2. **Pilot Light**: core mínimo replicado (datos), sin EC2 corriendo. RPO: seg, RTO: min/hrs. 💰💰 ← DRS hace esto
+  3. **Warm Standby**: versión reducida corriendo en AWS, escala al hacer DR. RPO: seg, RTO: min. 💰💰💰
+  4. **Multi-site Active/Active**: todo corre en ambos sitios. RPO/RTO: ~0. 💰💰💰💰
+- **Clave examen**: "cost-effective" + "RPO seconds" + "RTO minutes/hours" → DRS (Pilot Light)
+
+## Servicios de Migración: Discovery vs MGN vs DRS
+
+- **Application Discovery Service**: solo DESCUBRE inventario (CPU, RAM, dependencias). NO migra ni replica nada. Para planificar.
+- **MGN (Migration Service)**: lift-and-shift de VMs a AWS. Replication Agent, replicación continua, test instances, cutover. Para MIGRAR permanentemente.
+- **DRS (Disaster Recovery)**: replicación continua para DR. On-prem sigue siendo primario. Para BACKUP de emergencia.
+- MGN y DRS usan misma tecnología (block-level replication) pero propósito distinto: MGN=mudar, DRS=backup.
+- **DataSync**: migra DATOS (archivos), no VMs. **DMS**: migra BASES DE DATOS. **VM Import/Export**: manual, más downtime.
+- **Clave examen**: "lift-and-shift" + "minimize downtime" + "VMs" → MGN
 
 ## CloudFront Contenido Privado: OAC + Signed URLs/Cookies
 
@@ -205,6 +350,10 @@
 - **Transit Gateway**: hub central, conecta VPCs/VPNs/DX, transitivo, multi-cuenta con RAM, escala a miles
 - VPC Peering NO es transitivo, NO se asocia con DX Gateway, no escala (n*(n-1)/2 peerings)
 - **Clave examen**: "multiple accounts" + "existing DX" + "least overhead" → DX Gateway + Transit Gateway
+- **Multi-region**: 1 TGW por región + peering entre TGWs. Tráfico por AWS backbone, no internet.
+- TGW soporta: VPCs, VPN, DX (via DX GW), peering inter-region. Escala a miles de attachments.
+- VPN CloudHub: solo conecta sites remotos via 1 VGW, no escala para cientos de VPCs.
+- **Clave examen**: "hundreds of VPCs" + "multiple regions" + "single gateway" → Transit Gateway per region + peering
 
 ## EC2 Placement Groups
 
@@ -213,6 +362,42 @@
 - **Partition**: grupos aislados de fallo, multi-AZ, hasta 7 particiones/AZ, sin límite instancias. Para Hadoop, Kafka, Cassandra.
 - **Clave examen**: "HPC" + "low-latency" + "tightly-coupled" → Cluster placement group (1 sola AZ)
 - Enhanced Networking + Cluster placement = máximo rendimiento de red entre instancias
+- **ENI** (Elastic Network Interface): interfaz básica, toda EC2 tiene una
+- **ENA** (Elastic Network Adapter): enhanced networking, hasta 100Gbps, SR-IOV, NO tiene OS-bypass
+- **EFA** (Elastic Fabric Adapter): ENA + OS-bypass (apps hablan directo con hardware de red), solo Linux, para HPC/MPI/ML
+- **Clave examen**: "OS-bypass" / "HPC" + "Linux" → EFA. "HPC" + "Windows" → ENA (EFA OS-bypass no funciona en Windows).
+- **Intel 82599 VF**: legacy (10Gbps), para instancias antiguas (C3, R3). ENA es el reemplazo moderno.
+- EFA en Windows funciona solo como ENA normal (sin OS-bypass), no tiene sentido usarlo.
+
+## SQS Standard vs FIFO
+
+- **Standard**: throughput ilimitado, at-least-once (PUEDE duplicar), best-effort ordering
+- **FIFO**: exactly-once processing (SIN duplicados), orden garantizado, max 300 msg/s (3000 con batching)
+- Standard duplica porque replica en múltiples servers y a veces entrega 2 copias
+- FIFO previene con Deduplication ID (descarta mismo mensaje en 5 min)
+- Visibility timeout: tiempo que mensaje es invisible tras ser leído. Aumentarlo reduce duplicados por timeout, pero NO los inherentes de Standard
+- **Clave examen**: "processed twice" / "duplicate" → SQS FIFO
+- **DLQ (Dead Letter Queue)**: cola donde van mensajes tras N fallos (maxReceiveCount). Opcional, funciona igual en Standard y FIFO.
+- Fallo → mensaje vuelve a la cola (reintento legítimo, NO es duplicado). Tras N fallos → DLQ.
+- FIFO elimina entregas duplicadas simultáneas, NO reintentos legítimos tras fallo.
+- FIFO detecta duplicados via: Deduplication ID (tú lo pones) o Content-based (SHA-256 del body, automático). Ventana: 5 minutos.
+
+## AWS AppSync
+
+- NO es solo GraphQL — es un servicio de **data aggregation y orchestration** para múltiples data sources
+- **Pipeline Resolvers**: encadenan funciones que conectan DIRECTAMENTE a DynamoDB (sin Lambda), en secuencia o paralelo
+- Una request puede leer/escribir de múltiples tablas DynamoDB automáticamente
+- Serverless, sin código de orquestación, "operationally efficient"
+- **Clave examen**: "multiple DynamoDB tables" + "retrieve and write" + "operationally efficient" → AppSync pipeline resolvers
+
+## EKS Scaling
+
+- **HPA (Horizontal Pod Autoscaler)**: más pods/réplicas. Para: web servers, APIs, microservicios. Necesita Metrics Server.
+- **VPA (Vertical Pod Autoscaler)**: más CPU/RAM al pod existente. Requiere restart del pod. Para: DBs, apps que no escalan horizontalmente.
+- **Cluster Autoscaler**: más/menos EC2 nodes según pods pending. Legacy.
+- **Karpenter**: como Cluster Autoscaler pero mejor, más rápido, elige instancia óptima. AWS lo recomienda.
+- Horizontal = más copias. Vertical = más potente.
+- **Clave examen**: "more traffic/requests" → HPA. "more resources for pod" → VPA. "no room for pods" → Karpenter/Cluster Autoscaler.
 
 ## VPC Endpoints: Gateway vs Interface
 
@@ -278,7 +463,119 @@
 - **Default SG**: permite todo outbound, deniega todo inbound → añadir regla inbound
 - **NACLs en la vida real**: rara vez se tocan, se usan para bloquear IPs específicas (SGs no pueden hacer DENY) o compliance
 - **Clave examen**: si mencionan "non-default NACL" o "blocks all" → siempre necesitas reglas en ambas direcciones
+
+## ASG Scaling Policies
+
+- **Target Tracking**: "mantén CPU al 50%". AWS gestiona todo (alarmas, adjustments). El más simple.
+- **Step Scaling**: TÚ defines alarmas, thresholds y múltiples escalones (CPU 60%→+1, 80%→+3, 90%→+5). "Set of adjustments".
+- **Simple Scaling**: un threshold, una acción, cooldown. Legacy.
+- **Scheduled**: a hora/fecha específica (patrones predecibles).
+- **Clave examen**: "set of adjustments" + "specify thresholds" + "CloudWatch alarms" → Step Scaling. "Maintain metric at X" → Target Tracking.
+
+## ASG Lifecycle Hooks
+
+- Permiten pausar launch o terminate para ejecutar acciones antes de completar
+- **Launch**: `Pending:Wait`. **Terminate**: `Terminating:Wait` (NO confundir)
+- Evento correcto para actuar durante terminación: `EC2 Instance-terminate Lifecycle Action` (instancia aún viva)
+- `EC2 Instance Terminate Successful` = ya terminada, demasiado tarde
+- Patrón: Lifecycle hook → EventBridge → Lambda → CloudWatch Agent (push logs) → CompleteLifecycleAction
+- Timeout configurable hasta 48h
+
+## VPC DNS Settings
+
+- **DNS Resolution** (enableDnsSupport): ¿la VPC puede resolver DNS? Default: enabled en todas las VPCs.
+- **DNS Hostnames** (enableDnsHostnames): ¿las EC2 reciben hostname DNS público?
+  - Default VPC: enabled. Custom VPC: **disabled por defecto** ← truco del examen
+- Para que EC2 tenga DNS hostname: DNS Resolution ON + DNS Hostnames ON + IP pública
+- Route 53 no controla si una EC2 recibe hostname (es servicio DNS externo)
+
+## NAT Gateway
+
+- NAT Gateway va en **public subnet**, EC2s en **private subnet**
+- Private subnet route: `0.0.0.0/0 → NAT Gateway`
+- Permite tráfico de SALIDA a internet, bloquea tráfico de ENTRADA desde internet
+- NAT GW necesita EIP y acceso al IGW (por eso va en public subnet)
+- EIP en EC2 = accesible desde internet (NO es lo mismo que NAT GW)
+
+## Servicios AI/ML para texto
+
+- **Textract**: extrae texto de PDF/imágenes (OCR). Solo extrae, no analiza.
+- **Comprehend**: NLP sobre texto — sentimiento, entidades, PII genérico. NO específico médico.
+- **Comprehend Medical**: detecta PHI (Protected Health Information) médico — HIPAA compliance.
+- **Transcribe**: audio → texto (speech-to-text). NO sirve para PDFs.
+- **Polly**: texto → audio. **Rekognition**: imágenes/vídeo. **Macie**: detecta PII en S3.
+- "Textract Medical" NO existe como servicio.
+- **Clave examen**: PDF + PHI médico → Textract (extraer) + Comprehend Medical (identificar PHI)
 - **Evaluación NACL**: reglas en ORDEN NUMÉRICO, primera coincidencia gana. Un ALLOW en rule 100 gana sobre DENY en rule 200
 - Rule * (asterisco) = default DENY, siempre la última
 - Truco: buscar la regla con número más bajo que coincida con el tráfico → esa decide
+
+## Route 53: Alias vs CNAME
+
+- **CNAME**: mapea nombre DNS → otro nombre DNS. **NO funciona en zone apex** (dominio raíz como `ejemplo.com`)
+- **Alias**: extensión propietaria de Route 53. Mapea nombre DNS → recurso AWS. **SÍ funciona en zone apex**
+- Alias se crea como tipo A (IPv4) o AAAA (IPv6) con flag "Alias" activado
+- **Alias es gratis** (no cobran queries), CNAME sí cobra
+- Alias soporta: ALB, NLB, CloudFront, S3 website, Elastic Beanstalk, API Gateway, Global Accelerator
+- Alias **NO soporta**: EC2 DNS name → usar CNAME o IP directa
+- **Zone apex** = naked domain = root domain (`ejemplo.com` sin www)
+- ALB no tiene IP fija → un A record normal con IP no sirve
+- **Clave examen**: ves "zone apex" o "root domain" → la respuesta siempre es **Alias record (tipo A)**
+- Ves recurso AWS como destino → preferir Alias (gratis + apex)
+- CNAME solo cuando el destino es externo (no AWS)
+
+## ALB con targets on-premises + Weighted Target Groups
+
+- Target Groups tienen tipo **instance** (EC2) o tipo **ip** (cualquier IP alcanzable)
+- Con tipo **ip** puedes registrar IPs de servidores on-premises si hay Direct Connect o VPN
+- **ALB soporta Weighted Target Groups**: una regla del listener puede reenviar a múltiples target groups con pesos distintos (ej: 50/50)
+- **NLB NO soporta** weighted forwarding a múltiples target groups → solo ALB
+- Para repartir tráfico con pesos entre on-prem y AWS: ALB Weighted TG o Route 53 Weighted routing
+- Route 53 **Failover** = activo/pasivo (backup), NO reparte tráfico proporcionalmente
+- Route 53 **Weighted** = reparte tráfico por porcentaje entre endpoints
+- **Clave examen**: migración gradual on-prem → AWS con % de tráfico → ALB Weighted TG + Route 53 Weighted
+
+## SSM Run Command vs CodePipeline
+
+- **Run Command** (parte de Systems Manager): ejecuta comandos/scripts en EC2 **sin SSH/RDP**, usa SSM Agent
+- **CodePipeline**: CI/CD pipeline (Source → Build → Deploy). Para desplegar aplicaciones, no para configurar instancias
+- **EC2Config**: servicio legacy de Windows, solo configuración inicial. No es para comandos remotos
+- **AWS Config**: audita compliance de recursos AWS. No ejecuta nada
+- **Clave examen**: "sin SSH/RDP" + "configurar instancias" + "Systems Manager" → **Run Command**
+
+## WAF vs Network Firewall vs NACLs
+
+- **WAF**: capa 7 (HTTP). Bloqueo por **país** (geo-match), IPs, SQLi, XSS, rate limiting. Se asocia a ALB/CloudFront/API Gateway
+- **Network Firewall**: capa 3-4. Inspección profunda (IDS/IPS), filtrado de **dominios salientes**, stateful/stateless rules. Más caro y complejo
+- **NACLs**: capa 3-4. Reglas simples IP/puerto por subnet. Límite ~20 reglas. No soporta filtrado por país
+- NACLs no pueden bloquear un país → miles de rangos IP cambiantes, límite de reglas insuficiente
+- **Clave examen**: "bloquear país" → **WAF geo-match** siempre
+- **Network Firewall es correcto cuando**: filtrado egress por dominio, tráfico no-HTTP, IDS/IPS, inspección entre VPCs
+- Regla rápida: WAF = proteger apps web (ingress HTTP). Network Firewall = controlar tráfico de red (egress, no-HTTP, IDS/IPS)
+
+## Conectividad entre VPCs y servicios
+
+- **VPC Endpoint**: VPC → servicio AWS (S3, DynamoDB, SSM). NO conecta VPC con VPC
+- **VPC Peering**: VPC ↔ VPC directa (misma o distinta región). Requiere actualizar **route tables** en ambas VPCs
+- **Transit Gateway**: hub central para conectar muchas VPCs + on-prem (hub-and-spoke)
+- **NAT Gateway**: subnet privada → Internet. NO es para conectar VPCs
+- **Egress-only IGW**: NAT Gateway pero para IPv6. Tampoco conecta VPCs
+- **Clave examen**: "transferir datos entre VPCs sin Internet" → VPC Peering + actualizar route tables
+
+## EBS Snapshots durante uso
+
+- Snapshots son **asíncronos**: el volumen sigue disponible para lectura Y escritura durante el snapshot
+- Se puede detach/attach el volumen durante el snapshot sin problemas
+- El snapshot captura el estado **point-in-time** del momento que se inicia
+- Primer snapshot = completo. Siguientes = incrementales (solo bloques cambiados)
+- Se guardan en S3 (gestionado por AWS, no visible en tus buckets)
+
+## Trusted Advisor Service Limits
+
+- Monitoriza uso actual vs cuotas de servicios AWS
+- Requiere **Business support plan** mínimo (Developer NO incluye checks completos)
+- Los datos se quedan **stale** → necesitas refrescar con `RefreshTrustedAdvisorCheck` API (Lambda cada 24h)
+- `DescribeTrustedAdvisorChecks` solo **lista** checks disponibles, NO los ejecuta
+- Para notificaciones: EventBridge captura eventos de TA → SNS notifica
+- **AWS Config** NO monitoriza service quotas → Config es para compliance de configuración de recursos
 
