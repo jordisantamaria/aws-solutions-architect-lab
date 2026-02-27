@@ -665,3 +665,102 @@
 - Certificados ACM en ALB se **renuevan automáticamente** (si DNS validation funciona)
 - ACM Private CA NO renueva automáticamente → más overhead, no recomendado como solución
 
+## EMR Nodos y Spot Instances
+
+- **Primary**: gestiona cluster. On-Demand SIEMPRE. Si muere, todo muere
+- **Core**: almacenan datos (HDFS) + procesan. On-Demand si no puedes perder datos
+- **Task**: solo procesan, sin datos. **Spot seguro** → si mueren no hay data loss
+- **Transient cluster**: se crea, ejecuta job, se destruye. Más barato que long-running para jobs periódicos
+- EMR Serverless NO soporta Apache Ranger (table/column-level permissions)
+- **Clave examen**: "no data loss" + "cost-effective" → Primary/Core On-Demand + Task Spot
+
+## NLB sí soporta HTTP Health Checks
+
+- NLB opera en capa 4 (TCP) pero sus health checks pueden ser HTTP/HTTPS
+- Health check TCP solo verifica puerto abierto. HTTP health check verifica status code (200 OK)
+- Cambiar health check de TCP a HTTP = cambiar un setting, mínimo overhead
+- Reemplazar NLB por ALB = cambiar load balancer entero, mucho más overhead
+- **Clave examen**: "least overhead" → modificar lo existente, no reemplazar componentes
+
+## AWS Transfer Family + Storage
+
+- Transfer Family soporta SFTP, FTPS, FTP. Se integra con **S3 o EFS**
+- S3: object storage, no tiene IOPS, no es filesystem real
+- EFS: filesystem, high IOPS, serverless, multi-AZ (highly available)
+- EBS: single AZ, monta en una EC2, NO serverless, NO se integra con Transfer Family
+- **Public endpoint**: no tiene Security Group, no filtra IPs
+- **VPC endpoint + Elastic IP**: tiene Security Group → filtra IPs aprobadas
+- **Clave examen**: "SFTP" + "high IOPS" + "serverless" → EFS + Transfer Family + VPC endpoint
+
+## FSx Services - Protocolos
+
+- **FSx for NetApp ONTAP**: NFS + SMB + iSCSI (los tres). Único multi-protocol
+- **FSx for OpenZFS**: solo NFS
+- **FSx for Windows File Server**: solo SMB
+- **EFS**: solo NFS
+- **Clave examen**: "multi-protocol" (NFS + SMB + iSCSI) → siempre FSx for NetApp ONTAP
+
+## S3 Glacier Retrieval Times
+
+- **Glacier Instant Retrieval**: milisegundos (inmediato)
+- **Glacier Flexible Retrieval**: 1-5 min (expedited), 3-5h (standard), 5-12h (bulk)
+- **Glacier Deep Archive**: 12h (standard), 48h (bulk)
+- "Retrieve within minutes" → descarta Deep Archive
+- One Zone-IA NO es bueno para **backups** (si AZ cae, pierdes datos)
+- **Lifecycle transition mínimos**: Standard → Standard-IA/One Zone-IA = **mínimo 30 días**. Standard → Glacier = **sin mínimo**
+- Transicionar a Standard-IA a los 7 días **NO es posible** (viola mínimo 30 días)
+- **Clave examen**: si necesitas mover datos antes de 30 días → Glacier (sin restricción). IA solo después de 30 días
+
+## AWS Backup Vault Lock - Compliance vs Governance
+
+- **Compliance mode**: NADIE puede borrar/modificar, ni root user. Inmutable total
+- **Governance mode**: users con permisos IAM especiales SÍ pueden borrar/modificar
+- **Clave examen**: "cannot delete or alter" / "compliance" → Compliance mode. "Protect but admin override" → Governance mode
+
+## Lambda Execution Role vs Resource-based Policy
+
+- **Execution Role**: qué puede hacer la Lambda (acceder a DynamoDB, S3, etc.) → permisos OUTBOUND
+- **Resource-based Policy**: quién puede invocar la Lambda → permisos INBOUND
+- Cross-account invoke Lambda → **Resource-based Policy** con la otra cuenta como principal
+- "Least privilege" → acción específica (`lambda:InvokeFunction`), nunca `lambda:*`
+
+## KMS Key Types - Rotation Control
+
+- **AWS owned**: AWS controla, no ves nada. Sin control de rotación
+- **AWS managed** (aws/ebs): rota cada año automático, NO puedes cambiar periodo
+- **Customer managed**: tú activas rotación y defines periodo. Control + bajo overhead
+- **External/imported**: rotación manual (importar nueva key). Máximo control pero máximo overhead
+- **Clave examen**: "control rotation" + "least overhead" → Customer managed key
+
+## ALB Sticky Sessions
+
+- Cookie que hace que un usuario siempre vaya a la misma instancia
+- Necesario para apps **stateful** (sesión en RAM de la instancia)
+- Innecesario para apps **stateless** (sesión en Redis/DynamoDB externo)
+- Sticky sessions + tráfico desigual = una instancia sobrecargada
+- **Clave examen**: "stateless" + "traffic to one instance" → desactivar sticky sessions
+
+## DataSync preserva Windows File Permissions
+
+- **DataSync** es el único servicio que preserva NTFS permissions, metadata, timestamps, ownership
+- Migrar Windows files a FSx → DataSync directo (agent on-prem → FSx)
+- **Nunca pasar por S3** como intermediario → S3 es object storage, pierde NTFS ACLs
+- AWS CLI copy tampoco preserva Windows permissions
+- Snowcone puede correr DataSync agent AMI (via OpsHub) para conexiones lentas
+
+## FSx for Lustre - Persistent vs Scratch
+
+- **FSx for Lustre**: filesystem paralelo para HPC, ML, rendering. Cientos de GB/s throughput
+- **Persistent**: datos replicados, se recuperan si falla hardware. Highly available ✅
+- **Scratch**: datos NO replicados, se pierden si falla. Solo para jobs temporales ❌ HA
+- **Amazon File Cache**: cache temporal para datos híbridos (S3/on-prem). No es storage persistente
+- **Clave examen**: "HPC" + "parallel" + "highly available" → FSx for Lustre Persistent
+
+## Lake Formation - Column-level Security
+
+- **Lake Formation**: governance del data lake. Soporta column-level, row-level, cell-level security
+- **Lake Formation blueprints**: ingestar datos de RDS/Aurora a S3 automáticamente (incremental)
+- **Data filters**: control granular por columna (marketing solo ve ciertas columnas)
+- IAM policies y S3 bucket policies NO soportan column-level access
+- **Clave examen**: "column-level access" en data lake → Lake Formation, nunca IAM
+
