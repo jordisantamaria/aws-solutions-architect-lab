@@ -421,6 +421,31 @@ AWS Lambda es un servicio de cómputo **serverless** que ejecuta código en resp
 - Máximo **5 layers** por función.
 - Tamaño total (función + layers) no puede exceder 250 MB (descomprimido).
 
+### Lambda SnapStart vs Provisioned Concurrency
+
+Dos soluciones para el problema del **cold start**, pero con enfoques muy diferentes:
+
+| Característica | Lambda SnapStart | Provisioned Concurrency |
+|---------------|-----------------|------------------------|
+| **Mecanismo** | Toma un snapshot del entorno inicializado (después del init) y lo reutiliza | Mantiene entornos de ejecución pre-inicializados 24/7 |
+| **Runtimes** | Solo **Java** (Corretto) | Todos los runtimes |
+| **Coste** | **Gratis** (sin coste adicional) | Coste por hora por cada entorno provisionado |
+| **Reducción de cold start** | De ~5-10s a ~200ms (Java) | Elimina cold start completamente |
+| **Caso de uso** | Funciones Java con cold start inaceptable | Funciones en cualquier runtime que necesitan latencia consistente |
+
+> **Tip para el examen:** Si la pregunta dice "reducir cold start de función Java sin coste adicional" → **SnapStart**. Si dice "eliminar cold start en cualquier runtime" o "latencia consistente para función crítica" → **Provisioned Concurrency** (con coste). Si la función va a estar invocándose constantemente 24/7, considerar si **EC2/Fargate** es más económico que Provisioned Concurrency.
+
+### Lambda Function URL
+
+- Endpoint HTTP(S) dedicado para una función Lambda, **sin necesidad de API Gateway ni ALB**.
+- URL con formato: `https://<url-id>.lambda-url.<region>.on.aws`.
+- Soporta autenticación IAM (`AWS_IAM`) o acceso público (`NONE`).
+- Soporta CORS configurable.
+- Solo invocación síncrona.
+- **Caso de uso**: APIs simples, webhooks, formularios, donde API Gateway sería excesivo.
+
+> **Tip para el examen:** Si la pregunta dice "exponer Lambda como endpoint HTTP con el mínimo overhead" o "sin API Gateway" → **Lambda Function URL**.
+
 ### Lambda y VPC
 
 - Por defecto, Lambda se ejecuta **fuera de tu VPC** (en la VPC de AWS).
@@ -437,6 +462,30 @@ AWS Lambda es un servicio de cómputo **serverless** que ejecuta código en resp
 - **Requisito**: Lambda debe estar en VPC (para acceder a EFS).
 - **Tradeoff**: Cold start más lento (montar EFS + cargar libs grandes). En warm start, EFS ya está montado y es rápido.
 - Si se invoca frecuentemente (warm starts) → buena opción. Si es esporádico y el cold start de 30-60s no es aceptable → mejor Fargate Task con imagen Docker grande (sin límite de tamaño).
+
+### Lambda Permissions: Execution Role vs Resource Policy
+
+Lambda tiene **dos tipos de permisos** que se confunden frecuentemente en el examen:
+
+| | Execution Role | Resource Policy |
+|---|---|---|
+| **Qué define** | Qué puede hacer **Lambda** (qué servicios puede llamar) | Quién puede **invocar** Lambda |
+| **Dirección** | Lambda → otros servicios | Otros servicios → Lambda |
+| **Tipo de policy** | Identity-based (IAM Role adjunto a Lambda) | Resource-based (adjunta a la función Lambda) |
+| **Ejemplo** | Lambda necesita leer de S3 y escribir en DynamoDB | S3 necesita invocar Lambda cuando se sube un objeto |
+
+```
+Execution Role (lo que Lambda PUEDE HACER):
+  Lambda ──► S3 (GetObject)        ← necesita execution role con s3:GetObject
+  Lambda ──► DynamoDB (PutItem)    ← necesita execution role con dynamodb:PutItem
+
+Resource Policy (quién PUEDE INVOCAR Lambda):
+  S3 event ──► Lambda              ← necesita resource policy que permita a S3 invocar
+  SNS ──► Lambda                   ← necesita resource policy que permita a SNS invocar
+  Otra cuenta AWS ──► Lambda       ← necesita resource policy con cross-account principal
+```
+
+> **Tip para el examen:** Si la pregunta dice "Lambda necesita acceder a S3/DynamoDB/SQS" → **Execution Role**. Si dice "S3/SNS/otra cuenta necesita invocar Lambda" → **Resource Policy**. Para invocación cross-account, siempre es **resource policy**.
 
 ### Lambda Destinations
 
@@ -515,6 +564,32 @@ Lambda puede consumir eventos de servicios como SQS, Kinesis, DynamoDB Streams y
 | **Ideal para** | Apps AWS-first, simples | Serverless containers sin K8s | Equipos con experiencia K8s | K8s serverless |
 
 > **Tip para el examen:** Si la pregunta dice "Kubernetes" o "portabilidad multi-cloud" o "equipo con experiencia Kubernetes" -> EKS. Si dice "contenedores sin gestionar servidores" -> Fargate. Si dice "contenedores simples en AWS" -> ECS.
+
+### ECS - Escalado en dos niveles
+
+ECS con EC2 Launch Type tiene un modelo de escalado en **dos niveles** similar a EKS:
+
+```
+Nivel 1 - TASKS (scaling de la aplicación):
+  "Necesito más copias de mi contenedor"
+  → ECS Service Auto Scaling (Target Tracking, Step, Scheduled)
+  → Métricas: CPU/Memory del servicio, ALBRequestCountPerTarget, SQS queue depth
+
+Nivel 2 - EC2 INSTANCES (scaling de la infraestructura):
+  "Necesito más servidores donde corran los tasks"
+  → EC2 Auto Scaling Group
+  → Métricas: ECS Cluster CapacityProviderReservation
+  → ECS Capacity Providers (recomendado, gestiona el ASG automáticamente)
+```
+
+**Con Fargate**: Solo necesitas Nivel 1 (Task scaling). AWS gestiona la infraestructura automáticamente.
+
+**Para el examen:**
+```
+"ECS con EC2 scaling"            → Service Auto Scaling (tasks) + Capacity Provider (EC2s)
+"ECS scaling sin gestionar EC2"  → Fargate + Service Auto Scaling
+"ECS + SQS scaling"              → Service Auto Scaling basado en ApproximateNumberOfMessages
+```
 
 ### Conceptos básicos de Kubernetes (EKS)
 

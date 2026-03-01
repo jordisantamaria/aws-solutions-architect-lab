@@ -408,7 +408,7 @@ EC2, EBS, RDS, Aurora, DynamoDB, EFS, FSx, Storage Gateway, S3, Neptune, Documen
 |---|---|
 | **Backup Plan** | Define la política: frecuencia, ventana de backup, retención, transición a cold storage |
 | **Backup Vault** | Contenedor de almacenamiento para los backups. Se puede cifrar con KMS. |
-| **Backup Vault Lock** | Protección WORM (Write Once Read Many) para evitar eliminación o modificación de backups |
+| **Backup Vault Lock** | Protección WORM (Write Once Read Many) para evitar eliminación o modificación de backups. Dos modos: **Compliance** (nadie puede eliminar, ni siquiera root o AWS) y **Governance** (solo admins con permisos especiales pueden modificar) |
 | **Recovery Point** | Un backup individual dentro de un vault |
 | **Resource Assignment** | Qué recursos están incluidos en el backup plan (por tags o ARNs) |
 
@@ -429,9 +429,14 @@ Región us-east-1                     Región eu-west-1
 
 - **Cross-Region:** Copiar backups automáticamente a otra región para DR.
 - **Cross-Account:** Copiar backups a una cuenta separada para protección contra compromiso de cuenta.
-- **Vault Lock:** Política WORM que impide que nadie (ni root) elimine los backups durante el período de retención.
+- **Vault Lock:** Política WORM. Dos modos:
 
-> **Punto clave para el examen:** Para proteger backups contra eliminación accidental o maliciosa, usa **Backup Vault Lock**. Para cumplimiento normativo, es la respuesta sobre inmutabilidad de backups.
+| Modo | Quién puede eliminar/modificar | Caso de uso |
+|---|---|---|
+| **Compliance** | **Nadie** (ni root, ni AWS Support). Irreversible una vez aplicado. | Compliance regulatorio estricto (HIPAA, SEC Rule 17a-4). "Nadie debe poder eliminar backups bajo ninguna circunstancia." |
+| **Governance** | Solo usuarios con permisos IAM específicos pueden override. Reversible. | Protección contra eliminación accidental pero con flexibilidad para admins. |
+
+> **Punto clave para el examen:** Si la pregunta dice "proteger backups para que nadie pueda eliminarlos, ni siquiera root" → **Vault Lock modo Compliance**. Si dice "proteger contra eliminación accidental pero permitir que un admin pueda override" → **Vault Lock modo Governance**.
 
 ---
 

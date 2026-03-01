@@ -239,6 +239,46 @@ Cliente ──► genera data key con su master key local ──► cifra localm
 
 **Glacier Vault Lock**: Política de vault que una vez bloqueada no puede modificarse. Ideal para compliance (WORM - Write Once Read Many).
 
+### S3 Server Access Logging
+
+- Registra todas las peticiones realizadas a un bucket S3.
+- Los logs se almacenan en **otro bucket S3** (nunca en el mismo bucket, para evitar loops infinitos).
+- Información incluida: requester, bucket name, request time, action, response status, **error code**, **referrer**, turnaround time.
+- **No es en tiempo real**: Los logs pueden tardar horas en aparecer (best-effort delivery).
+- No se puede enviar directamente a CloudWatch Logs (a diferencia de CloudTrail).
+
+**S3 Server Access Logging vs CloudTrail Data Events:**
+
+| Característica | S3 Server Access Logging | CloudTrail Data Events |
+|---------------|-------------------------|----------------------|
+| **Latencia** | Horas (best-effort) | Minutos (~15 min) |
+| **Campos extra** | Referrer, turnaround time, error code, bytes sent | Principal ARN, source IP, request parameters |
+| **Destino** | Otro bucket S3 | S3, CloudWatch Logs, EventBridge |
+| **Coste** | Gratis (solo pagas por el almacenamiento de los logs) | Coste por evento ($0.10 por 100,000 eventos) |
+| **Caso de uso** | Auditoría detallada de acceso, análisis de errores HTTP | Auditoría de seguridad, compliance, alertas en tiempo real |
+
+> **Tip para el examen:** Si la pregunta pide "auditoría detallada con referrer y error codes" → **S3 Server Access Logging**. Si pide "alertas en tiempo real sobre acceso a S3" → **CloudTrail Data Events + EventBridge**.
+
+### Cargos mínimos de duración por clase de almacenamiento
+
+AWS cobra un **mínimo de duración** al usar ciertas clases de S3. Si eliminas o mueves un objeto antes de ese período, pagas por el período completo igualmente:
+
+| Clase | Duración mínima de facturación |
+|---|---|
+| **S3 Standard** | Sin mínimo |
+| **S3 Standard-IA** | **30 días** |
+| **S3 One Zone-IA** | **30 días** |
+| **S3 Glacier Instant Retrieval** | **90 días** |
+| **S3 Glacier Flexible Retrieval** | **90 días** |
+| **S3 Glacier Deep Archive** | **180 días** |
+
+**Impacto en Lifecycle Policies:**
+- No puedes transicionar de Standard a Standard-IA antes de **30 días** (AWS lo impide).
+- Sí puedes transicionar de Standard a Glacier Flexible directamente **sin mínimo de días**.
+- **Trampa del examen**: Si una pregunta propone "Standard-IA after 7 days", es incorrecta (viola el mínimo de 30 días). Pero "Glacier Flexible after 7 days" sí es válido.
+
+> **Tip para el examen:** Recuerda: Standard-IA y One Zone-IA → mínimo 30 días. Glacier → mínimo 90 días. Deep Archive → mínimo 180 días. Las transiciones lifecycle deben respetar estos mínimos.
+
 ### Presigned URLs
 
 - URLs temporales que otorgan acceso a un objeto privado.
@@ -644,6 +684,11 @@ Dispositivos físicos para transferencia de datos offline y edge computing.
 - Preserva metadatos y permisos.
 - **Ancho de banda**: Puede consumir toda la red o limitarse.
 - Cifrado en tránsito y verificación de integridad.
+
+- **Preserva metadatos y permisos**: Incluye permisos NTFS, timestamps, ownership. Ideal para migrar file servers Windows con sus ACLs intactas.
+- **Modos de transferencia**:
+  - **Transfer only data that has changed**: Solo transfiere archivos nuevos o modificados (incremental). Por defecto.
+  - **Transfer all data**: Transfiere todo, útil para sincronización completa inicial.
 
 **Caso de uso**: Migración de datos, replicación para DR, archivado de datos.
 

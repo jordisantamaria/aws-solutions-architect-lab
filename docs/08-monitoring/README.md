@@ -5,6 +5,7 @@
 - [Amazon CloudWatch](#amazon-cloudwatch)
 - [CloudWatch Logs](#cloudwatch-logs)
 - [CloudWatch Agent](#cloudwatch-agent)
+- [CloudWatch Container Insights](#cloudwatch-container-insights)
 - [AWS CloudTrail](#aws-cloudtrail)
 - [AWS Config](#aws-config)
 - [AWS X-Ray](#aws-x-ray)
@@ -216,6 +217,38 @@ Agente que se instala en instancias EC2 o servidores on-premises para enviar mé
 - **CloudWatch Unified Agent** (recomendado): Envía logs Y métricas custom. Más configurable.
 
 > **Clave**: Si la pregunta menciona "monitorizar memoria RAM de EC2" o "uso de disco", la respuesta siempre incluye instalar el **CloudWatch Unified Agent**.
+
+---
+
+## CloudWatch Container Insights
+
+Solución de monitorización para contenedores que recopila, agrega y resume métricas y logs de **ECS**, **EKS**, **Kubernetes on EC2** y **Fargate**.
+
+### Métricas que proporciona
+
+| Nivel | Métricas |
+|---|---|
+| **Cluster** | CPU/Memory utilization del cluster completo, número de tasks/pods |
+| **Service/Deployment** | CPU/Memory por servicio ECS o deployment EKS |
+| **Task/Pod** | CPU/Memory por task individual o pod |
+| **Container** | CPU/Memory por contenedor dentro de un task/pod |
+
+### Configuración
+
+- **ECS**: Se habilita a nivel de cluster (`containerInsights` setting) o por cuenta.
+- **EKS**: Requiere instalar el **CloudWatch Agent** como DaemonSet en el cluster.
+- **Fargate**: Se habilita a nivel de cluster ECS.
+
+### Container Insights vs métricas básicas de ECS
+
+| | Métricas básicas ECS | Container Insights |
+|---|---|---|
+| **Granularidad** | Solo a nivel de servicio y cluster | Cluster, servicio, task, contenedor |
+| **Métricas** | CPU/Memory del servicio | CPU, Memory, Network, Disk I/O por contenedor |
+| **Performance Logs** | No | Sí (events de rendimiento estructurados) |
+| **Coste** | Gratis | Coste adicional (métricas custom de CloudWatch) |
+
+> **Tip para el examen:** Si la pregunta dice "monitorizar CPU/Memory a nivel de contenedor en ECS" o "métricas granulares de pods en EKS" → **CloudWatch Container Insights**. No confundir con las métricas básicas de ECS que solo dan visibilidad a nivel de servicio.
 
 ---
 

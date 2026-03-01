@@ -422,9 +422,13 @@ PK = country_code                  →  ~200 valores     →  particiones de US/
 
 - Tablas replicadas en **múltiples regiones**.
 - Replicación **activa-activa** (lectura y escritura en cualquier región).
-- Requiere DynamoDB Streams habilitado.
+- **No es automático por defecto**: Debe configurarse explícitamente añadiendo regiones a la tabla.
+- Requiere **DynamoDB Streams habilitado** (prerequisito obligatorio).
 - Latencia de replicación típica: **< 1 segundo**.
+- Resolución de conflictos: **Last writer wins** (basado en timestamp).
 - Caso de uso: Aplicaciones globales de baja latencia, DR multi-región.
+
+> **Trampa del examen:** DynamoDB Global Tables NO están habilitadas por defecto. Debes configurarlas explícitamente y DynamoDB Streams debe estar habilitado primero.
 
 ### TTL (Time To Live)
 
@@ -550,7 +554,18 @@ Data warehouse basado en PostgreSQL, diseñado para **OLAP** (Online Analytical 
 - Pago por RPU (Redshift Processing Units) consumidos.
 - Ideal para cargas intermitentes o impredecibles de analytics.
 
-> **Clave para el examen**: Redshift es para analytics/OLAP, NO para OLTP. Si la pregunta es sobre un data warehouse o BI, piensa en Redshift. Si necesita datos de S3 sin moverlos, piensa en Redshift Spectrum.
+### Redshift y latencia: no es real-time
+
+Redshift es para **analytics batch**, no para consultas en tiempo real. Las queries complejas tardan **segundos a minutos**. En el examen, "near real-time analytics" con Redshift significa que los datos llegan via Kinesis Firehose en micro-batches (~60s), pero las queries no son instantáneas.
+
+| Servicio | Latencia de consulta | Tipo |
+|---|---|---|
+| **DynamoDB** | Milisegundos | Real-time (CRUD individual) |
+| **OpenSearch** | Segundos | Near real-time (búsqueda/logs) |
+| **Athena** | Segundos | Ad-hoc queries sobre S3 |
+| **Redshift** | Segundos a minutos | Analytics complejas (JOINs, GROUP BY, agregaciones) |
+
+> **Clave para el examen**: Redshift es para analytics/OLAP, NO para OLTP. Si la pregunta es sobre un data warehouse o BI, piensa en Redshift. Si dice "real-time dashboard de IoT con millones de lecturas por segundo" → **DynamoDB** (para ingesta) + **Kinesis** (para streaming). Si necesita datos de S3 sin moverlos → Redshift Spectrum.
 
 ---
 

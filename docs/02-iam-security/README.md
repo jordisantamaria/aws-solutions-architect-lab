@@ -262,6 +262,24 @@ Management Account (root)
 └── Guardrails aplicados por OU
 ```
 
+### Control Tower Drift Detection
+
+**Drift** ocurre cuando los recursos gestionados por Control Tower se modifican fuera de su control (manualmente o por otros servicios), desviándose del estado esperado.
+
+**Tipos de drift detectados:**
+- Cambios en SCPs gestionadas por Control Tower.
+- Cambios en la configuración de cuentas (CloudTrail deshabilitado, Config deshabilitado).
+- Cuentas movidas entre OUs manualmente.
+- Cambios en guardrails mandatorios.
+
+**Notificaciones de drift:**
+- Control Tower detecta drift automáticamente y envía notificaciones via **SNS** al admin.
+- Se puede integrar con **EventBridge** para automatizar la remediación.
+- El drift aparece en el **Control Tower Dashboard** con estado de las cuentas y guardrails afectados.
+- Para resolverlo, se puede usar **Re-register OU** o corregir manualmente y luego **Update Landing Zone**.
+
+> **Tip para el examen:** Si la pregunta menciona "detectar cambios no autorizados en cuentas de Control Tower" o "notificar cuando una SCP gestionada se modifica" → **Control Tower drift detection**. Las notificaciones van por SNS y aparecen en el dashboard.
+
 ### Control Tower vs Organizations
 
 | Característica | Organizations (solo) | Control Tower |

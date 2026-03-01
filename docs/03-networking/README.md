@@ -73,6 +73,31 @@ Una **Virtual Private Cloud (VPC)** es una red virtual aislada lógicamente dent
 | 10.0.0.0/16 | local |
 | 0.0.0.0/0 | nat-xxx (NAT Gateway) |
 
+### Planificación de subnets: fórmula capas × AZs
+
+Al diseñar una VPC, el número de subnets se calcula como:
+
+```
+Número de subnets = Número de capas (tiers) × Número de AZs
+```
+
+**Ejemplo típico de 3 capas en 2 AZs = 6 subnets:**
+
+```
+                    AZ-a              AZ-b
+                ┌──────────┐     ┌──────────┐
+Public:         │ pub-1a   │     │ pub-1b   │    ← ALB, NAT GW, Bastion
+                ├──────────┤     ├──────────┤
+Private (App):  │ priv-1a  │     │ priv-1b  │    ← EC2, ECS, Lambda
+                ├──────────┤     ├──────────┤
+Private (Data): │ data-1a  │     │ data-1b  │    ← RDS, ElastiCache
+                └──────────┘     └──────────┘
+```
+
+**Con 3 AZs = 9 subnets.** Cada subnet tiene su propia route table y NACL.
+
+> **Tip para el examen:** Si la pregunta dice "3-tier architecture across 2 AZs", piensa en 6 subnets. Si dice "3 AZs for high availability", serán 9 subnets.
+
 ### Default VPC
 
 - AWS crea una VPC por defecto en cada Región con CIDR `172.31.0.0/16`.
@@ -449,6 +474,23 @@ Conexión de red **dedicada** y **privada** entre tu data center y AWS, sin pasa
 - **Target Groups**: Instancias EC2, IPs, funciones Lambda, contenedores ECS.
 - **Slow Start Mode**: Incrementa gradualmente el tráfico a nuevos targets.
 - El ALB añade el header `X-Forwarded-For` con la IP original del cliente.
+- **ALB es regional**: No puede tener targets en otras regiones. Para distribución multi-región, usa Route 53 o Global Accelerator.
+
+#### ALB Weighted Target Groups
+
+ALB soporta asignar **pesos** a los Target Groups para distribuir tráfico proporcionalmente:
+
+```
+ALB Listener Rule:
+  ├── Target Group A (on-premises IPs via Direct Connect): weight 90
+  └── Target Group B (EC2 en AWS): weight 10
+```
+
+- Permite **migración gradual** (blue/green, canary) moviendo peso de un TG a otro.
+- **Target type IP**: Permite registrar IPs privadas **fuera de AWS** (servidores on-premises accesibles via Direct Connect o VPN).
+- Caso de uso: Migración gradual de on-premises a AWS. Enviar 90% a on-prem, 10% a AWS. Ir ajustando pesos progresivamente.
+
+> **Tip para el examen:** Si la pregunta menciona "migración gradual de on-premises a AWS" + "distribuir tráfico porcentual" → **ALB con Weighted Target Groups** usando target type IP para los servidores on-premises (via Direct Connect).
 
 ### NLB - Network Load Balancer (Detalle)
 
@@ -457,6 +499,18 @@ Conexión de red **dedicada** y **privada** entre tu data center y AWS, sin pasa
 - Puede ser target de un ALB (para combinar IP estática + routing avanzado).
 - Latencia extremadamente baja (~100ms vs ~400ms de ALB).
 - **Preserve source IP**: La IP del cliente se ve directamente en el target (a diferencia del ALB que la pone en X-Forwarded-For).
+
+#### NLB y Health Checks HTTP
+
+Aunque NLB opera en **capa 4**, soporta health checks en **HTTP y HTTPS** (no solo TCP):
+
+| Protocolo de Health Check | Disponible en NLB |
+|---|---|
+| TCP | Sí |
+| HTTP | **Sí** |
+| HTTPS | **Sí** |
+
+> **Trampa del examen:** Si una pregunta dice "NLB con health checks de capa de aplicación" y ofrece como opción "reemplazar NLB por ALB" vs "configurar HTTP health checks en NLB", la respuesta correcta es **configurar HTTP health checks en el NLB existente** (least operational overhead). NLB sí soporta HTTP health checks, aunque opere en capa 4.
 
 ### GLB - Gateway Load Balancer (Detalle)
 
