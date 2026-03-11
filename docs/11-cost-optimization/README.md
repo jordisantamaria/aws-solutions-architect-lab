@@ -1,108 +1,108 @@
-# 11 - Optimización de Costes en AWS
+# 11 - Cost Optimization in AWS
 
-## Tabla de Contenidos
+## Table of Contents
 
 - [EC2 Pricing Deep Dive](#ec2-pricing-deep-dive)
-- [Cuándo Usar Cada Modelo de Precio](#cuándo-usar-cada-modelo-de-precio)
+- [When to Use Each Pricing Model](#when-to-use-each-pricing-model)
 - [S3 Cost Optimization](#s3-cost-optimization)
-- [Costes de Transferencia de Datos](#costes-de-transferencia-de-datos)
+- [Data Transfer Costs](#data-transfer-costs)
 - [AWS Cost Explorer](#aws-cost-explorer)
 - [AWS Budgets](#aws-budgets)
 - [AWS Cost and Usage Report (CUR)](#aws-cost-and-usage-report-cur)
 - [AWS Compute Optimizer](#aws-compute-optimizer)
 - [Rightsizing](#rightsizing)
 - [Savings Plans vs Reserved Instances](#savings-plans-vs-reserved-instances)
-- [Estrategias Spot](#estrategias-spot)
-- [AWS Organizations: Facturación Consolidada](#aws-organizations-facturación-consolidada)
-- [Estrategia de Tagging para Asignación de Costes](#estrategia-de-tagging-para-asignación-de-costes)
-- [Tips para el Examen](#tips-para-el-examen)
+- [Spot Strategies](#spot-strategies)
+- [AWS Organizations: Consolidated Billing](#aws-organizations-consolidated-billing)
+- [Tagging Strategy for Cost Allocation](#tagging-strategy-for-cost-allocation)
+- [Exam Tips](#exam-tips)
 
 ---
 
 ## EC2 Pricing Deep Dive
 
-### Modelos de precio
+### Pricing Models
 
 #### 1. On-Demand
 
-- **Pago por uso:** Se cobra por segundo (mínimo 60 segundos) para Linux, por hora para Windows.
-- **Sin compromiso:** Se puede iniciar y detener en cualquier momento.
-- **Precio más alto** por hora, pero máxima flexibilidad.
-- **Caso de uso:** Cargas de trabajo impredecibles, desarrollo/testing, aplicaciones de corta duración.
+- **Pay-per-use:** Charged per second (minimum 60 seconds) for Linux, per hour for Windows.
+- **No commitment:** Can be started and stopped at any time.
+- **Highest price** per hour, but maximum flexibility.
+- **Use case:** Unpredictable workloads, development/testing, short-duration applications.
 
 #### 2. Reserved Instances (RI)
 
-| Característica | Standard RI | Convertible RI |
+| Feature | Standard RI | Convertible RI |
 |---|---|---|
-| **Descuento** | Hasta ~72% vs On-Demand | Hasta ~66% vs On-Demand |
-| **Plazo** | 1 o 3 años | 1 o 3 años |
-| **Cambiar tipo de instancia** | No (misma familia, se puede cambiar tamaño en la misma familia con Instance Size Flexibility) | Sí (se puede cambiar familia, SO, tenancy, etc.) |
-| **Vender en Marketplace** | Sí | No |
-| **Pago** | All Upfront / Partial Upfront / No Upfront | All Upfront / Partial Upfront / No Upfront |
-| **Descuento máximo** | All Upfront + 3 años | All Upfront + 3 años |
+| **Discount** | Up to ~72% vs On-Demand | Up to ~66% vs On-Demand |
+| **Term** | 1 or 3 years | 1 or 3 years |
+| **Change instance type** | No (same family, can change size within the same family with Instance Size Flexibility) | Yes (can change family, OS, tenancy, etc.) |
+| **Sell on Marketplace** | Yes | No |
+| **Payment** | All Upfront / Partial Upfront / No Upfront | All Upfront / Partial Upfront / No Upfront |
+| **Maximum discount** | All Upfront + 3 years | All Upfront + 3 years |
 
-**Opciones de pago y descuento relativo:**
+**Payment options and relative discount:**
 
-| Opción de pago | Descuento relativo |
+| Payment Option | Relative Discount |
 |---|---|
-| **All Upfront** | Mayor descuento (todo por adelantado) |
-| **Partial Upfront** | Descuento intermedio (parte adelantada + mensualidad reducida) |
-| **No Upfront** | Menor descuento (sin pago inicial, mensualidad fija) |
+| **All Upfront** | Highest discount (everything paid upfront) |
+| **Partial Upfront** | Intermediate discount (partial upfront + reduced monthly) |
+| **No Upfront** | Lowest discount (no initial payment, fixed monthly) |
 
 #### 3. Savings Plans
 
-| Tipo | Descripción | Flexibilidad | Descuento |
+| Type | Description | Flexibility | Discount |
 |---|---|---|---|
-| **Compute Savings Plans** | Compromiso de gasto por hora ($/hora) aplicable a EC2, Fargate y Lambda | Máxima: cualquier familia, región, SO, tenancy | Hasta ~66% |
-| **EC2 Instance Savings Plans** | Compromiso de gasto por hora para una familia de instancias en una región específica | Media: familia y región fijas, flexible en tamaño, SO, tenancy | Hasta ~72% |
-| **SageMaker Savings Plans** | Compromiso de gasto por hora para SageMaker | Específico para ML | Hasta ~64% |
+| **Compute Savings Plans** | Hourly spend commitment ($/hour) applicable to EC2, Fargate, and Lambda | Maximum: any family, region, OS, tenancy | Up to ~66% |
+| **EC2 Instance Savings Plans** | Hourly spend commitment for a specific instance family in a specific region | Medium: family and region fixed, flexible on size, OS, tenancy | Up to ~72% |
+| **SageMaker Savings Plans** | Hourly spend commitment for SageMaker | Specific to ML | Up to ~64% |
 
 #### 4. Spot Instances
 
-- **Descuento:** Hasta ~90% vs On-Demand.
-- **Riesgo:** AWS puede recuperar la instancia con **2 minutos de aviso** cuando necesita la capacidad.
-- **Precio variable:** El precio Spot fluctúa según la oferta/demanda de capacidad EC2.
-- **Caso de uso:** Cargas de trabajo tolerantes a interrupciones (batch processing, CI/CD, análisis de datos, renderizado).
-- **No usar para:** Bases de datos, aplicaciones stateful críticas, cargas que no pueden tolerar interrupciones.
+- **Discount:** Up to ~90% vs On-Demand.
+- **Risk:** AWS can reclaim the instance with **2 minutes notice** when it needs the capacity.
+- **Variable price:** Spot price fluctuates based on EC2 capacity supply/demand.
+- **Use case:** Workloads tolerant to interruptions (batch processing, CI/CD, data analysis, rendering).
+- **Do not use for:** Databases, critical stateful applications, workloads that cannot tolerate interruptions.
 
 #### 5. Dedicated
 
-| Tipo | Descripción | Caso de uso |
+| Type | Description | Use Case |
 |---|---|---|
-| **Dedicated Instances** | Instancias en hardware dedicado a tu cuenta, pero sin control sobre la colocación | Requisitos de compliance que prohíben multi-tenancy |
-| **Dedicated Hosts** | Servidor físico completo dedicado a tu cuenta con control de colocación y visibilidad de sockets/cores | Licencias de software vinculadas a hardware (BYOL), compliance estricto |
+| **Dedicated Instances** | Instances on hardware dedicated to your account, but without placement control | Compliance requirements that prohibit multi-tenancy |
+| **Dedicated Hosts** | Complete physical server dedicated to your account with placement control and socket/core visibility | Software licenses tied to hardware (BYOL), strict compliance |
 
-**Diferencia clave:** Dedicated Hosts dan visibilidad y control del servidor físico (necesario para licencias por socket/core). Dedicated Instances solo garantizan hardware dedicado.
+**Key difference:** Dedicated Hosts give visibility and control of the physical server (needed for per-socket/core licenses). Dedicated Instances only guarantee dedicated hardware.
 
 ---
 
-## Cuándo Usar Cada Modelo de Precio
+## When to Use Each Pricing Model
 
-### Tabla de decisión
+### Decision Table
 
-| Pregunta | Respuesta | Modelo recomendado |
+| Question | Answer | Recommended Model |
 |---|---|---|
-| Carga de trabajo impredecible, corta duración | Sí | **On-Demand** |
-| Carga estable, conocida, 1-3 años | Sí, y sé la familia de instancia | **EC2 Instance Savings Plan** o **Standard RI** |
-| Carga estable, puede cambiar de tipo de instancia | Sí | **Compute Savings Plan** o **Convertible RI** |
-| Tolerante a interrupciones, flexible | Sí | **Spot** |
-| Necesita máximo descuento sin riesgo | Sí | **Standard RI 3 años All Upfront** |
-| Licencias BYOL por socket/core | Sí | **Dedicated Host** |
-| Compliance de hardware dedicado | Sí | **Dedicated Instance** o **Dedicated Host** |
-| Usa EC2 + Fargate + Lambda | Sí | **Compute Savings Plan** |
-| Solo usa EC2 en una familia específica | Sí | **EC2 Instance Savings Plan** |
+| Unpredictable workload, short duration | Yes | **On-Demand** |
+| Stable, known workload, 1-3 years | Yes, and I know the instance family | **EC2 Instance Savings Plan** or **Standard RI** |
+| Stable workload, may change instance type | Yes | **Compute Savings Plan** or **Convertible RI** |
+| Tolerant to interruptions, flexible | Yes | **Spot** |
+| Need maximum discount without risk | Yes | **Standard RI 3 years All Upfront** |
+| BYOL licenses per socket/core | Yes | **Dedicated Host** |
+| Dedicated hardware compliance | Yes | **Dedicated Instance** or **Dedicated Host** |
+| Uses EC2 + Fargate + Lambda | Yes | **Compute Savings Plan** |
+| Only uses EC2 in a specific family | Yes | **EC2 Instance Savings Plan** |
 
-### Diagrama de decisión
+### Decision Diagram
 
 ```
-¿Carga predecible a largo plazo?
+Is the workload predictable long-term?
   │
-  ├── SÍ ──► ¿Necesitas flexibilidad de tipo de instancia?
-  │            ├── SÍ ──► Compute Savings Plan / Convertible RI
+  ├── YES ──► Do you need instance type flexibility?
+  │            ├── YES ──► Compute Savings Plan / Convertible RI
   │            └── NO ──► EC2 Instance Savings Plan / Standard RI
   │
-  └── NO ──► ¿Tolerante a interrupciones?
-               ├── SÍ ──► Spot Instances
+  └── NO ──► Tolerant to interruptions?
+               ├── YES ──► Spot Instances
                └── NO ──► On-Demand
 ```
 
@@ -110,478 +110,478 @@
 
 ## S3 Cost Optimization
 
-### Clases de almacenamiento S3 (de mayor a menor coste por GB)
+### S3 Storage Classes (from highest to lowest cost per GB)
 
-| Clase | Coste almacenamiento | Coste acceso | Disponibilidad | Duración mínima | Caso de uso |
+| Class | Storage Cost | Access Cost | Availability | Minimum Duration | Use Case |
 |---|---|---|---|---|---|
-| **S3 Standard** | Alto | Bajo | 99.99% | Ninguna | Datos accedidos frecuentemente |
-| **S3 Intelligent-Tiering** | Variable (auto) | Monitoreo por objeto | 99.9% | 30 días | Patrones de acceso impredecibles |
-| **S3 Standard-IA** | Medio-bajo | Medio | 99.9% | 30 días | Datos accedidos < 1 vez/mes |
-| **S3 One Zone-IA** | Bajo | Medio | 99.5% (1 AZ) | 30 días | Datos recreables, acceso infrecuente |
-| **S3 Glacier Instant Retrieval** | Muy bajo | Alto | 99.9% | 90 días | Archivos con acceso inmediato trimestral |
-| **S3 Glacier Flexible Retrieval** | Muy bajo | Alto + coste retrieval | 99.99% | 90 días | Archivos con acceso en minutos-horas |
-| **S3 Glacier Deep Archive** | Mínimo | Muy alto + coste retrieval | 99.99% | 180 días | Archivos regulatorios, acceso en 12-48 horas |
+| **S3 Standard** | High | Low | 99.99% | None | Frequently accessed data |
+| **S3 Intelligent-Tiering** | Variable (auto) | Monitoring per object | 99.9% | 30 days | Unpredictable access patterns |
+| **S3 Standard-IA** | Medium-low | Medium | 99.9% | 30 days | Data accessed < 1 time/month |
+| **S3 One Zone-IA** | Low | Medium | 99.5% (1 AZ) | 30 days | Recreatable data, infrequent access |
+| **S3 Glacier Instant Retrieval** | Very low | High | 99.9% | 90 days | Archives with immediate quarterly access |
+| **S3 Glacier Flexible Retrieval** | Very low | High + retrieval cost | 99.99% | 90 days | Archives with access in minutes-hours |
+| **S3 Glacier Deep Archive** | Minimum | Very high + retrieval cost | 99.99% | 180 days | Regulatory archives, access in 12-48 hours |
 
 ### Lifecycle Policies
 
-Reglas automáticas para mover objetos entre clases de almacenamiento o eliminarlos.
+Automatic rules to move objects between storage classes or delete them.
 
 ```
-Ejemplo de Lifecycle Policy:
+Lifecycle Policy Example:
 
-Día 0:     S3 Standard (datos calientes)
+Day 0:     S3 Standard (hot data)
      │
-Día 30:    S3 Standard-IA (acceso menos frecuente)
+Day 30:    S3 Standard-IA (less frequent access)
      │
-Día 90:    S3 Glacier Instant Retrieval
+Day 90:    S3 Glacier Instant Retrieval
      │
-Día 180:   S3 Glacier Flexible Retrieval
+Day 180:   S3 Glacier Flexible Retrieval
      │
-Día 365:   S3 Glacier Deep Archive
+Day 365:   S3 Glacier Deep Archive
      │
-Día 730:   Eliminar objeto
+Day 730:   Delete object
 ```
 
-**Tipos de reglas:**
-- **Transition actions:** Mover objetos a otra clase de almacenamiento.
-- **Expiration actions:** Eliminar objetos o versiones antiguas.
+**Rule types:**
+- **Transition actions:** Move objects to another storage class.
+- **Expiration actions:** Delete objects or old versions.
 
 ### S3 Storage Class Analysis
 
-- Analiza los patrones de acceso de los objetos en un bucket.
-- Proporciona recomendaciones sobre cuándo mover objetos a una clase de almacenamiento menos costosa.
-- Los datos de análisis se actualizan diariamente.
-- Solo recomienda movimientos de Standard a Standard-IA (no analiza otros tiers).
-- Útil para definir lifecycle policies basadas en datos reales.
+- Analyzes access patterns of objects in a bucket.
+- Provides recommendations on when to move objects to a less costly storage class.
+- Analysis data is updated daily.
+- Only recommends moves from Standard to Standard-IA (does not analyze other tiers).
+- Useful for defining lifecycle policies based on real data.
 
 ### S3 Intelligent-Tiering
 
-Mueve objetos automáticamente entre tiers según los patrones de acceso. No tiene coste por retrieval.
+Automatically moves objects between tiers based on access patterns. No retrieval cost.
 
-| Tier | Acceso | Activación |
+| Tier | Access | Activation |
 |---|---|---|
-| **Frequent Access** | Accedido regularmente | Default |
-| **Infrequent Access** | No accedido en 30 días | Automática |
-| **Archive Instant Access** | No accedido en 90 días | Automática |
-| **Archive Access** | No accedido en 90+ días | Opcional (configurar) |
-| **Deep Archive Access** | No accedido en 180+ días | Opcional (configurar) |
+| **Frequent Access** | Accessed regularly | Default |
+| **Infrequent Access** | Not accessed in 30 days | Automatic |
+| **Archive Instant Access** | Not accessed in 90 days | Automatic |
+| **Archive Access** | Not accessed in 90+ days | Optional (configure) |
+| **Deep Archive Access** | Not accessed in 180+ days | Optional (configure) |
 
-> **Punto clave para el examen:** Si la pregunta dice "patrones de acceso impredecibles" y quiere minimizar costes, la respuesta es **S3 Intelligent-Tiering**.
+> **Key point for the exam:** If the question says "unpredictable access patterns" and wants to minimize costs, the answer is **S3 Intelligent-Tiering**.
 
 ---
 
-## Costes de Transferencia de Datos
+## Data Transfer Costs
 
-### Reglas de transferencia de datos
+### Data Transfer Rules
 
-| Tipo de transferencia | Coste |
+| Transfer Type | Cost |
 |---|---|
-| **Datos entrantes (ingress) a AWS** | Gratis |
-| **Datos entre servicios en la misma AZ** | Gratis (usando IP privada) |
-| **Datos entre AZs en la misma región** | ~$0.01/GB por dirección |
-| **Datos entre regiones** | ~$0.02/GB (varía por región) |
-| **Datos hacia Internet (egress)** | ~$0.09/GB (primeros 10 TB), decrece con volumen |
-| **Datos a través de VPC Peering (misma región)** | ~$0.01/GB por dirección |
-| **Datos a través de VPC Peering (inter-región)** | ~$0.02/GB por dirección |
-| **Datos a través de NAT Gateway** | ~$0.045/GB procesados |
-| **Datos con CloudFront** | Menor que egress directo de EC2/S3 |
+| **Inbound data (ingress) to AWS** | Free |
+| **Data between services in the same AZ** | Free (using private IP) |
+| **Data between AZs in the same region** | ~$0.01/GB per direction |
+| **Data between regions** | ~$0.02/GB (varies by region) |
+| **Data to Internet (egress)** | ~$0.09/GB (first 10 TB), decreases with volume |
+| **Data through VPC Peering (same region)** | ~$0.01/GB per direction |
+| **Data through VPC Peering (inter-region)** | ~$0.02/GB per direction |
+| **Data through NAT Gateway** | ~$0.045/GB processed |
+| **Data with CloudFront** | Less than direct egress from EC2/S3 |
 
-### Estrategias para reducir costes de transferencia
+### Strategies to Reduce Transfer Costs
 
 ```
-Estrategia 1: VPC Endpoints (eliminar tráfico por Internet)
-  EC2 ──► VPC Gateway Endpoint ──► S3        (gratis, sin coste de NAT)
-  EC2 ──► VPC Interface Endpoint ──► DynamoDB (coste por endpoint < coste NAT)
+Strategy 1: VPC Endpoints (eliminate Internet traffic)
+  EC2 ──► VPC Gateway Endpoint ──► S3        (free, no NAT cost)
+  EC2 ──► VPC Interface Endpoint ──► DynamoDB (endpoint cost < NAT cost)
 
-Estrategia 2: Misma AZ
-  EC2 (AZ-a) ──► RDS (AZ-a)  = gratis (IP privada)
+Strategy 2: Same AZ
+  EC2 (AZ-a) ──► RDS (AZ-a)  = free (private IP)
   EC2 (AZ-a) ──► RDS (AZ-b)  = ~$0.01/GB (cross-AZ)
 
-Estrategia 3: CloudFront
-  Usuarios ──► CloudFront ──► S3/EC2  (egress de CloudFront es más barato que directamente desde S3/EC2)
+Strategy 3: CloudFront
+  Users ──► CloudFront ──► S3/EC2  (CloudFront egress is cheaper than directly from S3/EC2)
 
-Estrategia 4: Compresión
-  Comprimir datos antes de transferir reduce el volumen facturado
+Strategy 4: Compression
+  Compress data before transferring reduces the billed volume
 ```
 
-### VPC Endpoints para ahorrar
+### VPC Endpoints for Savings
 
-| Tipo de Endpoint | Servicios | Coste |
+| Endpoint Type | Services | Cost |
 |---|---|---|
-| **Gateway Endpoint** | S3, DynamoDB | Gratis (sin coste por el endpoint ni por datos) |
-| **Interface Endpoint** | Todos los demás servicios AWS | ~$0.01/hora por AZ + ~$0.01/GB procesado |
+| **Gateway Endpoint** | S3, DynamoDB | Free (no cost for the endpoint or data) |
+| **Interface Endpoint** | All other AWS services | ~$0.01/hour per AZ + ~$0.01/GB processed |
 
-> **Punto clave para el examen:** Los **Gateway Endpoints para S3 y DynamoDB son gratuitos** y eliminan el coste de NAT Gateway. Siempre considerar como optimización de costes.
+> **Key point for the exam:** **Gateway Endpoints for S3 and DynamoDB are free** and eliminate NAT Gateway costs. Always consider as a cost optimization.
 
 ---
 
 ## AWS Cost Explorer
 
-Herramienta visual para analizar y gestionar los costes y uso de AWS a lo largo del tiempo.
+Visual tool for analyzing and managing AWS costs and usage over time.
 
-### Funcionalidades principales
+### Main Features
 
-| Funcionalidad | Descripción |
+| Feature | Description |
 |---|---|
-| **Visualización** | Gráficos de costes por servicio, cuenta, región, tag, etc. |
-| **Filtros** | Filtrar por servicio, tipo de instancia, región, tag, tipo de coste, etc. |
-| **Agrupación** | Agrupar costes por múltiples dimensiones simultáneamente |
-| **Forecasting** | Predicción de costes futuros (hasta 12 meses) basada en tendencias históricas |
-| **Granularidad** | Datos mensuales, diarios u horarios |
-| **Datos históricos** | Hasta 12 meses de datos históricos |
+| **Visualization** | Cost charts by service, account, region, tag, etc. |
+| **Filters** | Filter by service, instance type, region, tag, cost type, etc. |
+| **Grouping** | Group costs by multiple dimensions simultaneously |
+| **Forecasting** | Future cost prediction (up to 12 months) based on historical trends |
+| **Granularity** | Monthly, daily, or hourly data |
+| **Historical data** | Up to 12 months of historical data |
 
 ### Rightsizing Recommendations
 
-Cost Explorer incluye recomendaciones de rightsizing para EC2:
+Cost Explorer includes rightsizing recommendations for EC2:
 
-- Identifica instancias **infrautilizadas** (CPU < 40% de media en 14 días).
-- Sugiere cambiar a un tipo de instancia más pequeño o a Graviton.
-- Muestra el **ahorro estimado** si se implementa la recomendación.
-- Basado en datos de CloudWatch (CPU, red).
-- Funciona mejor con el agente de CloudWatch instalado (para datos de memoria).
+- Identifies **underutilized** instances (CPU < 40% average over 14 days).
+- Suggests changing to a smaller instance type or Graviton.
+- Shows the **estimated savings** if the recommendation is implemented.
+- Based on CloudWatch data (CPU, network).
+- Works better with the CloudWatch agent installed (for memory data).
 
-> **Punto clave para el examen:** Cost Explorer es para **visualizar y analizar** costes. AWS Budgets es para **alertar** cuando se acercan o superan presupuestos.
+> **Key point for the exam:** Cost Explorer is for **visualizing and analyzing** costs. AWS Budgets is for **alerting** when budgets are approaching or exceeded.
 
 ---
 
 ## AWS Budgets
 
-Servicio para establecer presupuestos personalizados y recibir alertas cuando los costes o el uso se acercan o exceden los límites establecidos.
+Service for setting custom budgets and receiving alerts when costs or usage approach or exceed established limits.
 
-### Tipos de presupuesto
+### Budget Types
 
-| Tipo | Qué monitorea | Ejemplo |
+| Type | What It Monitors | Example |
 |---|---|---|
-| **Cost Budget** | Coste monetario total | Alertar si el gasto mensual supera $10,000 |
-| **Usage Budget** | Uso de un servicio específico | Alertar si las horas de EC2 superan 1,000 horas |
-| **Reservation Budget** | Utilización de RIs o Savings Plans | Alertar si la utilización de RIs baja del 80% |
-| **Savings Plans Budget** | Utilización y cobertura de Savings Plans | Alertar si la cobertura baja del 70% |
+| **Cost Budget** | Total monetary cost | Alert if monthly spend exceeds $10,000 |
+| **Usage Budget** | Usage of a specific service | Alert if EC2 hours exceed 1,000 hours |
+| **Reservation Budget** | Utilization of RIs or Savings Plans | Alert if RI utilization drops below 80% |
+| **Savings Plans Budget** | Utilization and coverage of Savings Plans | Alert if coverage drops below 70% |
 
-### Alertas
+### Alerts
 
-- Se pueden configurar **hasta 5 alertas** por presupuesto.
-- Umbrales configurables: porcentaje del presupuesto o cantidad absoluta.
-- Alertar sobre **actual** (coste real) o **forecasted** (coste proyectado).
-- Notificaciones por **email** y/o **SNS topic**.
+- Up to **5 alerts** can be configured per budget.
+- Configurable thresholds: percentage of budget or absolute amount.
+- Alert on **actual** (real cost) or **forecasted** (projected cost).
+- Notifications via **email** and/or **SNS topic**.
 
-### Acciones automáticas (Budget Actions)
+### Automatic Actions (Budget Actions)
 
-Cuando se supera un umbral, se puede ejecutar automáticamente:
+When a threshold is exceeded, the following can be automatically executed:
 
-| Acción | Descripción |
+| Action | Description |
 |---|---|
-| **IAM Policy** | Aplicar una política IAM que restrinja el lanzamiento de nuevos recursos |
-| **SCP** | Aplicar una Service Control Policy en AWS Organizations |
-| **Target EC2/RDS** | Detener instancias EC2 o RDS específicas |
+| **IAM Policy** | Apply an IAM policy that restricts launching new resources |
+| **SCP** | Apply a Service Control Policy in AWS Organizations |
+| **Target EC2/RDS** | Stop specific EC2 or RDS instances |
 
 ```
-Ejemplo de Budget con acciones:
+Budget with actions example:
 
-Budget: $5,000/mes
+Budget: $5,000/month
   │
-  ├── Alerta 1: Al 80% ($4,000) → Email al equipo
+  ├── Alert 1: At 80% ($4,000) → Email to the team
   │
-  ├── Alerta 2: Al 100% ($5,000) → SNS + Email
+  ├── Alert 2: At 100% ($5,000) → SNS + Email
   │
-  └── Alerta 3: Al 110% ($5,500) → Aplicar IAM Policy
-                                    que deniega ec2:RunInstances
+  └── Alert 3: At 110% ($5,500) → Apply IAM Policy
+                                    that denies ec2:RunInstances
 ```
 
 ---
 
 ## AWS Cost and Usage Report (CUR)
 
-El **informe más detallado y completo** de costes y uso de AWS.
+The **most detailed and comprehensive report** of AWS costs and usage.
 
-### Características
+### Features
 
-| Característica | Detalle |
+| Feature | Detail |
 |---|---|
-| **Granularidad** | Horaria, diaria o mensual |
-| **Detalle** | Línea por línea de cada recurso y operación facturada |
-| **Formato** | CSV/Parquet almacenado en un bucket S3 |
-| **Integración** | Athena (consultas SQL), QuickSight (dashboards), Redshift (análisis) |
-| **Tamaño** | Puede ser muy grande (GBs para cuentas complejas) |
-| **Columnas** | Incluye IDs de recurso, tags, precios, descuentos, amortización de RI, etc. |
+| **Granularity** | Hourly, daily, or monthly |
+| **Detail** | Line by line of each billed resource and operation |
+| **Format** | CSV/Parquet stored in an S3 bucket |
+| **Integration** | Athena (SQL queries), QuickSight (dashboards), Redshift (analysis) |
+| **Size** | Can be very large (GBs for complex accounts) |
+| **Columns** | Includes resource IDs, tags, prices, discounts, RI amortization, etc. |
 
-### Flujo de trabajo típico
+### Typical Workflow
 
 ```
-CUR (generado automáticamente)
+CUR (generated automatically)
      │
      ▼
-S3 Bucket (almacena CSVs/Parquet)
+S3 Bucket (stores CSVs/Parquet)
      │
-     ├──► Athena (consultas SQL ad-hoc)
+     ├──► Athena (ad-hoc SQL queries)
      │
-     ├──► QuickSight (dashboards visuales)
+     ├──► QuickSight (visual dashboards)
      │
-     └──► Redshift (análisis complejos, joins con datos de negocio)
+     └──► Redshift (complex analysis, joins with business data)
 ```
 
-> **Punto clave para el examen:** CUR es la respuesta cuando necesitas el **máximo detalle** de facturación, análisis personalizado con SQL, o integración con herramientas de BI.
+> **Key point for the exam:** CUR is the answer when you need **maximum billing detail**, custom SQL analysis, or integration with BI tools.
 
 ---
 
 ## AWS Compute Optimizer
 
-Servicio de ML que analiza métricas de uso y recomienda el tipo de recurso óptimo.
+ML service that analyzes usage metrics and recommends the optimal resource type.
 
-### Recursos analizados
+### Resources Analyzed
 
-| Recurso | Qué recomienda | Datos usados |
+| Resource | What It Recommends | Data Used |
 |---|---|---|
-| **EC2** | Tipo de instancia óptimo, sobre/infra-provisionado | CloudWatch: CPU, memoria (con agente), red, disco |
-| **ASG** | Configuración óptima del grupo | Métricas de utilización de las instancias |
-| **EBS** | Tipo y tamaño de volumen óptimo | IOPS, throughput, latencia |
-| **Lambda** | Tamaño de memoria óptimo | Duración de invocación, memoria usada |
-| **ECS on Fargate** | CPU y memoria óptimos para tasks | Métricas de utilización de containers |
-| **Licencias** | Optimización de licencias de software | Uso de vCPUs para licencias vinculadas |
+| **EC2** | Optimal instance type, over/under-provisioned | CloudWatch: CPU, memory (with agent), network, disk |
+| **ASG** | Optimal group configuration | Instance utilization metrics |
+| **EBS** | Optimal volume type and size | IOPS, throughput, latency |
+| **Lambda** | Optimal memory size | Invocation duration, memory used |
+| **ECS on Fargate** | Optimal CPU and memory for tasks | Container utilization metrics |
+| **Licenses** | Software license optimization | vCPU usage for linked licenses |
 
-### Cómo funciona
+### How It Works
 
-- Analiza al menos **14 días** de métricas de CloudWatch (idealmente 30+ días).
-- Usa modelos de ML para predecir el rendimiento con diferentes configuraciones.
-- Clasifica cada recurso como: **Over-provisioned**, **Under-provisioned** o **Optimized**.
-- Proporciona hasta 3 recomendaciones alternativas con ahorro estimado.
+- Analyzes at least **14 days** of CloudWatch metrics (ideally 30+ days).
+- Uses ML models to predict performance with different configurations.
+- Classifies each resource as: **Over-provisioned**, **Under-provisioned**, or **Optimized**.
+- Provides up to 3 alternative recommendations with estimated savings.
 
 ### Compute Optimizer vs Cost Explorer Rightsizing
 
-| Característica | Compute Optimizer | Cost Explorer Rightsizing |
+| Feature | Compute Optimizer | Cost Explorer Rightsizing |
 |---|---|---|
-| **Alcance** | EC2, ASG, EBS, Lambda, ECS Fargate | Solo EC2 |
-| **Análisis** | ML avanzado con múltiples métricas | Basado en utilización de CPU |
-| **Recomendaciones** | Hasta 3 alternativas con predicción de rendimiento | 1 recomendación de tipo de instancia |
-| **Coste** | Gratis (Enhanced con coste para datos de 3 meses) | Incluido en Cost Explorer |
+| **Scope** | EC2, ASG, EBS, Lambda, ECS Fargate | EC2 only |
+| **Analysis** | Advanced ML with multiple metrics | Based on CPU utilization |
+| **Recommendations** | Up to 3 alternatives with performance prediction | 1 instance type recommendation |
+| **Cost** | Free (Enhanced with cost for 3-month data) | Included in Cost Explorer |
 
 ---
 
 ## Rightsizing
 
-Proceso de ajustar el tamaño y tipo de las instancias para que coincidan con la carga de trabajo real, eliminando el desperdicio.
+Process of adjusting the size and type of instances to match the actual workload, eliminating waste.
 
-### Cómo identificar instancias over-provisioned
+### How to Identify Over-Provisioned Instances
 
-| Señal | Métrica | Umbral típico |
+| Signal | Metric | Typical Threshold |
 |---|---|---|
-| CPU infrautilizada | CloudWatch CPUUtilization | < 40% de media en 14 días |
-| Memoria infrautilizada | CloudWatch (agente) Memory% | < 40% de media |
-| Red infrautilizada | CloudWatch NetworkIn/Out | Muy por debajo del límite del tipo de instancia |
-| Disco infrautilizado | CloudWatch EBSReadOps/WriteOps | IOPS/throughput mucho menor al provisionado |
+| Underutilized CPU | CloudWatch CPUUtilization | < 40% average over 14 days |
+| Underutilized memory | CloudWatch (agent) Memory% | < 40% average |
+| Underutilized network | CloudWatch NetworkIn/Out | Well below the instance type limit |
+| Underutilized disk | CloudWatch EBSReadOps/WriteOps | IOPS/throughput much lower than provisioned |
 
-### Proceso de rightsizing
+### Rightsizing Process
 
 ```
-1. Recopilar métricas (CloudWatch, agente CloudWatch para memoria)
+1. Collect metrics (CloudWatch, CloudWatch agent for memory)
          │
-2. Analizar con Compute Optimizer o Cost Explorer
+2. Analyze with Compute Optimizer or Cost Explorer
          │
-3. Identificar instancias over-provisioned
+3. Identify over-provisioned instances
          │
-4. Evaluar recomendaciones (tipo de instancia más pequeño o Graviton)
+4. Evaluate recommendations (smaller instance type or Graviton)
          │
-5. Probar en entorno de staging/desarrollo
+5. Test in staging/development environment
          │
-6. Implementar el cambio (redimensionar la instancia)
+6. Implement the change (resize the instance)
          │
-7. Monitorear post-cambio para asegurar rendimiento adecuado
+7. Monitor post-change to ensure adequate performance
 ```
 
-### Tipos de cambio comunes
+### Common Change Types
 
-| Cambio | Ejemplo | Ahorro típico |
+| Change | Example | Typical Savings |
 |---|---|---|
-| **Reducir tamaño** | m5.xlarge → m5.large | ~50% |
-| **Cambiar a Graviton** | m5.xlarge → m6g.xlarge | ~20% (mejor precio/rendimiento) |
-| **Cambiar familia** | c5.xlarge → t3.xlarge (si no necesita cómputo constante) | Variable |
-| **Eliminar instancias idle** | Instancia con CPU < 5% permanentemente | 100% |
+| **Reduce size** | m5.xlarge → m5.large | ~50% |
+| **Switch to Graviton** | m5.xlarge → m6g.xlarge | ~20% (better price/performance) |
+| **Change family** | c5.xlarge → t3.xlarge (if constant compute not needed) | Variable |
+| **Eliminate idle instances** | Instance with CPU < 5% permanently | 100% |
 
-> **Punto clave para el examen:** El primer paso para optimizar costes de EC2 es siempre **rightsizing**. Antes de comprar RIs o Savings Plans, asegúrate de que las instancias son del tamaño correcto.
+> **Key point for the exam:** The first step to optimize EC2 costs is always **rightsizing**. Before buying RIs or Savings Plans, make sure instances are the right size.
 
 ---
 
 ## Savings Plans vs Reserved Instances
 
-### Tabla comparativa completa
+### Complete Comparison Table
 
-| Característica | Standard RI | Convertible RI | EC2 Instance SP | Compute SP |
+| Feature | Standard RI | Convertible RI | EC2 Instance SP | Compute SP |
 |---|---|---|---|---|
-| **Descuento máximo** | ~72% | ~66% | ~72% | ~66% |
-| **Compromiso** | Tipo de instancia + región + SO | Tipo de instancia (flexible) | Familia + región ($/hora) | Cualquier cómputo ($/hora) |
-| **Plazo** | 1 o 3 años | 1 o 3 años | 1 o 3 años | 1 o 3 años |
-| **Cambiar familia de instancia** | No | Sí | No | Sí |
-| **Cambiar región** | No | No | No | Sí |
-| **Cambiar SO** | No | Sí | Sí | Sí |
-| **Cambiar tenancy** | No | Sí | Sí | Sí |
-| **Aplica a Fargate/Lambda** | No | No | No | Sí |
-| **Vender en Marketplace** | Sí | No | No | No |
-| **Instance Size Flexibility** | Sí (Linux, misma familia) | Sí | Sí | Sí |
+| **Maximum discount** | ~72% | ~66% | ~72% | ~66% |
+| **Commitment** | Instance type + region + OS | Instance type (flexible) | Family + region ($/hour) | Any compute ($/hour) |
+| **Term** | 1 or 3 years | 1 or 3 years | 1 or 3 years | 1 or 3 years |
+| **Change instance family** | No | Yes | No | Yes |
+| **Change region** | No | No | No | Yes |
+| **Change OS** | No | Yes | Yes | Yes |
+| **Change tenancy** | No | Yes | Yes | Yes |
+| **Applies to Fargate/Lambda** | No | No | No | Yes |
+| **Sell on Marketplace** | Yes | No | No | No |
+| **Instance Size Flexibility** | Yes (Linux, same family) | Yes | Yes | Yes |
 
-### Recomendación general
+### General Recommendation
 
 ```
-¿Usas solo EC2 en una familia específica?
-  └── EC2 Instance Savings Plan (reemplaza Standard RI)
+Only use EC2 in a specific family?
+  └── EC2 Instance Savings Plan (replaces Standard RI)
 
-¿Usas EC2 + Fargate + Lambda o múltiples familias/regiones?
-  └── Compute Savings Plan (reemplaza Convertible RI)
+Use EC2 + Fargate + Lambda or multiple families/regions?
+  └── Compute Savings Plan (replaces Convertible RI)
 
-¿Necesitas vender capacidad no utilizada?
-  └── Standard RI (único que se vende en Marketplace)
+Need to sell unused capacity?
+  └── Standard RI (only one that sells on Marketplace)
 ```
 
-> **Punto clave para el examen:** AWS recomienda **Savings Plans sobre Reserved Instances** para la mayoría de casos. Savings Plans ofrecen la misma o mayor flexibilidad con descuentos equivalentes. La excepción es si necesitas vender en el Marketplace (solo Standard RI).
+> **Key point for the exam:** AWS recommends **Savings Plans over Reserved Instances** for most cases. Savings Plans offer the same or greater flexibility with equivalent discounts. The exception is if you need to sell on the Marketplace (Standard RI only).
 
 ---
 
-## Estrategias Spot
+## Spot Strategies
 
 ### Spot Fleet
 
-Un **Spot Fleet** es una colección de Spot Instances (y opcionalmente On-Demand) que intenta cumplir con la capacidad objetivo al menor coste.
+A **Spot Fleet** is a collection of Spot Instances (and optionally On-Demand) that attempts to meet the target capacity at the lowest cost.
 
-#### Estrategias de asignación de Spot Fleet
+#### Spot Fleet Allocation Strategies
 
-| Estrategia | Descripción | Caso de uso |
+| Strategy | Description | Use Case |
 |---|---|---|
-| **lowestPrice** | Selecciona las instancias del pool con el precio más bajo | Máximo ahorro, cargas tolerantes |
-| **diversified** | Distribuye instancias entre múltiples pools | Mejor disponibilidad (reduce riesgo de interrupción masiva) |
-| **capacityOptimized** | Selecciona pools con mayor capacidad disponible | Menor probabilidad de interrupción |
-| **priceCapacityOptimized** | Combina precio y capacidad disponible (recomendado) | Balance óptimo entre coste y disponibilidad |
+| **lowestPrice** | Selects instances from the pool with the lowest price | Maximum savings, tolerant workloads |
+| **diversified** | Distributes instances across multiple pools | Better availability (reduces risk of mass interruption) |
+| **capacityOptimized** | Selects pools with highest available capacity | Lowest probability of interruption |
+| **priceCapacityOptimized** | Combines price and available capacity (recommended) | Optimal balance between cost and availability |
 
-### Manejo de interrupciones Spot
+### Handling Spot Interruptions
 
-Cuando AWS necesita recuperar una instancia Spot, envía un **aviso de 2 minutos**:
+When AWS needs to reclaim a Spot instance, it sends a **2-minute notice**:
 
 ```
-Opciones de comportamiento ante interrupción:
+Interruption behavior options:
   │
-  ├── Terminate (default): la instancia se termina
+  ├── Terminate (default): the instance is terminated
   │
-  ├── Stop: la instancia se detiene (se puede reiniciar después)
+  ├── Stop: the instance is stopped (can be restarted later)
   │
-  └── Hibernate: la instancia se hiberna (estado en RAM se guarda)
+  └── Hibernate: the instance hibernates (RAM state is saved)
 
-Detección del aviso:
+Notice detection:
   ├── EC2 Metadata Service: http://169.254.169.254/latest/meta-data/spot/instance-action
   ├── CloudWatch Events / EventBridge
-  └── Rebalance Recommendation (aviso previo al de 2 minutos, no garantizado)
+  └── Rebalance Recommendation (prior notice before the 2-minute one, not guaranteed)
 ```
 
-### ASG con instancias mixtas (Mixed Instances Policy)
+### ASG with Mixed Instances (Mixed Instances Policy)
 
 ```
 Auto Scaling Group:
-  ├── Base capacity: 2 instancias On-Demand (siempre disponibles)
+  ├── Base capacity: 2 On-Demand instances (always available)
   │
   └── Additional capacity: Spot Instances
-       ├── Porcentaje On-Demand above base: 20%
-       ├── Porcentaje Spot above base: 80%
+       ├── On-Demand percentage above base: 20%
+       ├── Spot percentage above base: 80%
        │
-       └── Instance types (diversificados):
+       └── Instance types (diversified):
             ├── m5.large
             ├── m5a.large
             ├── m4.large
             └── c5.large
 
-Resultado: Base estable On-Demand + escalado barato con Spot
+Result: Stable On-Demand base + cheap scaling with Spot
 ```
 
-### Mejores prácticas para Spot
+### Best Practices for Spot
 
-1. **Diversificar tipos de instancia y AZs:** Reduce la probabilidad de interrupción simultánea.
-2. **Usar capacity-optimized allocation:** AWS selecciona los pools con más capacidad.
-3. **Implementar checkpointing:** Guardar progreso regularmente para retomar el trabajo.
-4. **Usar Spot Fleet en lugar de Spot individual:** Mayor resiliencia y flexibilidad.
-5. **Combinar con On-Demand:** Base estable On-Demand + Spot para escalado.
+1. **Diversify instance types and AZs:** Reduces the probability of simultaneous interruption.
+2. **Use capacity-optimized allocation:** AWS selects pools with the most capacity.
+3. **Implement checkpointing:** Save progress regularly to resume work.
+4. **Use Spot Fleet instead of individual Spot:** Greater resilience and flexibility.
+5. **Combine with On-Demand:** Stable On-Demand base + Spot for scaling.
 
 ---
 
-## AWS Organizations: Facturación Consolidada
+## AWS Organizations: Consolidated Billing
 
-### Beneficios de la facturación consolidada
+### Benefits of Consolidated Billing
 
-| Beneficio | Descripción |
+| Benefit | Description |
 |---|---|
-| **Factura única** | Una sola factura para todas las cuentas de la organización |
-| **Descuentos por volumen** | El uso de todas las cuentas se agrega para obtener descuentos por volumen (S3, EC2, etc.) |
-| **Compartir RIs/Savings Plans** | Las RIs y Savings Plans de una cuenta se aplican automáticamente a instancias elegibles en otras cuentas |
-| **Créditos compartidos** | Los créditos de AWS de cualquier cuenta benefician a toda la organización |
-| **Precio S3 agrupado** | El almacenamiento S3 de todas las cuentas se suma para alcanzar tiers de precio más bajos |
+| **Single invoice** | One invoice for all accounts in the organization |
+| **Volume discounts** | Usage from all accounts is aggregated to obtain volume discounts (S3, EC2, etc.) |
+| **Share RIs/Savings Plans** | RIs and Savings Plans from one account are automatically applied to eligible instances in other accounts |
+| **Shared credits** | AWS credits from any account benefit the entire organization |
+| **Aggregated S3 pricing** | S3 storage from all accounts is summed to reach lower pricing tiers |
 
-### Descuentos por volumen - Ejemplo
-
-```
-Sin Organizations:
-  Cuenta A: 100 TB S3 → Precio del tier 100 TB
-  Cuenta B: 100 TB S3 → Precio del tier 100 TB
-
-Con Organizations (consolidado):
-  Total: 200 TB S3 → Precio del tier 200 TB (más barato por GB)
-  Ambas cuentas se benefician del mejor precio
-```
-
-### Compartir Reserved Instances
+### Volume Discounts - Example
 
 ```
-Cuenta A (Management): Compra 10 RIs m5.large
-Cuenta B (Desarrollo): Lanza 3 instancias m5.large
+Without Organizations:
+  Account A: 100 TB S3 → 100 TB tier price
+  Account B: 100 TB S3 → 100 TB tier price
 
-Resultado: Las 3 instancias de Cuenta B usan el descuento de RI de Cuenta A automáticamente.
-
-Para desactivar: En la cuenta management, desactivar "RI sharing" para cuentas específicas.
+With Organizations (consolidated):
+  Total: 200 TB S3 → 200 TB tier price (cheaper per GB)
+  Both accounts benefit from the better price
 ```
 
-> **Punto clave para el examen:** La facturación consolidada en Organizations permite **descuentos por volumen agregado** y **compartir reservas**. Es una forma de optimizar costes sin cambio técnico.
+### Sharing Reserved Instances
+
+```
+Account A (Management): Purchases 10 RIs m5.large
+Account B (Development): Launches 3 m5.large instances
+
+Result: Account B's 3 instances automatically use Account A's RI discount.
+
+To disable: In the management account, disable "RI sharing" for specific accounts.
+```
+
+> **Key point for the exam:** Consolidated billing in Organizations enables **aggregated volume discounts** and **reservation sharing**. It's a way to optimize costs without technical changes.
 
 ---
 
-## Estrategia de Tagging para Asignación de Costes
+## Tagging Strategy for Cost Allocation
 
-### Tags de asignación de costes
+### Cost Allocation Tags
 
-Los tags permiten categorizar y rastrear costes de AWS por proyecto, equipo, entorno, etc.
+Tags allow categorizing and tracking AWS costs by project, team, environment, etc.
 
-#### Tipos de Cost Allocation Tags
+#### Cost Allocation Tag Types
 
-| Tipo | Descripción | Ejemplo |
+| Type | Description | Example |
 |---|---|---|
-| **AWS-generated** | Tags creados automáticamente por AWS | `aws:createdBy` (quién creó el recurso) |
-| **User-defined** | Tags creados por el usuario | `Project`, `Environment`, `Team`, `CostCenter` |
+| **AWS-generated** | Tags automatically created by AWS | `aws:createdBy` (who created the resource) |
+| **User-defined** | Tags created by the user | `Project`, `Environment`, `Team`, `CostCenter` |
 
-### Activación
+### Activation
 
-Los tags **deben activarse** en la consola de Billing para que aparezcan en los informes de costes:
+Tags **must be activated** in the Billing console for them to appear in cost reports:
 
 ```
-1. Crear los tags en los recursos (Billing → Cost Allocation Tags)
-2. Activar los tags como "Cost Allocation Tags" en la consola de Billing
-3. Esperar ~24 horas para que aparezcan en los informes
-4. Usar en Cost Explorer y CUR para filtrar/agrupar costes
+1. Create tags on resources (Billing → Cost Allocation Tags)
+2. Activate tags as "Cost Allocation Tags" in the Billing console
+3. Wait ~24 hours for them to appear in reports
+4. Use in Cost Explorer and CUR to filter/group costs
 ```
 
-### Estrategia de tagging recomendada
+### Recommended Tagging Strategy
 
-| Tag | Propósito | Valores ejemplo |
+| Tag | Purpose | Example Values |
 |---|---|---|
-| `Environment` | Separar costes por entorno | production, staging, development |
-| `Project` | Asignar costes a proyectos específicos | project-alpha, project-beta |
-| `Team` | Asignar costes por equipo | backend, frontend, data, devops |
-| `CostCenter` | Vincular con centros de coste contables | CC-001, CC-002 |
-| `Owner` | Identificar al responsable | email del propietario |
-| `Application` | Agrupar por aplicación | web-app, api, batch-processor |
-| `ManagedBy` | Herramienta que gestiona el recurso | terraform, cloudformation, manual |
+| `Environment` | Separate costs by environment | production, staging, development |
+| `Project` | Assign costs to specific projects | project-alpha, project-beta |
+| `Team` | Assign costs by team | backend, frontend, data, devops |
+| `CostCenter` | Link with accounting cost centers | CC-001, CC-002 |
+| `Owner` | Identify the responsible person | owner's email |
+| `Application` | Group by application | web-app, api, batch-processor |
+| `ManagedBy` | Tool managing the resource | terraform, cloudformation, manual |
 
-### Enforcement de tags
+### Tag Enforcement
 
-| Método | Descripción |
+| Method | Description |
 |---|---|
-| **AWS Config Rules** | Regla `required-tags` que marca como non-compliant los recursos sin tags obligatorios |
-| **SCP (Organizations)** | Denegar la creación de recursos sin tags específicos usando condiciones `aws:RequestTag` |
-| **Tag Policies** | Políticas en Organizations que estandarizan los valores permitidos para cada tag |
-| **AWS Service Catalog** | Productos pre-configurados con tags obligatorios |
+| **AWS Config Rules** | `required-tags` rule that marks resources without mandatory tags as non-compliant |
+| **SCP (Organizations)** | Deny resource creation without specific tags using `aws:RequestTag` conditions |
+| **Tag Policies** | Policies in Organizations that standardize allowed values for each tag |
+| **AWS Service Catalog** | Pre-configured products with mandatory tags |
 
-Ejemplo de SCP para forzar tags:
+SCP example to enforce tags:
 ```json
 {
   "Version": "2012-10-17",
@@ -601,48 +601,48 @@ Ejemplo de SCP para forzar tags:
 
 ---
 
-## Tips para el Examen
+## Exam Tips
 
-### Preguntas frecuentes y respuestas rápidas
+### Frequently Asked Questions and Quick Answers
 
-| Escenario del examen | Respuesta |
+| Exam Scenario | Answer |
 |---|---|
-| Carga estable 24/7 durante 3 años | **Standard RI All Upfront 3 años** o **EC2 Instance Savings Plan** |
-| Carga batch tolerante a interrupciones | **Spot Instances** |
-| Patrones de acceso S3 impredecibles | **S3 Intelligent-Tiering** |
-| Acceso a S3 desde VPC sin coste de NAT | **VPC Gateway Endpoint para S3** (gratis) |
-| Análisis detallado de facturación con SQL | **Cost and Usage Report (CUR) + Athena** |
-| Alertar cuando el gasto supere un umbral | **AWS Budgets** |
-| Recomendar tipo de instancia EC2 óptimo | **AWS Compute Optimizer** |
-| Visualizar costes por servicio/mes | **AWS Cost Explorer** |
-| Reducir coste de EC2 + Fargate + Lambda | **Compute Savings Plan** |
-| Licencias BYOL por socket | **Dedicated Host** |
-| Maximizar descuento EC2 sin riesgo | **Standard RI 3y All Upfront** (~72%) |
-| Descuento por volumen S3 entre cuentas | **AWS Organizations facturación consolidada** |
-| Asignar costes por proyecto | **Cost Allocation Tags** (activados en Billing) |
-| Detener gasto automáticamente si se supera presupuesto | **AWS Budgets Actions** (aplicar IAM policy) |
-| Mover datos S3 automáticamente a clases más baratas | **S3 Lifecycle Policies** |
-| Reducir coste de transferencia a internet | **CloudFront** (egress más barato) |
-| Primer paso para optimizar costes EC2 | **Rightsizing** (antes de comprar RIs) |
+| Stable 24/7 workload for 3 years | **Standard RI All Upfront 3 years** or **EC2 Instance Savings Plan** |
+| Batch workload tolerant to interruptions | **Spot Instances** |
+| Unpredictable S3 access patterns | **S3 Intelligent-Tiering** |
+| Access S3 from VPC without NAT cost | **VPC Gateway Endpoint for S3** (free) |
+| Detailed billing analysis with SQL | **Cost and Usage Report (CUR) + Athena** |
+| Alert when spend exceeds a threshold | **AWS Budgets** |
+| Recommend optimal EC2 instance type | **AWS Compute Optimizer** |
+| Visualize costs by service/month | **AWS Cost Explorer** |
+| Reduce cost of EC2 + Fargate + Lambda | **Compute Savings Plan** |
+| BYOL licenses per socket | **Dedicated Host** |
+| Maximize EC2 discount without risk | **Standard RI 3y All Upfront** (~72%) |
+| S3 volume discount across accounts | **AWS Organizations consolidated billing** |
+| Assign costs by project | **Cost Allocation Tags** (activated in Billing) |
+| Automatically stop spending if budget exceeded | **AWS Budgets Actions** (apply IAM policy) |
+| Automatically move S3 data to cheaper classes | **S3 Lifecycle Policies** |
+| Reduce internet transfer costs | **CloudFront** (cheaper egress) |
+| First step to optimize EC2 costs | **Rightsizing** (before buying RIs) |
 
-### Orden de prioridad para optimizar costes EC2
+### Priority Order for EC2 Cost Optimization
 
 ```
-1. Rightsizing  → Asegurar que el tamaño es correcto
-2. Savings Plans / RIs  → Compromiso para cargas estables
-3. Spot  → Para cargas tolerantes a interrupciones
-4. Graviton  → Mejor precio/rendimiento (~20% más barato)
-5. Auto Scaling  → Escalar hacia abajo cuando no hay demanda
-6. Scheduled scaling  → Apagar en horarios sin uso
+1. Rightsizing  → Ensure the size is correct
+2. Savings Plans / RIs  → Commitment for stable workloads
+3. Spot  → For workloads tolerant to interruptions
+4. Graviton  → Better price/performance (~20% cheaper)
+5. Auto Scaling  → Scale down when there's no demand
+6. Scheduled scaling  → Turn off during unused hours
 ```
 
-### Errores comunes a evitar
+### Common Mistakes to Avoid
 
-1. **Comprar RIs antes de hacer rightsizing:** Primero optimiza el tamaño, luego compra reservas.
-2. **Usar Gateway Endpoint para servicios que no lo soportan:** Solo S3 y DynamoDB tienen Gateway Endpoint. El resto usa Interface Endpoint (con coste).
-3. **Olvidar activar Cost Allocation Tags:** Crear tags no es suficiente; hay que activarlos en Billing para que aparezcan en informes.
-4. **Confundir Cost Explorer con Budgets:** Explorer es para analizar, Budgets es para alertar y actuar.
-5. **No diversificar tipos de instancia Spot:** Usar solo un tipo de instancia Spot aumenta el riesgo de interrupción.
-6. **Ignorar los costes de transferencia entre AZs:** Aunque son pequeños (~$0.01/GB), pueden acumularse con volumen alto. Considerar localidad de datos.
-7. **Asumir que Savings Plans aplican a todos los servicios:** Compute Savings Plans aplican a EC2, Fargate y Lambda. No aplican a RDS u otros servicios gestionados.
-8. **No considerar Convertible RI o Compute SP cuando la tecnología cambia rápido:** Si en 3 años podrías cambiar de tipo de instancia, la flexibilidad de Convertible RI o Compute SP vale la pena.
+1. **Buying RIs before rightsizing:** First optimize the size, then buy reservations.
+2. **Using Gateway Endpoint for services that don't support it:** Only S3 and DynamoDB have Gateway Endpoints. The rest uses Interface Endpoints (with cost).
+3. **Forgetting to activate Cost Allocation Tags:** Creating tags is not enough; they must be activated in Billing to appear in reports.
+4. **Confusing Cost Explorer with Budgets:** Explorer is for analyzing, Budgets is for alerting and acting.
+5. **Not diversifying Spot instance types:** Using only one Spot instance type increases interruption risk.
+6. **Ignoring data transfer costs between AZs:** Although small (~$0.01/GB), they can accumulate with high volume. Consider data locality.
+7. **Assuming Savings Plans apply to all services:** Compute Savings Plans apply to EC2, Fargate, and Lambda. They do not apply to RDS or other managed services.
+8. **Not considering Convertible RI or Compute SP when technology changes fast:** If in 3 years you might change instance type, the flexibility of Convertible RI or Compute SP is worth it.

@@ -1,319 +1,319 @@
-# Servicios Secundarios del Examen SAA-C03
+# Secondary Services for the SAA-C03 Exam
 
-Servicios que aparecen en preguntas del examen como opciones correctas o distractores. No necesitan sección entera pero necesitas saber qué hacen para elegir o descartar.
+Services that appear in exam questions as correct answers or distractors. They don't need a full section but you need to know what they do to select or eliminate them.
 
-## Tabla de Contenidos
+## Table of Contents
 
-- [Marketing y Comunicación](#marketing-y-comunicación)
-- [Governance y Compliance](#governance-y-compliance)
-- [Almacenamiento y Análisis](#almacenamiento-y-análisis)
-- [Seguridad adicional](#seguridad-adicional)
-- [Integración de aplicaciones](#integración-de-aplicaciones)
-- [Machine Learning adicional](#machine-learning-adicional)
-- [Cheat sheet: servicios que se confunden](#cheat-sheet-servicios-que-se-confunden)
+- [Marketing and Communication](#marketing-and-communication)
+- [Governance and Compliance](#governance-and-compliance)
+- [Storage and Analysis](#storage-and-analysis)
+- [Additional Security](#additional-security)
+- [Application Integration](#application-integration)
+- [Additional Machine Learning](#additional-machine-learning)
+- [Cheat Sheet: Frequently Confused Services](#cheat-sheet-frequently-confused-services)
 
 ---
 
-## Marketing y Comunicación
+## Marketing and Communication
 
 ### Amazon Pinpoint
-**Plataforma de marketing multicanal**
+**Multi-channel Marketing Platform**
 
-- Envío masivo de SMS, email, push notifications, voice
-- Journeys: flujos de marketing automatizados (usuario se registra → email día 1 → SMS día 3 → ...)
-- Campañas segmentadas por comportamiento del usuario
-- Two-way SMS: recibir respuestas de los usuarios
-- Integración con Kinesis para análisis de eventos en tiempo real
+- Bulk sending of SMS, email, push notifications, voice
+- Journeys: automated marketing flows (user registers → email day 1 → SMS day 3 → ...)
+- Campaigns segmented by user behavior
+- Two-way SMS: receive responses from users
+- Integration with Kinesis for real-time event analysis
 
 ```
-Casos de uso:
-  - Campaña de marketing por SMS a suscriptores
-  - Email de bienvenida automatizado
-  - Notificaciones push segmentadas
-  - Recoger respuestas SMS y analizarlas
+Use cases:
+  - SMS marketing campaign to subscribers
+  - Automated welcome email
+  - Segmented push notifications
+  - Collect SMS responses and analyze them
 ```
 
-**Para el examen:**
+**For the exam:**
 ```
 "Marketing campaign SMS/email/push"          → Pinpoint
 "Multi-engagement campaign"                   → Pinpoint
-"Two-way SMS (enviar y recibir respuestas)"  → Pinpoint
-"Enviar una notificación simple/alerta"      → SNS (no Pinpoint)
+"Two-way SMS (send and receive responses)"   → Pinpoint
+"Send a simple notification/alert"           → SNS (not Pinpoint)
 ```
 
 **Pinpoint vs SNS:**
 ```
-Pinpoint: marketing (campañas, journeys, segmentación, analytics)
-SNS:      notificaciones simples (alertas, triggers, pub/sub)
+Pinpoint: marketing (campaigns, journeys, segmentation, analytics)
+SNS:      simple notifications (alerts, triggers, pub/sub)
 
-"Avisar al admin que el servidor se cayó"     → SNS
-"Enviar oferta de Black Friday a 50k users"   → Pinpoint
+"Notify admin that the server went down"     → SNS
+"Send Black Friday offer to 50k users"       → Pinpoint
 ```
 
 ---
 
 ### Amazon Connect
-**Contact center (call center) en la nube**
+**Cloud Contact Center (Call Center)**
 
-- Central telefónica virtual completa
-- IVR (menú telefónico interactivo)
-- Routing de llamadas a agentes
-- Chat en tiempo real
-- Integración con Lex (chatbots) para self-service
-- Contact flows: flujos de llamada configurables
-- Grabación de llamadas
-- Analytics de rendimiento de agentes
+- Complete virtual phone system
+- IVR (interactive voice response)
+- Call routing to agents
+- Real-time chat
+- Integration with Lex (chatbots) for self-service
+- Contact flows: configurable call flows
+- Call recording
+- Agent performance analytics
 
 ```
-Casos de uso:
-  - Call center de atención al cliente
-  - Sistema telefónico automatizado (IVR)
-  - Soporte técnico con chat + llamadas
-  - Chatbot telefónico (Connect + Lex)
+Use cases:
+  - Customer service call center
+  - Automated phone system (IVR)
+  - Technical support with chat + calls
+  - Phone chatbot (Connect + Lex)
 ```
 
-**Para el examen:**
+**For the exam:**
 ```
 "Call center", "contact center"              → Amazon Connect
-"IVR", "menú telefónico"                    → Amazon Connect
-"Routing de llamadas a agentes"             → Amazon Connect
-"Enviar SMS a clientes" (sin call center)   → Pinpoint o SNS (NO Connect)
+"IVR", "phone menu"                          → Amazon Connect
+"Call routing to agents"                     → Amazon Connect
+"Send SMS to customers" (without call center) → Pinpoint or SNS (NOT Connect)
 ```
 
 **Connect vs Pinpoint:**
 ```
-Connect:  atención al cliente (el cliente te llama/escribe)
-Pinpoint: marketing (tú envías mensajes al cliente)
+Connect:  customer service (the customer calls/writes you)
+Pinpoint: marketing (you send messages to the customer)
 ```
 
 ---
 
-## Governance y Compliance
+## Governance and Compliance
 
 ### AWS Service Catalog
-**Catálogo de productos IT aprobados**
+**Catalog of Approved IT Products**
 
-- El equipo de infra crea "productos" (templates de CloudFormation)
-- Los developers solo pueden lanzar productos del catálogo
-- Control centralizado de qué se puede desplegar
-- Versiones, permisos, restricciones de lanzamiento
-- Portfolios: agrupaciones de productos por equipo/departamento
+- The infra team creates "products" (CloudFormation templates)
+- Developers can only launch products from the catalog
+- Centralized control of what can be deployed
+- Versions, permissions, launch constraints
+- Portfolios: product groupings by team/department
 
 ```
-Ejemplo:
-  IT crea 3 productos aprobados:
-    - "Web server" (EC2 + ALB + ASG pre-configurado)
-    - "Base de datos" (RDS con cifrado y backups)
+Example:
+  IT creates 3 approved products:
+    - "Web server" (pre-configured EC2 + ALB + ASG)
+    - "Database" (RDS with encryption and backups)
     - "Data pipeline" (Glue + S3 + Athena)
 
-  Developer quiere un servidor → elige del catálogo → se lanza con config aprobada
-  No puede crear EC2 random sin cifrado ni tags
+  Developer wants a server → picks from catalog → launches with approved config
+  Cannot create random EC2 without encryption or tags
 ```
 
-**Para el examen:**
+**For the exam:**
 ```
-"Catálogo de productos IT aprobados"              → Service Catalog
-"Restringir qué recursos pueden lanzar los devs"  → Service Catalog
-"Estandarizar despliegues"                         → Service Catalog
-"Governance de qué se puede crear"                 → Service Catalog
+"Catalog of approved IT products"                → Service Catalog
+"Restrict what resources devs can launch"        → Service Catalog
+"Standardize deployments"                         → Service Catalog
+"Governance of what can be created"              → Service Catalog
 ```
 
 **Service Catalog vs Control Tower:**
 ```
-Service Catalog: controla QUÉ RECURSOS se pueden crear
-Control Tower:   controla QUÉ CUENTAS se crean y cómo se gobiernan
+Service Catalog: controls WHAT RESOURCES can be created
+Control Tower:   controls WHAT ACCOUNTS are created and how they are governed
 ```
 
 ---
 
 ### AWS Audit Manager
-**Automatizar auditorías de compliance**
+**Automate Compliance Audits**
 
-- Recolecta evidencia automáticamente de tus recursos AWS
-- Frameworks pre-construidos (GDPR, HIPAA, PCI-DSS, SOC 2, etc.)
-- Genera reportes para auditores
-- Mapea controles a recursos
+- Automatically collects evidence from your AWS resources
+- Pre-built frameworks (GDPR, HIPAA, PCI-DSS, SOC 2, etc.)
+- Generates reports for auditors
+- Maps controls to resources
 
 ```
-Para el examen:
-  "Automatizar recolección de evidencia para auditorías" → Audit Manager
-  "Preparar informes de compliance"                      → Audit Manager
+For the exam:
+  "Automate evidence collection for audits"   → Audit Manager
+  "Prepare compliance reports"                 → Audit Manager
 ```
 
 ---
 
 ### AWS Artifact
-**Documentos de compliance de AWS**
+**AWS Compliance Documents**
 
-- Descarga certificaciones de AWS (ISO 27001, SOC 1/2/3, PCI, HIPAA)
-- Agreements (BAA para HIPAA, DPA para GDPR)
-- No es un servicio activo, es un portal de documentos
+- Download AWS certifications (ISO 27001, SOC 1/2/3, PCI, HIPAA)
+- Agreements (BAA for HIPAA, DPA for GDPR)
+- Not an active service, it's a document portal
 
 ```
-Para el examen:
-  "Descargar certificaciones de compliance de AWS"     → Artifact
-  "BAA agreement para HIPAA"                            → Artifact
-  "Demostrar que AWS cumple ISO 27001"                  → Artifact
+For the exam:
+  "Download AWS compliance certifications"     → Artifact
+  "BAA agreement for HIPAA"                     → Artifact
+  "Prove that AWS complies with ISO 27001"      → Artifact
 ```
 
 ---
 
-## Almacenamiento y Análisis
+## Storage and Analysis
 
 ### S3 Storage Lens
-**Dashboard de análisis de todos tus S3 buckets**
+**Analytics Dashboard for All Your S3 Buckets**
 
-- Vista global de todos tus buckets (multi-cuenta, multi-región)
-- Métricas: tamaño, número de objetos, costes
-- Análisis de configuración: versioning, cifrado, acceso público
-- Recomendaciones de optimización de costes
-- Dashboard gratuito con métricas básicas, avanzado de pago
+- Global view of all your buckets (multi-account, multi-region)
+- Metrics: size, number of objects, costs
+- Configuration analysis: versioning, encryption, public access
+- Cost optimization recommendations
+- Free dashboard with basic metrics, paid for advanced
 
 ```
-Lo que responde:
-  - "¿Cuántos buckets tengo y cuánto almacenan?"
-  - "¿Cuáles NO tienen versioning activado?"
-  - "¿Cuáles NO tienen cifrado?"
-  - "¿Dónde puedo ahorrar dinero en S3?"
-```
-
-**Para el examen:**
-```
-"Analizar estado de todos los S3 buckets"              → S3 Storage Lens
-"¿Qué buckets no tienen versioning?"                   → S3 Storage Lens
-"Dashboard de métricas de S3 multi-cuenta"             → S3 Storage Lens
-"¿Quién accedió a qué objeto?"                        → CloudTrail Data Events (NO Storage Lens)
+What it answers:
+  - "How many buckets do I have and how much do they store?"
+  - "Which ones DON'T have versioning enabled?"
+  - "Which ones DON'T have encryption?"
+  - "Where can I save money on S3?"
 ```
 
-**Storage Lens vs otros servicios de análisis:**
+**For the exam:**
 ```
-Storage Lens:     "¿Cómo ESTÁN mis buckets?"      (estado actual, configuración)
-CloudTrail:       "¿Qué PASÓ?"                     (log de acciones)
-AWS Config:       "¿Cumple la regla?"               (compliance de recursos)
-IAM Access Analyzer: "¿Quién TIENE acceso?"         (permisos)
+"Analyze the state of all S3 buckets"            → S3 Storage Lens
+"Which buckets don't have versioning?"            → S3 Storage Lens
+"S3 metrics dashboard multi-account"              → S3 Storage Lens
+"Who accessed which object?"                      → CloudTrail Data Events (NOT Storage Lens)
+```
+
+**Storage Lens vs other analysis services:**
+```
+Storage Lens:        "How ARE my buckets?"         (current state, configuration)
+CloudTrail:          "What HAPPENED?"               (action log)
+AWS Config:          "Does it COMPLY with the rule?" (resource compliance)
+IAM Access Analyzer: "Who HAS access?"              (permissions)
 ```
 
 ---
 
-## Seguridad adicional
+## Additional Security
 
 ### AWS Network Firewall
-**Firewall managed para VPC**
+**Managed Firewall for VPC**
 
-- Inspección de tráfico a nivel de red (Layer 3-7)
-- Filtrado por IP, puerto, protocolo, dominio
-- Detección de intrusiones (IDS/IPS)
-- Reglas stateful y stateless
+- Network-level traffic inspection (Layer 3-7)
+- Filtering by IP, port, protocol, domain
+- Intrusion detection (IDS/IPS)
+- Stateful and stateless rules
 
-**Para el examen:**
+**For the exam:**
 ```
-"Inspección profunda de tráfico de red"     → Network Firewall
-"IDS/IPS en AWS"                             → Network Firewall
-"Filtrar tráfico por dominio"                → Network Firewall
-"Bloquear requests HTTP maliciosos"          → WAF (no Network Firewall)
+"Deep network traffic inspection"          → Network Firewall
+"IDS/IPS on AWS"                           → Network Firewall
+"Filter traffic by domain"                 → Network Firewall
+"Block malicious HTTP requests"            → WAF (not Network Firewall)
 ```
 
 **Network Firewall vs WAF vs Security Groups:**
 ```
-Security Groups:   reglas básicas IP/puerto por instancia (Layer 4)
-Network Firewall:  inspección profunda de toda la VPC (Layer 3-7)
-WAF:               protección de apps web HTTP/HTTPS (Layer 7)
+Security Groups:   basic IP/port rules per instance (Layer 4)
+Network Firewall:  deep inspection of entire VPC (Layer 3-7)
+WAF:               HTTP/HTTPS web app protection (Layer 7)
 ```
 
 ---
 
-## Integración de aplicaciones
+## Application Integration
 
 ### Amazon AppFlow
-**Integración de datos entre SaaS y AWS sin código**
+**No-Code Data Integration Between SaaS and AWS**
 
-- Conecta Salesforce, Slack, SAP, Google Analytics, etc. con S3, Redshift, etc.
-- Transferencias programadas o por eventos
-- Transformaciones básicas (filtrar, mapear campos)
-- Sin escribir código
+- Connects Salesforce, Slack, SAP, Google Analytics, etc. with S3, Redshift, etc.
+- Scheduled or event-driven transfers
+- Basic transformations (filter, map fields)
+- No code required
 
 ```
-Para el examen:
-  "Integrar Salesforce con S3"                → AppFlow
-  "Transferir datos de SaaS a AWS sin código"  → AppFlow
+For the exam:
+  "Integrate Salesforce with S3"                → AppFlow
+  "Transfer data from SaaS to AWS without code"  → AppFlow
 ```
 
 ---
 
-## Machine Learning adicional
+## Additional Machine Learning
 
 ### Amazon Augmented AI (A2I)
-**Revisión humana de predicciones de ML**
+**Human Review of ML Predictions**
 
-- Cuando un modelo ML no está seguro, pasa a revisión humana
-- Workflows de revisión con personas
-- Integración con Textract, Rekognition, SageMaker
+- When an ML model is not confident, it passes to human review
+- Review workflows with people
+- Integration with Textract, Rekognition, SageMaker
 
 ```
-Para el examen:
-  "Revisión humana de predicciones ML"          → A2I
-  "Human in the loop"                            → A2I
+For the exam:
+  "Human review of ML predictions"            → A2I
+  "Human in the loop"                          → A2I
 ```
 
 ---
 
-## Cheat sheet: servicios que se confunden
+## Cheat Sheet: Frequently Confused Services
 
-### Servicios de comunicación
+### Communication Services
 ```
-SNS:      notificaciones simples (alerta, trigger)
-SES:      email a escala (transaccional, marketing)
-Pinpoint: marketing multicanal (SMS + email + push + journeys)
-Connect:  call center (llamadas + chat de soporte)
-```
-
-### Servicios de análisis de estado
-```
-CloudTrail:         ¿Qué PASÓ? (log de acciones)
-AWS Config:         ¿CUMPLE la regla? (compliance)
-Storage Lens:       ¿Cómo ESTÁN mis S3? (métricas y config)
-IAM Access Analyzer: ¿Quién TIENE acceso? (permisos)
-Trusted Advisor:    ¿Qué puedo MEJORAR? (recomendaciones)
-Security Hub:       ¿Cuál es mi POSTURA de seguridad? (dashboard)
+SNS:      simple notifications (alert, trigger)
+SES:      email at scale (transactional, marketing)
+Pinpoint: multi-channel marketing (SMS + email + push + journeys)
+Connect:  call center (calls + support chat)
 ```
 
-### Servicios de protección
+### State Analysis Services
 ```
-Security Groups:    firewall por instancia (IP/puerto)
-NACLs:              firewall por subnet (stateless)
-WAF:                protección HTTP/HTTPS (SQL injection, XSS)
-Shield:             protección DDoS
-Network Firewall:   inspección profunda de tráfico VPC
-GuardDuty:          detección de amenazas (análisis inteligente)
-Inspector:          escaneo de vulnerabilidades (EC2, containers)
-Macie:              detección de datos sensibles en S3
+CloudTrail:         What HAPPENED? (action log)
+AWS Config:         Does it COMPLY with the rule? (compliance)
+Storage Lens:       How ARE my S3 buckets? (metrics and config)
+IAM Access Analyzer: Who HAS access? (permissions)
+Trusted Advisor:    What can I IMPROVE? (recommendations)
+Security Hub:       What is my SECURITY POSTURE? (dashboard)
 ```
 
-### Servicios de transferencia
+### Protection Services
 ```
-DataSync:           mover datos on-premise → AWS (migración)
-Storage Gateway:    puente continuo on-premise ↔ AWS
-Transfer Family:    SFTP/FTP → S3 (terceros suben ficheros)
-Snow Family:        migración física (TB/PB en dispositivo)
-DMS:                migrar bases de datos
-MGN:                migrar servidores (lift & shift)
+Security Groups:    per-instance firewall (IP/port)
+NACLs:              per-subnet firewall (stateless)
+WAF:                HTTP/HTTPS protection (SQL injection, XSS)
+Shield:             DDoS protection
+Network Firewall:   deep VPC traffic inspection
+GuardDuty:          threat detection (intelligent analysis)
+Inspector:          vulnerability scanning (EC2, containers)
+Macie:              sensitive data detection in S3
 ```
 
-### Servicios de governance
+### Transfer Services
 ```
-Organizations:      agrupar cuentas, billing, SCPs
+DataSync:           move data on-premise → AWS (migration)
+Storage Gateway:    continuous bridge on-premise ↔ AWS
+Transfer Family:    SFTP/FTP → S3 (third parties upload files)
+Snow Family:        physical migration (TB/PB on device)
+DMS:                migrate databases
+MGN:                migrate servers (lift & shift)
+```
+
+### Governance Services
+```
+Organizations:      group accounts, billing, SCPs
 Control Tower:      Landing Zone, Account Factory, guardrails
-RAM:                compartir recursos entre cuentas
-Service Catalog:    catálogo de productos IT aprobados
-Artifact:           documentos de compliance de AWS
-Audit Manager:      automatizar recolección de evidencia
+RAM:                share resources between accounts
+Service Catalog:    catalog of approved IT products
+Artifact:           AWS compliance documents
+Audit Manager:      automate evidence collection
 ```
 
-### Servicios de edge/ubicación
+### Edge/Location Services
 ```
-CloudFront:         CDN global (caché de contenido)
-Global Accelerator: routing optimizado a nivel de red
-Wavelength:         compute en red 5G
-Outposts:           AWS en tu data center (tu hardware)
-Local Zones:        AWS más cerca de una ciudad (hardware AWS)
+CloudFront:         global CDN (content caching)
+Global Accelerator: optimized network-level routing
+Wavelength:         compute in 5G networks
+Outposts:           AWS in your data center (your hardware)
+Local Zones:        AWS closer to a city (AWS hardware)
 ```

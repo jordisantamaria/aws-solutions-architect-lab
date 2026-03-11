@@ -1,177 +1,177 @@
-# 10 - Alta Disponibilidad y Recuperación ante Desastres
+# 10 - High Availability and Disaster Recovery
 
-## Tabla de Contenidos
+## Table of Contents
 
-- [Conceptos Fundamentales: HA vs FT vs DR](#conceptos-fundamentales-ha-vs-ft-vs-dr)
-- [RPO y RTO](#rpo-y-rto)
-- [Estrategias de Disaster Recovery](#estrategias-de-disaster-recovery)
-- [Arquitecturas Multi-AZ](#arquitecturas-multi-az)
-- [Arquitecturas Multi-Region](#arquitecturas-multi-region)
+- [Fundamental Concepts: HA vs FT vs DR](#fundamental-concepts-ha-vs-ft-vs-dr)
+- [RPO and RTO](#rpo-and-rto)
+- [Disaster Recovery Strategies](#disaster-recovery-strategies)
+- [Multi-AZ Architectures](#multi-az-architectures)
+- [Multi-Region Architectures](#multi-region-architectures)
 - [ELB Health Checks](#elb-health-checks)
-- [Auto Scaling para Alta Disponibilidad](#auto-scaling-para-alta-disponibilidad)
-- [Route 53 Health Checks y Failover](#route-53-health-checks-y-failover)
+- [Auto Scaling for High Availability](#auto-scaling-for-high-availability)
+- [Route 53 Health Checks and Failover](#route-53-health-checks-and-failover)
 - [AWS Backup](#aws-backup)
 - [AWS Elastic Disaster Recovery (DRS)](#aws-elastic-disaster-recovery-drs)
 - [Chaos Engineering - AWS Fault Injection Simulator](#chaos-engineering---aws-fault-injection-simulator)
-- [Tips para el Examen](#tips-para-el-examen)
+- [Exam Tips](#exam-tips)
 
 ---
 
-## Conceptos Fundamentales: HA vs FT vs DR
+## Fundamental Concepts: HA vs FT vs DR
 
-Estos tres conceptos se confunden con frecuencia en el examen. Es fundamental entender sus diferencias.
+These three concepts are frequently confused on the exam. Understanding their differences is essential.
 
-### Definiciones
+### Definitions
 
-| Concepto | Definición | Objetivo | Ejemplo |
+| Concept | Definition | Objective | Example |
 |---|---|---|---|
-| **Alta Disponibilidad (HA)** | Capacidad de un sistema para permanecer operativo y accesible durante un porcentaje alto de tiempo. Acepta breves interrupciones durante el failover. | Minimizar el tiempo de inactividad | RDS Multi-AZ: si la instancia primaria falla, el failover a la standby tarda ~60-120 segundos |
-| **Tolerancia a Fallos (FT)** | Capacidad de un sistema para continuar operando **sin interrupción alguna** cuando un componente falla. Zero downtime. | Cero interrupción | Un avión con múltiples motores: si uno falla, los demás mantienen el vuelo sin que los pasajeros lo noten |
-| **Recuperación ante Desastres (DR)** | Conjunto de políticas, herramientas y procedimientos para recuperar la infraestructura y los datos tras un evento catastrófico. | Recuperarse tras un desastre | Restaurar la operación en otra región AWS después de que una región completa quede fuera de servicio |
+| **High Availability (HA)** | Ability of a system to remain operational and accessible for a high percentage of time. Accepts brief interruptions during failover. | Minimize downtime | RDS Multi-AZ: if the primary instance fails, failover to standby takes ~60-120 seconds |
+| **Fault Tolerance (FT)** | Ability of a system to continue operating **without any interruption** when a component fails. Zero downtime. | Zero interruption | An airplane with multiple engines: if one fails, the others maintain flight without passengers noticing |
+| **Disaster Recovery (DR)** | Set of policies, tools, and procedures to recover infrastructure and data after a catastrophic event. | Recover after a disaster | Restore operations in another AWS region after an entire region goes down |
 
-### Relación entre conceptos
+### Relationship Between Concepts
 
 ```
-Tolerancia a Fallos (FT)
-  └── Es el nivel más alto: cero interrupción
-  └── Ejemplo: S3 (11 9s de durabilidad), DynamoDB Global Tables
+Fault Tolerance (FT)
+  └── Is the highest level: zero interruption
+  └── Example: S3 (11 9s of durability), DynamoDB Global Tables
 
-Alta Disponibilidad (HA)
-  └── Acepta breve interrupción durante failover
-  └── Ejemplo: RDS Multi-AZ, ELB con ASG en múltiples AZs
+High Availability (HA)
+  └── Accepts brief interruption during failover
+  └── Example: RDS Multi-AZ, ELB with ASG in multiple AZs
 
-Recuperación ante Desastres (DR)
-  └── Recuperación después de un desastre mayor
-  └── Ejemplo: Restaurar desde backup en otra región
+Disaster Recovery (DR)
+  └── Recovery after a major disaster
+  └── Example: Restore from backup in another region
 
-Coste: FT > HA > DR (básico)
+Cost: FT > HA > DR (basic)
 ```
 
 ---
 
-## RPO y RTO
+## RPO and RTO
 
-Dos métricas fundamentales para diseñar estrategias de DR.
+Two fundamental metrics for designing DR strategies.
 
 ### Recovery Point Objective (RPO)
 
-**RPO** = Cantidad máxima de datos que la organización puede permitirse perder, medida en tiempo.
+**RPO** = Maximum amount of data that the organization can afford to lose, measured in time.
 
 ```
-Último backup          Punto de fallo         Recuperación
+Last backup             Failure point              Recovery
      │                      │                      │
      ▼                      ▼                      ▼
 ─────●──────────────────────●──────────────────────●─────
      │◄────── RPO ─────────►│                      │
-     │   (datos perdidos)   │                      │
+     │   (data lost)        │                      │
 ```
 
-**Ejemplos:**
-- RPO de 1 hora: Puedes perder hasta 1 hora de datos. Necesitas backups al menos cada hora.
-- RPO de 0: No puedes perder ningún dato. Necesitas replicación síncrona en tiempo real.
+**Examples:**
+- RPO of 1 hour: You can lose up to 1 hour of data. You need backups at least every hour.
+- RPO of 0: You cannot lose any data. You need real-time synchronous replication.
 
 ### Recovery Time Objective (RTO)
 
-**RTO** = Tiempo máximo aceptable para restaurar el sistema y volver a la operación normal tras un fallo.
+**RTO** = Maximum acceptable time to restore the system and return to normal operation after a failure.
 
 ```
-Punto de fallo                         Recuperación completa
+Failure point                              Full recovery
      │                                        │
      ▼                                        ▼
 ─────●────────────────────────────────────────●─────
      │◄──────────── RTO ─────────────────────►│
-     │   (tiempo de inactividad)              │
+     │   (downtime)                           │
 ```
 
-**Ejemplos:**
-- RTO de 4 horas: El sistema debe estar operativo en menos de 4 horas tras un fallo.
-- RTO de minutos: Necesitas soluciones como Multi-AZ con failover automático.
+**Examples:**
+- RTO of 4 hours: The system must be operational within 4 hours after a failure.
+- RTO of minutes: You need solutions like Multi-AZ with automatic failover.
 
-> **Punto clave para el examen:**
-> - **RPO** responde a: "Cuántos datos puedo perder"
-> - **RTO** responde a: "Cuánto tiempo puedo estar caído"
-> - Menor RPO/RTO = Mayor coste
+> **Key point for the exam:**
+> - **RPO** answers: "How much data can I lose"
+> - **RTO** answers: "How long can I be down"
+> - Lower RPO/RTO = Higher cost
 
 ---
 
-## Estrategias de Disaster Recovery
+## Disaster Recovery Strategies
 
-AWS define 4 estrategias de DR, ordenadas de menor a mayor coste y de mayor a menor RTO/RPO.
+AWS defines 4 DR strategies, ordered from lowest to highest cost and from highest to lowest RTO/RPO.
 
-### Comparativa de estrategias
+### Strategy Comparison
 
-| Estrategia | RPO | RTO | Coste | Descripción |
+| Strategy | RPO | RTO | Cost | Description |
 |---|---|---|---|---|
-| **Backup & Restore** | Horas | 24+ horas | Bajo ($) | Crear backups periódicos y restaurar cuando sea necesario |
-| **Pilot Light** | Minutos | Decenas de minutos | Medio-bajo ($$) | Mantener una versión mínima del entorno siempre encendida (core services) |
-| **Warm Standby** | Segundos-Minutos | Minutos | Medio-alto ($$$) | Versión reducida pero funcional del entorno completo siempre ejecutándose |
-| **Multi-Site / Hot Standby** | Casi cero | Segundos-Minutos | Alto ($$$$) | Entorno completo activo-activo en múltiples regiones |
+| **Backup & Restore** | Hours | 24+ hours | Low ($) | Create periodic backups and restore when needed |
+| **Pilot Light** | Minutes | Tens of minutes | Medium-low ($$) | Keep a minimal version of the environment always on (core services) |
+| **Warm Standby** | Seconds-Minutes | Minutes | Medium-high ($$$) | Reduced but functional version of the full environment always running |
+| **Multi-Site / Hot Standby** | Near zero | Seconds-Minutes | High ($$$$) | Full active-active environment in multiple regions |
 
-### Detalle de cada estrategia
+### Detail of Each Strategy
 
 #### 1. Backup & Restore
 
 ```
-Región Primaria (Activa)              Región DR
+Primary Region (Active)                  DR Region
 ┌─────────────────────┐        ┌──────────────────────┐
 │  EC2, RDS, EBS      │        │                      │
-│  (todo operativo)   │───────►│  S3 (backups)        │
-│                     │ backup │  Snapshots EBS        │
+│  (all operational)  │───────►│  S3 (backups)        │
+│                     │ backup │  EBS Snapshots        │
 │                     │        │  RDS snapshots        │
 └─────────────────────┘        └──────────────────────┘
 
-En caso de desastre: restaurar todo desde los backups (horas)
+In case of disaster: restore everything from backups (hours)
 ```
 
-- **Cómo funciona:** Backups regulares a S3, snapshots de EBS/RDS copiados a otra región.
-- **Cuándo usarla:** Aplicaciones no críticas donde horas de downtime son aceptables.
-- **Servicios AWS:** S3 Cross-Region Replication, EBS Snapshots, RDS Automated Backups, AWS Backup.
+- **How it works:** Regular backups to S3, EBS/RDS snapshots copied to another region.
+- **When to use:** Non-critical applications where hours of downtime are acceptable.
+- **AWS services:** S3 Cross-Region Replication, EBS Snapshots, RDS Automated Backups, AWS Backup.
 
 #### 2. Pilot Light
 
 ```
-Región Primaria (Activa)              Región DR (Pilot Light)
+Primary Region (Active)                  DR Region (Pilot Light)
 ┌─────────────────────┐        ┌──────────────────────┐
-│  Web servers (ASG)  │        │  (sin web servers)   │
-│  App servers (ASG)  │        │  (sin app servers)   │
+│  Web servers (ASG)  │        │  (no web servers)    │
+│  App servers (ASG)  │        │  (no app servers)    │
 │  RDS Primary        │───────►│  RDS Read Replica    │
-│                     │  réplica│  (solo DB encendida) │
+│                     │ replica│  (only DB is on)     │
 └─────────────────────┘        └──────────────────────┘
 
-En caso de desastre: promover RDS replica, lanzar EC2s con ASG (minutos)
+In case of disaster: promote RDS replica, launch EC2s with ASG (minutes)
 ```
 
-- **Cómo funciona:** Solo los componentes críticos (base de datos) están encendidos. El resto se aprovisiona al activar el DR.
-- **Cuándo usarla:** Aplicaciones con RPO de minutos y RTO aceptable de decenas de minutos.
-- **Servicios AWS:** RDS Cross-Region Read Replicas, AMIs pre-configuradas, Launch Templates listos.
+- **How it works:** Only critical components (database) are on. The rest is provisioned when DR is activated.
+- **When to use:** Applications with RPO of minutes and acceptable RTO of tens of minutes.
+- **AWS services:** RDS Cross-Region Read Replicas, pre-configured AMIs, Launch Templates ready.
 
 #### 3. Warm Standby
 
 ```
-Región Primaria (Activa)              Región DR (Warm Standby)
+Primary Region (Active)                  DR Region (Warm Standby)
 ┌─────────────────────┐        ┌──────────────────────┐
 │  Web (ASG: 4 inst.) │        │  Web (ASG: 1 inst.)  │
 │  App (ASG: 4 inst.) │        │  App (ASG: 1 inst.)  │
 │  RDS Multi-AZ       │───────►│  RDS Read Replica    │
-│  (tamaño completo)  │ réplica│  (tamaño reducido)   │
+│  (full size)        │ replica│  (reduced size)      │
 └─────────────────────┘        └──────────────────────┘
 
-En caso de desastre: escalar instancias, promover RDS (minutos)
+In case of disaster: scale instances, promote RDS (minutes)
 ```
 
-- **Cómo funciona:** Una versión reducida pero completamente funcional del entorno siempre ejecutándose.
-- **Cuándo usarla:** Aplicaciones importantes con RTO de minutos.
-- **Servicios AWS:** ASG con capacidad mínima, RDS Read Replicas, Route 53 health checks con failover.
+- **How it works:** A reduced but fully functional version of the environment always running.
+- **When to use:** Important applications with RTO of minutes.
+- **AWS services:** ASG with minimum capacity, RDS Read Replicas, Route 53 health checks with failover.
 
 #### 4. Multi-Site / Hot Standby
 
 ```
-Región Primaria (Activa)              Región Secundaria (Activa)
+Primary Region (Active)                  Secondary Region (Active)
 ┌─────────────────────┐        ┌──────────────────────┐
 │  Web (ASG: 4 inst.) │        │  Web (ASG: 4 inst.)  │
 │  App (ASG: 4 inst.) │        │  App (ASG: 4 inst.)  │
 │  Aurora Global DB   │◄──────►│  Aurora Global DB     │
-│  (escritura)        │ réplica│  (lectura/escritura)  │
+│  (write)            │ replica│  (read/write)         │
 └─────────────────────┘        └──────────────────────┘
          │                              │
          └──────────┬───────────────────┘
@@ -179,37 +179,37 @@ Región Primaria (Activa)              Región Secundaria (Activa)
             Route 53 (Active-Active)
 ```
 
-- **Cómo funciona:** Entorno completo activo-activo en ambas regiones. Tráfico distribuido.
-- **Cuándo usarla:** Aplicaciones críticas con RPO/RTO cercanos a cero.
-- **Servicios AWS:** Route 53 latency-based routing, Aurora Global Database, DynamoDB Global Tables, CloudFront.
+- **How it works:** Full active-active environment in both regions. Traffic distributed.
+- **When to use:** Critical applications with RPO/RTO close to zero.
+- **AWS services:** Route 53 latency-based routing, Aurora Global Database, DynamoDB Global Tables, CloudFront.
 
 ---
 
-## Arquitecturas Multi-AZ
+## Multi-AZ Architectures
 
-Patrones de alta disponibilidad usando múltiples Availability Zones dentro de una misma región.
+High availability patterns using multiple Availability Zones within the same region.
 
-### Patrones por servicio
+### Patterns by Service
 
-| Servicio | Patrón Multi-AZ | Failover | Notas |
+| Service | Multi-AZ Pattern | Failover | Notes |
 |---|---|---|---|
-| **RDS** | Multi-AZ deployment: instancia standby síncrona en otra AZ | Automático (~60-120s). Cambia el DNS endpoint. | La standby NO es legible. Para lectura usa Read Replicas. |
-| **Aurora** | Hasta 15 Read Replicas en múltiples AZs. Storage replicado 6 veces en 3 AZs. | Automático (~30s). Promueve una Read Replica. | Más rápido que RDS Multi-AZ estándar. |
-| **ELB** | ALB/NLB despliega nodos en múltiples AZs automáticamente | N/A (distribuye tráfico entre AZs activamente) | Habilitar Cross-Zone Load Balancing para distribución uniforme. |
-| **ASG** | Configurar subnets en múltiples AZs | Lanza nuevas instancias en AZs saludables | Especificar al menos 2 AZs. Mejor 3 para mayor resiliencia. |
-| **S3** | Automático: datos replicados en mínimo 3 AZs | N/A (transparente) | 99.999999999% (11 9s) de durabilidad. |
-| **DynamoDB** | Automático: datos replicados en 3 AZs | N/A (transparente) | Sin configuración adicional necesaria. |
-| **EFS** | Automático: almacenamiento replicado en múltiples AZs | N/A (transparente) | Modo One Zone disponible para ahorro (sin HA). |
-| **ElastiCache** | Multi-AZ con failover automático (Redis) | Automático para Redis con réplicas | Memcached no soporta Multi-AZ con failover automático. |
-| **OpenSearch** | Despliegue en 2 o 3 AZs con réplicas | Automático | Requiere mínimo 2 nodos por AZ para producción. |
+| **RDS** | Multi-AZ deployment: synchronous standby instance in another AZ | Automatic (~60-120s). Changes the DNS endpoint. | Standby is NOT readable. Use Read Replicas for reads. |
+| **Aurora** | Up to 15 Read Replicas across multiple AZs. Storage replicated 6 times across 3 AZs. | Automatic (~30s). Promotes a Read Replica. | Faster than standard RDS Multi-AZ. |
+| **ELB** | ALB/NLB deploys nodes in multiple AZs automatically | N/A (actively distributes traffic across AZs) | Enable Cross-Zone Load Balancing for uniform distribution. |
+| **ASG** | Configure subnets in multiple AZs | Launches new instances in healthy AZs | Specify at least 2 AZs. 3 is better for greater resilience. |
+| **S3** | Automatic: data replicated across minimum 3 AZs | N/A (transparent) | 99.999999999% (11 9s) durability. |
+| **DynamoDB** | Automatic: data replicated across 3 AZs | N/A (transparent) | No additional configuration needed. |
+| **EFS** | Automatic: storage replicated across multiple AZs | N/A (transparent) | One Zone mode available for savings (without HA). |
+| **ElastiCache** | Multi-AZ with automatic failover (Redis) | Automatic for Redis with replicas | Memcached does not support Multi-AZ with automatic failover. |
+| **OpenSearch** | Deployment in 2 or 3 AZs with replicas | Automatic | Requires minimum 2 nodes per AZ for production. |
 
-### Patrón de arquitectura Multi-AZ típico
+### Typical Multi-AZ Architecture Pattern
 
 ```
                     Route 53
                        │
                 ┌──────▼──────┐
-                │     ALB     │ (Multi-AZ automático)
+                │     ALB     │ (Multi-AZ automatic)
                 └──────┬──────┘
                        │
           ┌────────────┼────────────┐
@@ -230,11 +230,11 @@ Patrones de alta disponibilidad usando múltiples Availability Zones dentro de u
 
 ---
 
-## Arquitecturas Multi-Region
+## Multi-Region Architectures
 
-Para protección contra fallos a nivel de región completa.
+For protection against region-level failures.
 
-### Patrones Multi-Region por servicio
+### Multi-Region Patterns by Service
 
 #### Route 53 Failover Routing
 
@@ -243,8 +243,8 @@ Para protección contra fallos a nivel de región completa.
                        │
           ┌────────────┼────────────┐
           │                         │
-    Primario (us-east-1)     Secundario (eu-west-1)
-    Health check: HEALTHY     Health check: monitoreando
+    Primary (us-east-1)      Secondary (eu-west-1)
+    Health check: HEALTHY     Health check: monitoring
           │                         │
     ┌─────▼─────┐           ┌──────▼──────┐
     │   ALB     │           │    ALB      │
@@ -252,322 +252,322 @@ Para protección contra fallos a nivel de región completa.
     │   RDS     │           │    RDS      │
     └───────────┘           └─────────────┘
 
-Si el primario falla → Route 53 redirige al secundario automáticamente
+If primary fails → Route 53 redirects to secondary automatically
 ```
 
 #### Aurora Global Database
 
-- **Replicación:** Un cluster primario (lectura/escritura) y hasta 5 clusters secundarios (solo lectura) en otras regiones.
-- **Latencia de replicación:** Menor a 1 segundo entre regiones.
-- **Failover:** Promover un cluster secundario a primario en menos de 1 minuto.
-- **RPO:** Típicamente < 1 segundo.
-- **RTO:** Típicamente < 1 minuto.
+- **Replication:** One primary cluster (read/write) and up to 5 secondary clusters (read-only) in other regions.
+- **Replication latency:** Less than 1 second between regions.
+- **Failover:** Promote a secondary cluster to primary in less than 1 minute.
+- **RPO:** Typically < 1 second.
+- **RTO:** Typically < 1 minute.
 
 #### DynamoDB Global Tables
 
-- **Replicación:** Activa-Activa. Tablas replicadas en múltiples regiones.
-- **Lectura/Escritura:** Se puede leer y escribir en cualquier región.
-- **Resolución de conflictos:** Last writer wins (basado en timestamp).
-- **Latencia de replicación:** Típicamente < 1 segundo.
-- **Requisito:** DynamoDB Streams debe estar habilitado.
+- **Replication:** Active-Active. Tables replicated across multiple regions.
+- **Read/Write:** Can read and write in any region.
+- **Conflict resolution:** Last writer wins (timestamp-based).
+- **Replication latency:** Typically < 1 second.
+- **Requirement:** DynamoDB Streams must be enabled.
 
 #### S3 Cross-Region Replication (CRR)
 
-- **Configuración:** Regla de replicación entre bucket origen y bucket destino en otra región.
-- **Requisitos:** Versionado habilitado en ambos buckets.
-- **Comportamiento:** Solo replica objetos nuevos y modificados (no retroactivo; usar S3 Batch Replication para objetos existentes).
-- **Opciones:** Puede cambiar la clase de almacenamiento en el destino y/o cambiar el propietario.
+- **Configuration:** Replication rule between source bucket and destination bucket in another region.
+- **Requirements:** Versioning enabled on both buckets.
+- **Behavior:** Only replicates new and modified objects (not retroactive; use S3 Batch Replication for existing objects).
+- **Options:** Can change the storage class at the destination and/or change ownership.
 
 ---
 
 ## ELB Health Checks
 
-Los health checks del ELB determinan si las instancias detrás del balanceador están saludables para recibir tráfico.
+ELB health checks determine whether instances behind the load balancer are healthy to receive traffic.
 
-### Tipos de Health Checks
+### Types of Health Checks
 
-| Tipo | Protocolo | Descripción | Ejemplo |
+| Type | Protocol | Description | Example |
 |---|---|---|---|
-| **HTTP/HTTPS** | HTTP(S) GET | Verifica que una ruta específica devuelva código 200 | `GET /health` devuelve 200 OK |
-| **TCP** | TCP | Verifica que el puerto esté aceptando conexiones | Conexión TCP al puerto 443 exitosa |
-| **SSL** | TLS | Verifica conexión TLS | Handshake TLS exitoso |
+| **HTTP/HTTPS** | HTTP(S) GET | Verifies that a specific path returns code 200 | `GET /health` returns 200 OK |
+| **TCP** | TCP | Verifies that the port is accepting connections | TCP connection to port 443 successful |
+| **SSL** | TLS | Verifies TLS connection | TLS handshake successful |
 
-### Parámetros de Health Check
+### Health Check Parameters
 
-| Parámetro | Descripción | Valor típico |
+| Parameter | Description | Typical Value |
 |---|---|---|
-| **Interval** | Frecuencia del health check | 30 segundos |
-| **Timeout** | Tiempo máximo de espera de respuesta | 5 segundos |
-| **Unhealthy Threshold** | Checks fallidos consecutivos para marcar como unhealthy | 2 |
-| **Healthy Threshold** | Checks exitosos consecutivos para marcar como healthy | 5 (CLB), 3 (ALB/NLB) |
-| **Path** | Ruta HTTP para la verificación | /health o /status |
+| **Interval** | Health check frequency | 30 seconds |
+| **Timeout** | Maximum response wait time | 5 seconds |
+| **Unhealthy Threshold** | Consecutive failed checks to mark as unhealthy | 2 |
+| **Healthy Threshold** | Consecutive successful checks to mark as healthy | 5 (CLB), 3 (ALB/NLB) |
+| **Path** | HTTP path for verification | /health or /status |
 
-### Comportamiento
+### Behavior
 
-- Si una instancia falla el health check, el ELB **deja de enviarle tráfico**.
-- La instancia NO se termina automáticamente (eso lo hace el ASG si está configurado con ELB health checks).
-- **Importante:** El ASG puede usar EC2 status checks o ELB health checks. Para HA, configurar el ASG para que use **ELB health checks**, ya que son más granulares.
+- If an instance fails the health check, the ELB **stops sending traffic to it**.
+- The instance is NOT automatically terminated (the ASG does that if configured with ELB health checks).
+- **Important:** The ASG can use EC2 status checks or ELB health checks. For HA, configure the ASG to use **ELB health checks**, as they are more granular.
 
 ---
 
-## Auto Scaling para Alta Disponibilidad
+## Auto Scaling for High Availability
 
-### Configuración de ASG para HA
+### ASG Configuration for HA
 
-| Configuración | Valor recomendado | Justificación |
+| Configuration | Recommended Value | Justification |
 |---|---|---|
-| **AZs** | Mínimo 2, idealmente 3 | Resiliencia ante fallo de una AZ |
-| **Min capacity** | >= número de AZs | Al menos 1 instancia por AZ |
-| **Desired capacity** | Según la carga actual | Mantener rendimiento adecuado |
-| **Max capacity** | 2x desired o más | Capacidad para manejar picos |
-| **Health check type** | ELB | Más preciso que EC2 status checks |
-| **Health check grace period** | Tiempo de arranque de la app | Evitar terminar instancias que están iniciando |
+| **AZs** | Minimum 2, ideally 3 | Resilience against AZ failure |
+| **Min capacity** | >= number of AZs | At least 1 instance per AZ |
+| **Desired capacity** | Based on current load | Maintain adequate performance |
+| **Max capacity** | 2x desired or more | Capacity to handle spikes |
+| **Health check type** | ELB | More accurate than EC2 status checks |
+| **Health check grace period** | App startup time | Avoid terminating instances that are starting |
 
-### Políticas de escalado
+### Scaling Policies
 
-| Política | Descripción | Caso de uso para HA |
+| Policy | Description | Use Case for HA |
 |---|---|---|
-| **Target Tracking** | Mantener una métrica en un valor objetivo | Mantener CPU al 50% para tener margen |
-| **Step Scaling** | Escalar según umbrales de alarmas CloudWatch | Escalado agresivo ante cambios bruscos |
-| **Scheduled Scaling** | Escalar según horario predefinido | Pre-escalar antes de picos conocidos |
-| **Predictive Scaling** | ML para predecir la demanda futura | Anticiparse a patrones de tráfico |
+| **Target Tracking** | Maintain a metric at a target value | Keep CPU at 50% to have headroom |
+| **Step Scaling** | Scale based on CloudWatch alarm thresholds | Aggressive scaling for sudden changes |
+| **Scheduled Scaling** | Scale based on predefined schedule | Pre-scale before known peaks |
+| **Predictive Scaling** | ML to predict future demand | Anticipate traffic patterns |
 
-### Patrón de ASG para máxima HA
+### ASG Pattern for Maximum HA
 
 ```
 ASG Configuration:
-  Min: 3 (una por AZ)
+  Min: 3 (one per AZ)
   Desired: 6
   Max: 12
 
-  AZ-a: 2 instancias
-  AZ-b: 2 instancias
-  AZ-c: 2 instancias
+  AZ-a: 2 instances
+  AZ-b: 2 instances
+  AZ-c: 2 instances
 
-Si AZ-a falla:
-  ASG redistribuye automáticamente:
-  AZ-b: 3 instancias
-  AZ-c: 3 instancias
+If AZ-a fails:
+  ASG automatically redistributes:
+  AZ-b: 3 instances
+  AZ-c: 3 instances
 ```
 
 ---
 
-## Route 53 Health Checks y Failover
+## Route 53 Health Checks and Failover
 
-### Tipos de Health Checks
+### Types of Health Checks
 
-| Tipo | Descripción | Caso de uso |
+| Type | Description | Use Case |
 |---|---|---|
-| **Endpoint** | Monitorea un endpoint específico (IP, dominio, URL) | Verificar que un servidor o load balancer responda |
-| **Calculated** | Combina resultados de múltiples health checks con lógica AND/OR | Verificar que al menos 2 de 3 componentes estén saludables |
-| **CloudWatch Alarm** | Se basa en el estado de una alarma de CloudWatch | Health check basado en métricas personalizadas |
+| **Endpoint** | Monitors a specific endpoint (IP, domain, URL) | Verify that a server or load balancer responds |
+| **Calculated** | Combines results from multiple health checks with AND/OR logic | Verify that at least 2 of 3 components are healthy |
+| **CloudWatch Alarm** | Based on the state of a CloudWatch alarm | Health check based on custom metrics |
 
-### Health Check de Endpoint
+### Endpoint Health Check
 
-- Route 53 envía requests desde **múltiples ubicaciones globales** (health checkers).
-- Si más del **18%** de los health checkers reportan el endpoint como saludable, Route 53 lo considera saludable.
-- Soporta HTTP, HTTPS y TCP.
-- Para HTTP/HTTPS, puede verificar que el body de la respuesta contenga un string específico (búsqueda en los primeros 5120 bytes).
+- Route 53 sends requests from **multiple global locations** (health checkers).
+- If more than **18%** of health checkers report the endpoint as healthy, Route 53 considers it healthy.
+- Supports HTTP, HTTPS, and TCP.
+- For HTTP/HTTPS, can verify that the response body contains a specific string (search in the first 5120 bytes).
 
 ### Failover Routing Policy
 
 ```
-Cliente ──► Route 53
+Client ──► Route 53
               │
-              ├── Registro primario (us-east-1) ← Health Check
-              │     └── Si HEALTHY → responde con IP primaria
+              ├── Primary record (us-east-1) ← Health Check
+              │     └── If HEALTHY → responds with primary IP
               │
-              └── Registro secundario (eu-west-1) ← Health Check (opcional)
-                    └── Si primario UNHEALTHY → responde con IP secundaria
+              └── Secondary record (eu-west-1) ← Health Check (optional)
+                    └── If primary UNHEALTHY → responds with secondary IP
 ```
 
-### Tipos de failover con Route 53
+### Failover Types with Route 53
 
-| Política de enrutamiento | Modelo | Descripción |
+| Routing Policy | Model | Description |
 |---|---|---|
-| **Failover** | Active-Passive | Un primario y un secundario. Tráfico al secundario solo si el primario falla. |
-| **Weighted** | Active-Active (con pesos) | Distribuir tráfico entre regiones con pesos (p.ej., 70/30). |
-| **Latency-based** | Active-Active (por latencia) | Dirige al usuario a la región con menor latencia. |
-| **Geolocation** | Active-Active (por ubicación) | Dirige según la ubicación geográfica del usuario. |
+| **Failover** | Active-Passive | One primary and one secondary. Traffic to secondary only if primary fails. |
+| **Weighted** | Active-Active (with weights) | Distribute traffic between regions with weights (e.g., 70/30). |
+| **Latency-based** | Active-Active (by latency) | Routes user to the region with lowest latency. |
+| **Geolocation** | Active-Active (by location) | Routes based on the user's geographic location. |
 
-> **Punto clave para el examen:** Para DR Active-Passive usa **Failover routing**. Para Active-Active usa **Weighted**, **Latency** o **Geolocation**.
+> **Key point for the exam:** For DR Active-Passive use **Failover routing**. For Active-Active use **Weighted**, **Latency**, or **Geolocation**.
 
 ---
 
 ## AWS Backup
 
-Servicio centralizado para gestionar y automatizar backups de múltiples servicios de AWS.
+Centralized service for managing and automating backups of multiple AWS services.
 
-### Servicios soportados
+### Supported Services
 
-EC2, EBS, RDS, Aurora, DynamoDB, EFS, FSx, Storage Gateway, S3, Neptune, DocumentDB, SAP HANA en EC2, VMware (on-premises).
+EC2, EBS, RDS, Aurora, DynamoDB, EFS, FSx, Storage Gateway, S3, Neptune, DocumentDB, SAP HANA on EC2, VMware (on-premises).
 
-### Componentes principales
+### Main Components
 
-| Componente | Descripción |
+| Component | Description |
 |---|---|
-| **Backup Plan** | Define la política: frecuencia, ventana de backup, retención, transición a cold storage |
-| **Backup Vault** | Contenedor de almacenamiento para los backups. Se puede cifrar con KMS. |
-| **Backup Vault Lock** | Protección WORM (Write Once Read Many) para evitar eliminación o modificación de backups. Dos modos: **Compliance** (nadie puede eliminar, ni siquiera root o AWS) y **Governance** (solo admins con permisos especiales pueden modificar) |
-| **Recovery Point** | Un backup individual dentro de un vault |
-| **Resource Assignment** | Qué recursos están incluidos en el backup plan (por tags o ARNs) |
+| **Backup Plan** | Defines the policy: frequency, backup window, retention, transition to cold storage |
+| **Backup Vault** | Storage container for backups. Can be encrypted with KMS. |
+| **Backup Vault Lock** | WORM (Write Once Read Many) protection to prevent deletion or modification of backups. Two modes: **Compliance** (nobody can delete, not even root or AWS) and **Governance** (only admins with special permissions can modify) |
+| **Recovery Point** | An individual backup within a vault |
+| **Resource Assignment** | Which resources are included in the backup plan (by tags or ARNs) |
 
-### Cross-Region y Cross-Account Backup
+### Cross-Region and Cross-Account Backup
 
 ```
-Cuenta A (Producción)                Cuenta B (Backup)
-Región us-east-1                     Región eu-west-1
+Account A (Production)                   Account B (Backup)
+Region us-east-1                         Region eu-west-1
 ┌──────────────────┐                ┌──────────────────┐
 │  Backup Plan     │                │                  │
 │  ┌────────────┐  │   Cross-Region │  Backup Vault    │
-│  │ RDS backup │──│───────────────►│  (copia)         │
+│  │ RDS backup │──│───────────────►│  (copy)          │
 │  │ EBS backup │──│── Cross-Account│                  │
 │  │ DynamoDB   │  │───────────────►│  Vault Lock      │
 │  └────────────┘  │                │  (WORM)          │
 └──────────────────┘                └──────────────────┘
 ```
 
-- **Cross-Region:** Copiar backups automáticamente a otra región para DR.
-- **Cross-Account:** Copiar backups a una cuenta separada para protección contra compromiso de cuenta.
-- **Vault Lock:** Política WORM. Dos modos:
+- **Cross-Region:** Automatically copy backups to another region for DR.
+- **Cross-Account:** Copy backups to a separate account for protection against account compromise.
+- **Vault Lock:** WORM policy. Two modes:
 
-| Modo | Quién puede eliminar/modificar | Caso de uso |
+| Mode | Who can delete/modify | Use Case |
 |---|---|---|
-| **Compliance** | **Nadie** (ni root, ni AWS Support). Irreversible una vez aplicado. | Compliance regulatorio estricto (HIPAA, SEC Rule 17a-4). "Nadie debe poder eliminar backups bajo ninguna circunstancia." |
-| **Governance** | Solo usuarios con permisos IAM específicos pueden override. Reversible. | Protección contra eliminación accidental pero con flexibilidad para admins. |
+| **Compliance** | **Nobody** (not root, not AWS Support). Irreversible once applied. | Strict regulatory compliance (HIPAA, SEC Rule 17a-4). "Nobody must be able to delete backups under any circumstances." |
+| **Governance** | Only users with specific IAM permissions can override. Reversible. | Protection against accidental deletion but with flexibility for admins. |
 
-> **Punto clave para el examen:** Si la pregunta dice "proteger backups para que nadie pueda eliminarlos, ni siquiera root" → **Vault Lock modo Compliance**. Si dice "proteger contra eliminación accidental pero permitir que un admin pueda override" → **Vault Lock modo Governance**.
+> **Key point for the exam:** If the question says "protect backups so nobody can delete them, not even root" → **Vault Lock Compliance mode**. If it says "protect against accidental deletion but allow admin override" → **Vault Lock Governance mode**.
 
 ---
 
 ## AWS Elastic Disaster Recovery (DRS)
 
-Servicio que facilita la recuperación ante desastres, anteriormente conocido como CloudEndure Disaster Recovery.
+Service that facilitates disaster recovery, formerly known as CloudEndure Disaster Recovery.
 
-### Cómo funciona
+### How It Works
 
 ```
-Entorno origen                          AWS (Región DR)
-(on-prem o cloud)
-┌──────────────────┐   replicación    ┌──────────────────┐
-│  Servidores con  │   continua       │  Staging Area    │
-│  agente DRS      │──────────────►   │  (instancias     │
-│                  │  (nivel bloque)  │   de bajo coste) │
-└──────────────────┘                  └────────┬─────────┘
-                                               │
-                                    Drill/Recovery (lanzamiento)
-                                               │
-                                     ┌─────────▼─────────┐
-                                     │  Recovery Instances│
-                                     │  (tipo y tamaño   │
-                                     │   configurado)     │
-                                     └───────────────────┘
+Source environment                         AWS (DR Region)
+(on-prem or cloud)
+┌──────────────────┐   continuous       ┌──────────────────┐
+│  Servers with    │   replication      │  Staging Area    │
+│  DRS agent       │──────────────►     │  (low-cost       │
+│                  │  (block-level)     │   instances)     │
+└──────────────────┘                    └────────┬─────────┘
+                                                 │
+                                      Drill/Recovery (launch)
+                                                 │
+                                       ┌─────────▼─────────┐
+                                       │  Recovery Instances│
+                                       │  (configured type  │
+                                       │   and size)        │
+                                       └───────────────────┘
 ```
 
-### Características principales
+### Key Features
 
-- **Replicación continua:** Replica datos a nivel de bloque del servidor origen a un staging area en AWS.
-- **RPO:** Típicamente segundos (replicación continua).
-- **RTO:** Típicamente minutos (lanzar instancias desde la réplica).
-- **Drill (simulacro):** Permite realizar simulacros de DR sin afectar la replicación ni el entorno de producción.
-- **Failback:** Una vez resuelto el desastre, permite volver al entorno original.
-- **Coste:** Solo se paga por el staging area (instancias ligeras + almacenamiento) hasta que se activa la recuperación.
+- **Continuous replication:** Replicates data at block level from the source server to a staging area in AWS.
+- **RPO:** Typically seconds (continuous replication).
+- **RTO:** Typically minutes (launch instances from the replica).
+- **Drill (simulation):** Allows DR drills without affecting replication or the production environment.
+- **Failback:** Once the disaster is resolved, allows returning to the original environment.
+- **Cost:** You only pay for the staging area (lightweight instances + storage) until recovery is activated.
 
 ### DRS vs MGN
 
-| Característica | DRS (Disaster Recovery) | MGN (Migration) |
+| Feature | DRS (Disaster Recovery) | MGN (Migration) |
 |---|---|---|
-| **Propósito** | Recuperación ante desastres | Migración a AWS |
-| **Replicación** | Continua (siempre activa) | Temporal (hasta completar la migración) |
-| **Uso post-migración** | Permanece activo como solución DR | Se desactiva tras la migración |
-| **Failback** | Sí, soportado | No aplica |
+| **Purpose** | Disaster recovery | Migration to AWS |
+| **Replication** | Continuous (always active) | Temporary (until migration is complete) |
+| **Post-migration use** | Remains active as a DR solution | Deactivated after migration |
+| **Failback** | Yes, supported | Not applicable |
 
 ---
 
 ## Chaos Engineering - AWS Fault Injection Simulator
 
-### Concepto de Chaos Engineering
+### Chaos Engineering Concept
 
-Disciplina de experimentación donde se **inyectan fallos intencionalmente** en sistemas de producción o pre-producción para descubrir debilidades antes de que ocurran fallos reales.
+A discipline of experimentation where **faults are intentionally injected** into production or pre-production systems to discover weaknesses before real failures occur.
 
 ### AWS Fault Injection Simulator (FIS)
 
-Servicio completamente gestionado para ejecutar experimentos de chaos engineering en AWS.
+Fully managed service for running chaos engineering experiments on AWS.
 
-### Acciones soportadas
+### Supported Actions
 
-| Servicio | Acciones posibles |
+| Service | Possible Actions |
 |---|---|
-| **EC2** | Detener/terminar instancias, inyectar CPU stress, inyectar memory stress, perder paquetes de red |
-| **ECS** | Detener tareas, drenar container instances |
-| **EKS** | Terminar pods, inyectar fallos en nodos |
-| **RDS** | Forzar failover de instancias Multi-AZ, rebotar instancias |
-| **Network** | Disrupciones de red (latencia, pérdida de paquetes) entre AZs o subnets |
-| **Systems Manager** | Ejecutar documentos SSM para simular fallos a nivel de SO |
+| **EC2** | Stop/terminate instances, inject CPU stress, inject memory stress, network packet loss |
+| **ECS** | Stop tasks, drain container instances |
+| **EKS** | Terminate pods, inject node failures |
+| **RDS** | Force Multi-AZ instance failover, reboot instances |
+| **Network** | Network disruptions (latency, packet loss) between AZs or subnets |
+| **Systems Manager** | Execute SSM documents to simulate OS-level failures |
 
-### Componentes de un experimento FIS
+### FIS Experiment Components
 
-| Componente | Descripción |
+| Component | Description |
 |---|---|
-| **Experiment Template** | Define las acciones, targets, stop conditions y rol IAM |
-| **Actions** | Qué fallos inyectar (e.g., stop EC2 instances) |
-| **Targets** | Qué recursos se ven afectados (por tags, ARNs, filtros, % de recursos) |
-| **Stop Conditions** | CloudWatch Alarms que detienen el experimento si se supera un umbral de seguridad |
-| **IAM Role** | Rol con permisos para ejecutar las acciones sobre los targets |
+| **Experiment Template** | Defines actions, targets, stop conditions, and IAM role |
+| **Actions** | What faults to inject (e.g., stop EC2 instances) |
+| **Targets** | What resources are affected (by tags, ARNs, filters, % of resources) |
+| **Stop Conditions** | CloudWatch Alarms that stop the experiment if a safety threshold is exceeded |
+| **IAM Role** | Role with permissions to execute actions on targets |
 
-### Ejemplo de experimento
+### Experiment Example
 
 ```
 Experiment Template:
   Action: aws:ec2:stop-instances
-  Target: Instancias EC2 con tag "Environment=Production" (30%)
-  Stop Condition: Alarma "ErrorRate > 10%"
-  Duration: 10 minutos
+  Target: EC2 instances with tag "Environment=Production" (30%)
+  Stop Condition: Alarm "ErrorRate > 10%"
+  Duration: 10 minutes
 
-Objetivo: Verificar que el ASG detecta instancias detenidas,
-          las reemplaza y el servicio sigue disponible a través del ALB.
+Objective: Verify that the ASG detects stopped instances,
+          replaces them, and the service remains available through the ALB.
 ```
 
-> **Punto clave para el examen:** FIS se usa para **probar la resiliencia** de la arquitectura. Las preguntas suelen preguntar cómo verificar que una arquitectura HA realmente funciona ante fallos.
+> **Key point for the exam:** FIS is used to **test architecture resilience**. Questions usually ask how to verify that an HA architecture actually works under failures.
 
 ---
 
-## Tips para el Examen
+## Exam Tips
 
-### Preguntas frecuentes y respuestas rápidas
+### Frequently Asked Questions and Quick Answers
 
-| Escenario del examen | Respuesta |
+| Exam Scenario | Answer |
 |---|---|
-| RPO de 0, RTO de minutos | **Multi-Site / Hot Standby** con Aurora Global Database |
-| RPO de horas, bajo presupuesto | **Backup & Restore** |
-| Mantener solo la DB encendida en la región DR | **Pilot Light** |
-| Versión reducida del entorno completo en DR | **Warm Standby** |
-| Proteger backups contra eliminación | **AWS Backup Vault Lock** |
-| Verificar que la arquitectura HA funciona | **AWS Fault Injection Simulator** |
-| DR con RPO de segundos y RTO de minutos | **AWS Elastic Disaster Recovery (DRS)** |
-| Replicar DynamoDB entre regiones | **DynamoDB Global Tables** |
-| Replicar S3 entre regiones | **S3 Cross-Region Replication (CRR)** |
-| Failover automático DNS | **Route 53 Failover routing** con health checks |
-| Base de datos con failover < 1 min entre regiones | **Aurora Global Database** |
-| Backup centralizado de múltiples servicios | **AWS Backup** |
-| ASG que detecte errores de aplicación (no solo EC2) | Configurar **ELB health checks** en el ASG |
-| Asegurar mínimo de instancias en cada AZ | ASG con **múltiples AZs** y min capacity adecuada |
+| RPO of 0, RTO of minutes | **Multi-Site / Hot Standby** with Aurora Global Database |
+| RPO of hours, low budget | **Backup & Restore** |
+| Keep only the DB on in the DR region | **Pilot Light** |
+| Reduced version of the full environment in DR | **Warm Standby** |
+| Protect backups against deletion | **AWS Backup Vault Lock** |
+| Verify that the HA architecture works | **AWS Fault Injection Simulator** |
+| DR with RPO of seconds and RTO of minutes | **AWS Elastic Disaster Recovery (DRS)** |
+| Replicate DynamoDB between regions | **DynamoDB Global Tables** |
+| Replicate S3 between regions | **S3 Cross-Region Replication (CRR)** |
+| Automatic DNS failover | **Route 53 Failover routing** with health checks |
+| Database with failover < 1 min between regions | **Aurora Global Database** |
+| Centralized backup of multiple services | **AWS Backup** |
+| ASG that detects application errors (not just EC2) | Configure **ELB health checks** in the ASG |
+| Ensure minimum instances in each AZ | ASG with **multiple AZs** and adequate min capacity |
 
-### Tabla resumen: RPO / RTO / Coste
+### Summary Table: RPO / RTO / Cost
 
-| Estrategia | RPO | RTO | Coste relativo |
+| Strategy | RPO | RTO | Relative Cost |
 |---|---|---|---|
-| Backup & Restore | Horas | 24+ horas | $ |
-| Pilot Light | Minutos | 10-30 minutos | $$ |
-| Warm Standby | Segundos-Minutos | Minutos | $$$ |
-| Multi-Site | ~0 | Segundos-Minutos | $$$$ |
+| Backup & Restore | Hours | 24+ hours | $ |
+| Pilot Light | Minutes | 10-30 minutes | $$ |
+| Warm Standby | Seconds-Minutes | Minutes | $$$ |
+| Multi-Site | ~0 | Seconds-Minutes | $$$$ |
 
-### Errores comunes a evitar
+### Common Mistakes to Avoid
 
-1. **Confundir Pilot Light con Warm Standby:** Pilot Light solo tiene la base de datos encendida. Warm Standby tiene todo el stack pero en tamaño reducido.
-2. **Olvidar que RDS Multi-AZ standby no es legible:** La instancia standby solo es para failover, no para consultas de lectura. Para lectura usa Read Replicas.
-3. **No considerar el coste de Multi-Site:** Si la pregunta menciona presupuesto limitado, Multi-Site probablemente no es la respuesta.
-4. **Confundir HA con DR:** Multi-AZ es HA (misma región). Multi-Region es DR (protección ante fallo de región).
-5. **Confundir DRS con MGN:** DRS es para DR continuo, MGN es para migración puntual.
-6. **No habilitar DynamoDB Streams para Global Tables:** Es un requisito previo que puede aparecer en el examen.
-7. **Asumir que S3 CRR replica objetos existentes:** Solo replica objetos nuevos. Para existentes, usar S3 Batch Replication.
+1. **Confusing Pilot Light with Warm Standby:** Pilot Light only has the database on. Warm Standby has the entire stack but at reduced size.
+2. **Forgetting that RDS Multi-AZ standby is not readable:** The standby instance is only for failover, not for read queries. Use Read Replicas for reads.
+3. **Not considering Multi-Site cost:** If the question mentions limited budget, Multi-Site is probably not the answer.
+4. **Confusing HA with DR:** Multi-AZ is HA (same region). Multi-Region is DR (protection against region failure).
+5. **Confusing DRS with MGN:** DRS is for continuous DR, MGN is for one-time migration.
+6. **Not enabling DynamoDB Streams for Global Tables:** It's a prerequisite that may appear on the exam.
+7. **Assuming S3 CRR replicates existing objects:** It only replicates new objects. For existing ones, use S3 Batch Replication.

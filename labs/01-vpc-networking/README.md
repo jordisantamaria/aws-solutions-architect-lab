@@ -1,20 +1,20 @@
 # Lab 01: VPC Networking
 
-## Objetivo
+## Objective
 
-Crear una VPC production-ready desde cero con subnets publicas y privadas, internet gateway, NAT gateway, tablas de rutas, NACLs y security groups. Esta es la base de red sobre la que construiremos el resto de laboratorios.
+Create a production-ready VPC from scratch with public and private subnets, internet gateway, NAT gateway, route tables, NACLs and security groups. This is the network foundation on which we will build the rest of the labs.
 
-## Que vas a aprender
+## What you will learn
 
-- **VPC:** Virtual Private Cloud, tu red aislada en AWS
-- **Subnets:** Segmentar la red en publica (accesible desde internet) y privada (solo acceso interno)
-- **Internet Gateway (IGW):** Puerta de enlace para que las subnets publicas accedan a internet
-- **NAT Gateway:** Permite que las subnets privadas salgan a internet sin ser accesibles desde fuera
-- **Route Tables:** Reglas de enrutamiento para dirigir el trafico
-- **NACLs:** Network Access Control Lists, firewall stateless a nivel de subnet
-- **Security Groups:** Firewall stateful a nivel de instancia/recurso
+- **VPC:** Virtual Private Cloud, your isolated network in AWS
+- **Subnets:** Segment the network into public (accessible from internet) and private (internal access only)
+- **Internet Gateway (IGW):** Gateway for public subnets to access the internet
+- **NAT Gateway:** Allows private subnets to reach the internet without being accessible from outside
+- **Route Tables:** Routing rules to direct traffic
+- **NACLs:** Network Access Control Lists, stateless firewall at the subnet level
+- **Security Groups:** Stateful firewall at the instance/resource level
 
-## Diagrama de Arquitectura
+## Architecture Diagram
 
 ```
                          +------------------+
@@ -51,59 +51,59 @@ Crear una VPC production-ready desde cero con subnets publicas y privadas, inter
     0.0.0.0/0   -> IGW                0.0.0.0/0   -> NAT GW
 ```
 
-## Pasos para Deploy
+## Deployment Steps
 
-### 1. Inicializar y aplicar
+### 1. Initialize and apply
 
 ```bash
 cd labs/01-vpc-networking
 
-# Inicializar (configurar backend remoto)
+# Initialize (configure remote backend)
 terraform init
 
-# Revisar que va a crear
+# Review what will be created
 terraform plan
 
-# Aplicar
+# Apply
 terraform apply
 ```
 
-### 2. Verificar la infraestructura
+### 2. Verify the infrastructure
 
 ```bash
-# Verificar VPC
+# Verify VPC
 aws ec2 describe-vpcs --filters "Name=tag:Lab,Values=01-vpc-networking"
 
-# Verificar subnets
+# Verify subnets
 aws ec2 describe-subnets --filters "Name=tag:Lab,Values=01-vpc-networking"
 
-# Verificar Internet Gateway
+# Verify Internet Gateway
 aws ec2 describe-internet-gateways --filters "Name=tag:Lab,Values=01-vpc-networking"
 
-# Verificar NAT Gateway
+# Verify NAT Gateway
 aws ec2 describe-nat-gateways --filter "Name=tag:Lab,Values=01-vpc-networking"
 
-# Verificar Route Tables
+# Verify Route Tables
 aws ec2 describe-route-tables --filters "Name=tag:Lab,Values=01-vpc-networking"
 ```
 
-### 3. Comprobar conectividad (opcional)
+### 3. Check connectivity (optional)
 
-Lanza una instancia EC2 en la subnet publica y otra en la privada. Verifica que:
-- La instancia publica tiene acceso a internet
-- La instancia privada puede salir a internet (a traves del NAT Gateway) pero no es accesible desde fuera
+Launch an EC2 instance in the public subnet and another in the private subnet. Verify that:
+- The public instance has internet access
+- The private instance can reach the internet (through the NAT Gateway) but is not accessible from outside
 
 ---
 
-## Ejercicios Extra
+## Extra Exercises
 
-### Ejercicio 1: VPC Peering
+### Exercise 1: VPC Peering
 
-Crea una segunda VPC (10.1.0.0/16) y establece peering entre ambas. Annade las rutas necesarias para que las instancias de ambas VPCs se comuniquen.
+Create a second VPC (10.1.0.0/16) and establish peering between both. Add the necessary routes so that instances in both VPCs can communicate.
 
-### Ejercicio 2: VPC Endpoint para S3
+### Exercise 2: VPC Endpoint for S3
 
-Crea un Gateway VPC Endpoint para S3, de forma que el trafico hacia S3 desde las subnets privadas no pase por el NAT Gateway (ahorro de costes y mejor rendimiento).
+Create a Gateway VPC Endpoint for S3, so that traffic to S3 from private subnets does not go through the NAT Gateway (cost savings and better performance).
 
 ```hcl
 resource "aws_vpc_endpoint" "s3" {
@@ -113,38 +113,38 @@ resource "aws_vpc_endpoint" "s3" {
 }
 ```
 
-### Ejercicio 3: Flow Logs
+### Exercise 3: Flow Logs
 
-Habilita VPC Flow Logs para capturar el trafico de red y enviarlo a CloudWatch Logs.
+Enable VPC Flow Logs to capture network traffic and send it to CloudWatch Logs.
 
 ---
 
-## Coste Estimado
+## Estimated Cost
 
-| Recurso | Coste |
+| Resource | Cost |
 |---------|-------|
-| VPC, Subnets, IGW, Route Tables | Gratis |
-| NAT Gateway | ~$0.048/hora (~$1.15/dia) |
+| VPC, Subnets, IGW, Route Tables | Free |
+| NAT Gateway | ~$0.048/hour (~$1.15/day) |
 | NAT Gateway data processing | $0.048/GB |
-| Elastic IP (asociada a NAT) | Gratis (mientras este asociada) |
+| Elastic IP (associated with NAT) | Free (while associated) |
 
-> **Total estimado: ~$1/dia** principalmente por el NAT Gateway. Recuerda hacer `terraform destroy` cuando no estes practicando.
+> **Estimated total: ~$1/day** mainly due to the NAT Gateway. Remember to run `terraform destroy` when you are not practicing.
 
-## Limpieza
+## Cleanup
 
 ```bash
 terraform destroy
 ```
 
-> **Importante:** Destruye siempre los recursos al terminar de practicar para evitar costes innecesarios. El NAT Gateway cobra por hora.
+> **Important:** Always destroy resources when you finish practicing to avoid unnecessary costs. The NAT Gateway charges per hour.
 
-## Estructura de Ficheros
+## File Structure
 
 ```
 01-vpc-networking/
-  main.tf          # Recursos principales (VPC, subnets, gateways, route tables, NACLs, SGs)
-  variables.tf     # Variables de entrada
-  outputs.tf       # Valores de salida
-  backend.tf       # Configuracion del backend remoto (S3)
-  README.md        # Este fichero
+  main.tf          # Main resources (VPC, subnets, gateways, route tables, NACLs, SGs)
+  variables.tf     # Input variables
+  outputs.tf       # Output values
+  backend.tf       # Remote backend configuration (S3)
+  README.md        # This file
 ```

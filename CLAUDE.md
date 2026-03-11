@@ -1,37 +1,37 @@
 # AWS Solutions Architect Lab
 
-## Contexto
-Repositorio de estudio para AWS Certified Solutions Architect Associate (SAA-C03). Combina documentación teórica + proyectos Terraform para aprender haciendo.
+## Context
+Study repository for AWS Certified Solutions Architect Associate (SAA-C03). Combines theoretical documentation + Terraform projects for learning by doing.
 
 ## Stack
 - **IaC**: Terraform (HCL)
 - **Cloud**: AWS
-- **Región por defecto**: eu-west-1
-- **Documentación**: Español
-- **Código Terraform**: Inglés (comments en inglés, estándar de la industria)
+- **Default region**: eu-west-1
+- **Documentation**: English
+- **Terraform code**: English (comments in English, industry standard)
 
-## Estructura
+## Structure
 ```
-docs/       → Teoría por dominio del examen (11 secciones)
-labs/       → Proyectos Terraform progresivos (00-09)
-exam-prep/  → Cheat sheets, decision trees, preguntas de práctica
+docs/       → Theory by exam domain (11 sections)
+labs/       → Progressive Terraform projects (00-09)
+exam-prep/  → Cheat sheets, decision trees, practice questions
 ```
 
-## Convenciones Terraform
-- Cada lab tiene: main.tf, variables.tf, outputs.tf, backend.tf, README.md
-- Backend remoto en S3 con DynamoDB para state locking
-- Variables siempre con description y validation donde aplique
-- Tags en todos los recursos: Project, Environment, ManagedBy=terraform
-- Security groups con reglas específicas, nunca 0.0.0.0/0 en producción
-- Siempre incluir estimación de coste en README
-- Siempre recordar `terraform destroy` al acabar
+## Terraform Conventions
+- Each lab has: main.tf, variables.tf, outputs.tf, backend.tf, README.md
+- Remote backend in S3 with DynamoDB for state locking
+- Variables always with description and validation where applicable
+- Tags on all resources: Project, Environment, ManagedBy=terraform
+- Security groups with specific rules, never 0.0.0.0/0 in production
+- Always include cost estimation in README
+- Always remember `terraform destroy` when finished
 
-## Dominios del examen SAA-C03
+## SAA-C03 Exam Domains
 1. Design Secure Architectures (30%)
 2. Design Resilient Architectures (26%)
 3. Design High-Performing Architectures (24%)
 4. Design Cost-Optimized Architectures (20%)
 
-## Relación con otros repos
-- `ai-engineering-lab`: los modelos ML se pueden desplegar en esta infraestructura
-- `llm-playbook`: las aplicaciones LLM corren sobre estos servicios AWS
+## Relationship with Other Repos
+- `ai-engineering-lab`: ML models can be deployed on this infrastructure
+- `llm-playbook`: LLM applications run on these AWS services

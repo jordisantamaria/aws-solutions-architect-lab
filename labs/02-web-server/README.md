@@ -1,10 +1,10 @@
-# Lab 02: Web Server con Alta Disponibilidad
+# Lab 02: Web Server with High Availability
 
-## Objetivo
+## Objective
 
-Desplegar un web server con alta disponibilidad usando un Application Load Balancer (ALB) con Auto Scaling Group (ASG) y instancias EC2 en subnets privadas. Este patron es fundamental para cualquier aplicacion web en produccion.
+Deploy a web server with high availability using an Application Load Balancer (ALB) with Auto Scaling Group (ASG) and EC2 instances in private subnets. This pattern is fundamental for any production web application.
 
-## Arquitectura
+## Architecture
 
 ```
                          +------------------+
@@ -37,109 +37,109 @@ Desplegar un web server con alta disponibilidad usando un Application Load Balan
     EC2-SG:  Inbound 80 from ALB-SG only
 ```
 
-## Que vas a aprender
+## What you will learn
 
-- **Launch Templates:** Plantillas reutilizables para la configuracion de instancias EC2
-- **Application Load Balancer (ALB):** Distribucion de trafico a nivel de capa 7 (HTTP/HTTPS)
-- **Target Groups:** Agrupacion logica de targets (EC2) con health checks
-- **Health Checks:** Verificacion automatica de la salud de las instancias
-- **Auto Scaling Group (ASG):** Escalado automatico basado en demanda
-- **Scaling Policies:** Politicas para escalar basandose en metricas (CPU, requests, etc.)
-- **User Data:** Scripts de inicializacion ejecutados al arrancar la instancia
+- **Launch Templates:** Reusable templates for EC2 instance configuration
+- **Application Load Balancer (ALB):** Layer 7 (HTTP/HTTPS) traffic distribution
+- **Target Groups:** Logical grouping of targets (EC2) with health checks
+- **Health Checks:** Automatic verification of instance health
+- **Auto Scaling Group (ASG):** Automatic scaling based on demand
+- **Scaling Policies:** Policies for scaling based on metrics (CPU, requests, etc.)
+- **User Data:** Initialization scripts executed when the instance starts
 
-## Prerequisitos
+## Prerequisites
 
-- Lab 00 completado (backend remoto)
-- Lab 01 completado (VPC y subnets)
+- Lab 00 completed (remote backend)
+- Lab 01 completed (VPC and subnets)
 
-## Pasos para Deploy
+## Deployment Steps
 
-### 1. Verificar que Lab 01 esta desplegado
+### 1. Verify that Lab 01 is deployed
 
 ```bash
 cd ../01-vpc-networking
 terraform output
-# Deberias ver VPC ID, subnet IDs, etc.
+# You should see VPC ID, subnet IDs, etc.
 ```
 
-### 2. Desplegar el web server
+### 2. Deploy the web server
 
 ```bash
 cd ../02-web-server
 
-# Inicializar
+# Initialize
 terraform init
 
-# Revisar el plan
+# Review the plan
 terraform plan
 
-# Aplicar
+# Apply
 terraform apply
 ```
 
-### 3. Verificar el ALB
+### 3. Verify the ALB
 
 ```bash
-# Obtener el DNS del ALB
+# Get the ALB DNS name
 terraform output alb_dns_name
 
-# Acceder desde el navegador o curl
+# Access from browser or curl
 curl http://$(terraform output -raw alb_dns_name)
 ```
 
-Deberias ver una pagina HTML mostrando el instance ID y la Availability Zone. Si refrescas varias veces, veras como el trafico se distribuye entre las instancias.
+You should see an HTML page showing the instance ID and the Availability Zone. If you refresh several times, you will see how traffic is distributed across the instances.
 
-### 4. Test de Scaling
+### 4. Test Scaling
 
 ```bash
-# Verificar instancias actuales
+# Check current instances
 aws autoscaling describe-auto-scaling-groups \
   --auto-scaling-group-names $(terraform output -raw asg_name)
 
-# Para probar el escalado, puedes generar carga con herramientas como:
+# To test scaling, you can generate load with tools like:
 # ab -n 100000 -c 100 http://<alb-dns>/
-# o usar stress-ng en las instancias
+# or use stress-ng on the instances
 ```
 
 ---
 
-## Conceptos Clave para el Examen
+## Key Concepts for the Exam
 
-- **ALB vs NLB:** ALB opera en capa 7 (HTTP), NLB en capa 4 (TCP). ALB puede enrutar por path/host.
-- **Cross-Zone Load Balancing:** ALB lo tiene habilitado por defecto, distribuyendo trafico uniformemente entre AZs.
-- **Health Checks:** Si una instancia falla el health check, el ALB deja de enviarle trafico y el ASG la reemplaza.
-- **Scaling Policies:** Target Tracking es la mas sencilla (mantener CPU al 60%). Step Scaling permite respuestas mas granulares.
+- **ALB vs NLB:** ALB operates at layer 7 (HTTP), NLB at layer 4 (TCP). ALB can route by path/host.
+- **Cross-Zone Load Balancing:** ALB has it enabled by default, distributing traffic uniformly across AZs.
+- **Health Checks:** If an instance fails the health check, the ALB stops sending traffic to it and the ASG replaces it.
+- **Scaling Policies:** Target Tracking is the simplest (maintain CPU at 60%). Step Scaling allows more granular responses.
 
-## Coste Estimado
+## Estimated Cost
 
-| Recurso | Coste |
+| Resource | Cost |
 |---------|-------|
-| ALB | ~$0.0252/hora (~$0.60/dia) |
-| EC2 t3.micro x2 | ~$0.0116/hora x2 (~$0.56/dia) |
-| NAT Gateway (del Lab 01) | ~$1.15/dia |
+| ALB | ~$0.0252/hour (~$0.60/day) |
+| EC2 t3.micro x2 | ~$0.0116/hour x2 (~$0.56/day) |
+| NAT Gateway (from Lab 01) | ~$1.15/day |
 | Data transfer | Variable |
 
-> **Total estimado: ~$2-3/dia.** Recuerda hacer `terraform destroy` cuando no estes practicando.
+> **Estimated total: ~$2-3/day.** Remember to run `terraform destroy` when you are not practicing.
 
-## Limpieza
+## Cleanup
 
 ```bash
-# Destruir este lab primero
+# Destroy this lab first
 terraform destroy
 
-# Luego puedes destruir Lab 01 si ya no lo necesitas
+# Then you can destroy Lab 01 if you no longer need it
 cd ../01-vpc-networking
 terraform destroy
 ```
 
-## Estructura de Ficheros
+## File Structure
 
 ```
 02-web-server/
   main.tf          # ALB, ASG, Launch Template, Security Groups
-  variables.tf     # Variables de entrada
-  outputs.tf       # Valores de salida
-  backend.tf       # Configuracion del backend remoto
-  user_data.sh     # Script de inicializacion de las instancias
-  README.md        # Este fichero
+  variables.tf     # Input variables
+  outputs.tf       # Output values
+  backend.tf       # Remote backend configuration
+  user_data.sh     # Instance initialization script
+  README.md        # This file
 ```

@@ -1,9 +1,9 @@
-# 09 - Migración a AWS
+# 09 - Migration to AWS
 
-## Tabla de Contenidos
+## Table of Contents
 
 - [AWS Cloud Adoption Framework (CAF)](#aws-cloud-adoption-framework-caf)
-- [Estrategias de Migración: Las 7 Rs](#estrategias-de-migración-las-7-rs)
+- [Migration Strategies: The 7 Rs](#migration-strategies-the-7-rs)
 - [AWS Migration Hub](#aws-migration-hub)
 - [AWS Application Discovery Service](#aws-application-discovery-service)
 - [AWS Application Migration Service (MGN)](#aws-application-migration-service-mgn)
@@ -12,79 +12,79 @@
 - [AWS Transfer Family](#aws-transfer-family)
 - [AWS DataSync](#aws-datasync)
 - [VMware Cloud on AWS](#vmware-cloud-on-aws)
-- [Tips para el Examen](#tips-para-el-examen)
+- [Exam Tips](#exam-tips)
 
 ---
 
 ## AWS Cloud Adoption Framework (CAF)
 
-El AWS Cloud Adoption Framework proporciona una guía estructurada para planificar la migración a la nube. Se organiza en **6 perspectivas** agrupadas en dos categorías.
+The AWS Cloud Adoption Framework provides a structured guide for planning cloud migration. It is organized into **6 perspectives** grouped into two categories.
 
-### Perspectivas de Negocio (Business Capabilities)
+### Business Perspectives (Business Capabilities)
 
-| Perspectiva | Enfoque | Stakeholders Clave |
+| Perspective | Focus | Key Stakeholders |
 |---|---|---|
-| **Business** | Alinear las inversiones en la nube con los objetivos de negocio. Garantizar que la nube genera valor medible. | CEO, CFO, COO, CIO |
-| **People** | Gestión del cambio organizacional, formación, roles y estructura del equipo para la adopción de la nube. | RRHH, CIO, directores de formación |
-| **Governance** | Control de riesgos, cumplimiento normativo, gestión de presupuesto y portfolio de proyectos en la nube. | CIO, CTO, CFO, CDO |
+| **Business** | Align cloud investments with business objectives. Ensure the cloud generates measurable value. | CEO, CFO, COO, CIO |
+| **People** | Organizational change management, training, roles, and team structure for cloud adoption. | HR, CIO, training directors |
+| **Governance** | Risk management, regulatory compliance, budget management, and project portfolio in the cloud. | CIO, CTO, CFO, CDO |
 
-### Perspectivas Técnicas (Technical Capabilities)
+### Technical Perspectives (Technical Capabilities)
 
-| Perspectiva | Enfoque | Stakeholders Clave |
+| Perspective | Focus | Key Stakeholders |
 |---|---|---|
-| **Platform** | Diseño de la arquitectura cloud, selección de servicios, definición de patrones y estándares de infraestructura. | CTO, arquitectos, ingenieros |
-| **Security** | Gestión de identidades, protección de datos, detección de amenazas y respuesta ante incidentes en la nube. | CISO, equipo de seguridad |
-| **Operations** | Definición de cómo se operarán los servicios en la nube: monitoreo, gestión de incidentes, automatización. | IT Operations, Site Reliability Engineers |
+| **Platform** | Cloud architecture design, service selection, definition of infrastructure patterns and standards. | CTO, architects, engineers |
+| **Security** | Identity management, data protection, threat detection, and incident response in the cloud. | CISO, security team |
+| **Operations** | Defining how cloud services will be operated: monitoring, incident management, automation. | IT Operations, Site Reliability Engineers |
 
-> **Punto clave para el examen:** Cuando una pregunta mencione "planificar la migración" o "evaluar la preparación organizacional para la nube", piensa en CAF. Las perspectivas de Business y People son las más relevantes para gestionar el cambio organizacional.
+> **Key point for the exam:** When a question mentions "planning the migration" or "evaluating organizational readiness for the cloud", think CAF. The Business and People perspectives are the most relevant for managing organizational change.
 
 ---
 
-## Estrategias de Migración: Las 7 Rs
+## Migration Strategies: The 7 Rs
 
-Las 7 Rs representan las estrategias disponibles para migrar cada aplicación o carga de trabajo a la nube.
+The 7 Rs represent the available strategies for migrating each application or workload to the cloud.
 
 ```
-Menor esfuerzo ◄──────────────────────────────────────► Mayor esfuerzo
+Lower effort <──────────────────────────────────────► Higher effort
   Retire → Retain → Relocate → Rehost → Replatform → Repurchase → Refactor
 ```
 
-### Detalle de cada estrategia
+### Detail of Each Strategy
 
-| Estrategia | Descripción | Ejemplo | Esfuerzo | Beneficio Cloud |
+| Strategy | Description | Example | Effort | Cloud Benefit |
 |---|---|---|---|---|
-| **Retire** | Eliminar aplicaciones que ya no son necesarias. | Sistema legacy que nadie usa | Mínimo | N/A (ahorro por eliminación) |
-| **Retain** | Mantener en on-premises (no migrar ahora). Revisitar más adelante. | App con dependencias complejas, compliance estricto | Ninguno | Ninguno (por ahora) |
-| **Relocate** | Mover a AWS sin cambios, usando VMware Cloud on AWS o similar. | Mover hipervisor VMware completo a AWS | Bajo | Bajo-Medio |
-| **Rehost** | "Lift and shift". Mover tal cual a la nube (EC2). Sin cambios en código. | Mover un servidor web a EC2 usando MGN | Bajo | Bajo |
-| **Replatform** | "Lift, tinker and shift". Pequeñas optimizaciones sin cambiar la arquitectura core. | Migrar MySQL on-prem a RDS MySQL, Elastic Beanstalk | Medio | Medio |
-| **Repurchase** | Cambiar a un producto SaaS diferente. "Drop and shop". | Mover CRM propio a Salesforce, correo a Office 365 | Medio | Medio-Alto |
-| **Refactor** | Re-arquitecturar la aplicación para aprovechar servicios cloud-nativos. | Descomponer monolito en microservicios con Lambda, ECS, DynamoDB | Alto | Alto |
+| **Retire** | Eliminate applications that are no longer needed. | Legacy system nobody uses | Minimal | N/A (savings through elimination) |
+| **Retain** | Keep on-premises (don't migrate now). Revisit later. | App with complex dependencies, strict compliance | None | None (for now) |
+| **Relocate** | Move to AWS without changes, using VMware Cloud on AWS or similar. | Move the entire VMware hypervisor to AWS | Low | Low-Medium |
+| **Rehost** | "Lift and shift". Move as-is to the cloud (EC2). No code changes. | Move a web server to EC2 using MGN | Low | Low |
+| **Replatform** | "Lift, tinker and shift". Small optimizations without changing the core architecture. | Migrate on-prem MySQL to RDS MySQL, Elastic Beanstalk | Medium | Medium |
+| **Repurchase** | Switch to a different SaaS product. "Drop and shop". | Move custom CRM to Salesforce, email to Office 365 | Medium | Medium-High |
+| **Refactor** | Re-architect the application to leverage cloud-native services. | Decompose monolith into microservices with Lambda, ECS, DynamoDB | High | High |
 
-### Cuándo usar cada estrategia
+### When to Use Each Strategy
 
 ```
-¿Se necesita la aplicación? ──NO──► Retire
+Is the application needed? ──NO──► Retire
          │
-        SÍ
+        YES
          │
-¿Se puede migrar ahora? ──NO──► Retain
+Can it be migrated now? ──NO──► Retain
          │
-        SÍ
+        YES
          │
-¿Es un entorno VMware completo? ──SÍ──► Relocate
-         │
-        NO
-         │
-¿Se necesitan cambios mínimos? ──SÍ──► Rehost (MGN)
+Is it a complete VMware environment? ──YES──► Relocate
          │
         NO
          │
-¿Se puede optimizar ligeramente? ──SÍ──► Replatform (RDS, Beanstalk)
+Are minimal changes needed? ──YES──► Rehost (MGN)
          │
         NO
          │
-¿Existe un SaaS equivalente? ──SÍ──► Repurchase
+Can it be slightly optimized? ──YES──► Replatform (RDS, Beanstalk)
+         │
+        NO
+         │
+Is there an equivalent SaaS? ──YES──► Repurchase
          │
         NO
          │
@@ -95,305 +95,305 @@ Menor esfuerzo ◄────────────────────�
 
 ## AWS Migration Hub
 
-**AWS Migration Hub** es un servicio centralizado que proporciona un **único panel de control** para rastrear el progreso de las migraciones a través de múltiples herramientas de AWS y partners.
+**AWS Migration Hub** is a centralized service that provides a **single dashboard** for tracking migration progress across multiple AWS tools and partners.
 
-### Características principales
+### Key Features
 
-- **Vista unificada:** Muestra el estado de todas las migraciones en un solo lugar.
-- **Integración:** Se conecta con AWS MGN, AWS DMS, y herramientas de partners (CloudEndure, etc.).
-- **Tracking por aplicación:** Permite agrupar servidores y bases de datos por aplicación para rastrear la migración completa de cada app.
-- **Sin coste adicional:** Solo se paga por los servicios de migración subyacentes.
+- **Unified view:** Shows the status of all migrations in one place.
+- **Integration:** Connects with AWS MGN, AWS DMS, and partner tools (CloudEndure, etc.).
+- **Application tracking:** Allows grouping servers and databases by application to track the complete migration of each app.
+- **No additional cost:** You only pay for the underlying migration services.
 
-### Flujo de trabajo
+### Workflow
 
 ```
 Application Discovery Service    AWS MGN
          │                          │
          └──────────┬───────────────┘
                     │
-            Migration Hub (panel central)
+            Migration Hub (central dashboard)
                     │
          ┌──────────┴───────────────┐
          │                          │
-    AWS DMS              Herramientas de partners
+    AWS DMS              Partner tools
 ```
 
 ---
 
 ## AWS Application Discovery Service
 
-Servicio que ayuda a **descubrir y recopilar información** sobre los servidores y aplicaciones on-premises para planificar la migración.
+A service that helps **discover and collect information** about on-premises servers and applications to plan migration.
 
-### Modos de descubrimiento
+### Discovery Modes
 
-| Característica | Agentless Discovery (Connector) | Agent-Based Discovery |
+| Feature | Agentless Discovery (Connector) | Agent-Based Discovery |
 |---|---|---|
-| **Implementación** | Appliance virtual (OVA) en VMware vCenter | Agente instalado en cada servidor (Windows/Linux) |
-| **Datos recopilados** | CPU, memoria, disco, información de VM, configuración de red | Todo lo anterior + procesos en ejecución, conexiones de red, rendimiento detallado |
-| **Nivel de detalle** | Básico (hardware y configuración) | Detallado (dependencias entre aplicaciones, patrones de tráfico) |
-| **Caso de uso** | Inventario inicial rápido de VMs | Análisis profundo de dependencias para planificar agrupaciones de migración |
-| **Requisitos** | Solo VMware vCenter | Acceso root/admin en cada servidor |
-| **Dependencias** | No mapea dependencias | Sí, mapea dependencias entre servidores |
+| **Deployment** | Virtual appliance (OVA) in VMware vCenter | Agent installed on each server (Windows/Linux) |
+| **Data collected** | CPU, memory, disk, VM information, network configuration | All of the above + running processes, network connections, detailed performance |
+| **Level of detail** | Basic (hardware and configuration) | Detailed (dependencies between applications, traffic patterns) |
+| **Use case** | Quick initial VM inventory | Deep dependency analysis for planning migration groupings |
+| **Requirements** | VMware vCenter only | Root/admin access on each server |
+| **Dependencies** | Does not map dependencies | Yes, maps dependencies between servers |
 
-### Integración con Athena y S3
+### Integration with Athena and S3
 
-- Los datos descubiertos se pueden exportar a **S3** y analizar con **Amazon Athena** para crear consultas SQL sobre el inventario de servidores.
-- Se puede visualizar con **Amazon QuickSight** para generar dashboards del entorno on-premises.
+- Discovered data can be exported to **S3** and analyzed with **Amazon Athena** to create SQL queries on the server inventory.
+- Can be visualized with **Amazon QuickSight** to generate dashboards of the on-premises environment.
 
-> **Punto clave para el examen:** Si la pregunta pide "mapear dependencias entre aplicaciones" o "entender qué servidores se comunican entre sí", la respuesta es **Agent-Based Discovery**.
+> **Key point for the exam:** If the question asks to "map dependencies between applications" or "understand which servers communicate with each other", the answer is **Agent-Based Discovery**.
 
 ---
 
 ## AWS Application Migration Service (MGN)
 
-AWS MGN (anteriormente CloudEndure Migration) es el servicio recomendado para la estrategia **Rehost (Lift and Shift)**.
+AWS MGN (formerly CloudEndure Migration) is the recommended service for the **Rehost (Lift and Shift)** strategy.
 
-### Cómo funciona
+### How It Works
 
 ```
 On-Premises                         AWS
-┌──────────────┐    replicación    ┌──────────────────────┐
-│  Servidor    │    continua       │  Staging Area        │
-│  origen con  │ ──────────────►   │  (instancias de bajo │
-│  agente MGN  │    (bloque por    │   coste para réplica)│
-│              │     bloque)       │                      │
-└──────────────┘                   └──────────┬───────────┘
-                                              │
-                                    Cutover (lanzamiento)
-                                              │
-                                   ┌──────────▼───────────┐
-                                   │  Target Instances     │
-                                   │  (instancias finales  │
-                                   │   con tipo correcto)  │
-                                   └──────────────────────┘
+┌──────────────┐    continuous     ┌──────────────────────┐
+│  Source       │    replication   │  Staging Area        │
+│  server with │ ──────────────►  │  (low-cost instances  │
+│  MGN agent   │    (block-level) │   for replication)    │
+│              │                  │                      │
+└──────────────┘                  └──────────┬───────────┘
+                                             │
+                                   Cutover (launch)
+                                             │
+                                  ┌──────────▼───────────┐
+                                  │  Target Instances     │
+                                  │  (final instances     │
+                                  │   with correct type)  │
+                                  └──────────────────────┘
 ```
 
-### Características principales
+### Key Features
 
-- **Replicación continua:** Replica datos a nivel de bloque sin afectar al servidor de origen.
-- **Staging Area:** Usa instancias ligeras y almacenamiento EBS barato para mantener la réplica.
-- **Testing:** Permite lanzar instancias de test para validar antes del cutover.
-- **Cutover mínimo:** Al hacer el cutover, simplemente lanza las instancias finales con los últimos datos replicados.
-- **Plataformas soportadas:** Servidores físicos, VMware, Hyper-V, Azure, GCP y otras nubes.
-- **SO soportados:** Windows y Linux.
+- **Continuous replication:** Replicates data at block level without affecting the source server.
+- **Staging Area:** Uses lightweight instances and inexpensive EBS storage to maintain the replica.
+- **Testing:** Allows launching test instances to validate before cutover.
+- **Minimal cutover:** When cutting over, simply launches the final instances with the latest replicated data.
+- **Supported platforms:** Physical servers, VMware, Hyper-V, Azure, GCP, and other clouds.
+- **Supported OS:** Windows and Linux.
 
-> **Punto clave para el examen:** MGN = Rehost = Lift and Shift. Es la respuesta cuando se pregunta por migrar servidores a AWS con mínimo tiempo de inactividad y sin cambios en la aplicación.
+> **Key point for the exam:** MGN = Rehost = Lift and Shift. This is the answer when asked about migrating servers to AWS with minimal downtime and no application changes.
 
 ---
 
 ## AWS Database Migration Service (DMS)
 
-DMS permite migrar bases de datos a AWS de forma segura con **mínimo tiempo de inactividad**. La base de datos de origen permanece operativa durante la migración.
+DMS allows migrating databases to AWS securely with **minimal downtime**. The source database remains operational during the migration.
 
-### Migraciones homogéneas vs heterogéneas
+### Homogeneous vs Heterogeneous Migrations
 
-| Tipo | Descripción | Herramientas | Ejemplo |
+| Type | Description | Tools | Example |
 |---|---|---|---|
-| **Homogénea** | Mismo motor de base de datos origen y destino | Solo DMS | Oracle → RDS Oracle, MySQL → Aurora MySQL |
-| **Heterogénea** | Diferente motor de base de datos origen y destino | SCT + DMS | Oracle → Aurora PostgreSQL, SQL Server → RDS MySQL |
+| **Homogeneous** | Same database engine for source and destination | DMS only | Oracle → RDS Oracle, MySQL → Aurora MySQL |
+| **Heterogeneous** | Different database engine for source and destination | SCT + DMS | Oracle → Aurora PostgreSQL, SQL Server → RDS MySQL |
 
 ### AWS Schema Conversion Tool (SCT)
 
-SCT se usa **solo en migraciones heterogéneas** para convertir el esquema de la base de datos origen al formato del motor destino.
+SCT is used **only in heterogeneous migrations** to convert the source database schema to the destination engine format.
 
 ```
-Migración Homogénea:
+Homogeneous Migration:
   Oracle on-prem ──── DMS ────► RDS Oracle
 
-Migración Heterogénea:
-  Oracle on-prem ──── SCT (convierte esquema) ──── DMS (migra datos) ────► Aurora PostgreSQL
+Heterogeneous Migration:
+  Oracle on-prem ──── SCT (converts schema) ──── DMS (migrates data) ────► Aurora PostgreSQL
 ```
 
-### Componentes de DMS
+### DMS Components
 
-- **Replication Instance:** Instancia EC2 que ejecuta el software de replicación.
-- **Source Endpoint:** Conexión a la base de datos origen.
-- **Target Endpoint:** Conexión a la base de datos destino.
-- **Replication Task:** Define la tarea de migración (full load, CDC o ambas).
+- **Replication Instance:** EC2 instance running the replication software.
+- **Source Endpoint:** Connection to the source database.
+- **Target Endpoint:** Connection to the destination database.
+- **Replication Task:** Defines the migration task (full load, CDC, or both).
 
-### Tipos de migración
+### Migration Types
 
-| Tipo | Descripción | Caso de uso |
+| Type | Description | Use Case |
 |---|---|---|
-| **Full Load** | Migra todos los datos existentes de una vez | Migraciones con ventana de mantenimiento |
-| **CDC (Change Data Capture)** | Solo replica los cambios incrementales | Replicación continua |
-| **Full Load + CDC** | Migra datos existentes y luego captura cambios | Migración con mínimo downtime (lo más común) |
+| **Full Load** | Migrates all existing data at once | Migrations with a maintenance window |
+| **CDC (Change Data Capture)** | Only replicates incremental changes | Continuous replication |
+| **Full Load + CDC** | Migrates existing data and then captures changes | Migration with minimal downtime (most common) |
 
-### Fuentes y destinos soportados
+### Supported Sources and Destinations
 
-- **Fuentes:** Oracle, SQL Server, MySQL, MariaDB, PostgreSQL, MongoDB, SAP ASE, S3, IBM Db2
-- **Destinos:** RDS (todos los motores), Aurora, Redshift, DynamoDB, S3, Elasticsearch, Kinesis Data Streams, DocumentDB, Neptune, Redis
+- **Sources:** Oracle, SQL Server, MySQL, MariaDB, PostgreSQL, MongoDB, SAP ASE, S3, IBM Db2
+- **Destinations:** RDS (all engines), Aurora, Redshift, DynamoDB, S3, Elasticsearch, Kinesis Data Streams, DocumentDB, Neptune, Redis
 
-> **Punto clave para el examen:**
-> - Si la pregunta dice migración de DB con diferente motor → **SCT + DMS**
-> - Si la pregunta dice migración de DB con mismo motor → **solo DMS**
-> - DMS puede usarse para replicación continua (CDC), no solo para migraciones puntuales
+> **Key point for the exam:**
+> - If the question says database migration with a different engine → **SCT + DMS**
+> - If the question says database migration with the same engine → **DMS only**
+> - DMS can be used for continuous replication (CDC), not just one-time migrations
 
 ---
 
 ## AWS Snow Family
 
-La familia Snow se utiliza para **migración de datos offline** cuando la transferencia por red no es viable (ancho de banda limitado, volúmenes masivos, ubicaciones remotas).
+The Snow family is used for **offline data migration** when network transfer is not viable (limited bandwidth, massive volumes, remote locations).
 
-### Comparativa de dispositivos
+### Device Comparison
 
-| Característica | Snowcone | Snowcone SSD | Snowball Edge Storage Optimized | Snowball Edge Compute Optimized | Snowmobile |
+| Feature | Snowcone | Snowcone SSD | Snowball Edge Storage Optimized | Snowball Edge Compute Optimized | Snowmobile |
 |---|---|---|---|---|---|
-| **Almacenamiento utilizable** | 8 TB HDD | 14 TB SSD | 80 TB | 42 TB | 100 PB |
-| **Cómputo** | 2 vCPUs, 4 GB RAM | 2 vCPUs, 4 GB RAM | 40 vCPUs, 80 GB RAM | 104 vCPUs, 416 GB RAM, GPU opcional | N/A |
-| **Caso de uso** | Edge computing ligero, migración pequeña | Edge con mayor almacenamiento SSD | Migraciones de datos grandes, edge computing | Procesamiento ML en edge, video | Migraciones a escala de exabytes |
-| **Peso** | 2.1 kg (4.5 lbs) | 2.1 kg (4.5 lbs) | ~23 kg (50 lbs) | ~23 kg (50 lbs) | Camión con contenedor |
-| **DataSync** | Agente pre-instalado | Agente pre-instalado | No (usa cliente Snow) | No (usa cliente Snow) | N/A |
-| **Clustering** | No | No | Hasta 5-10 dispositivos | Hasta 5-10 dispositivos | N/A |
+| **Usable storage** | 8 TB HDD | 14 TB SSD | 80 TB | 42 TB | 100 PB |
+| **Compute** | 2 vCPUs, 4 GB RAM | 2 vCPUs, 4 GB RAM | 40 vCPUs, 80 GB RAM | 104 vCPUs, 416 GB RAM, optional GPU | N/A |
+| **Use case** | Lightweight edge computing, small migration | Edge with higher SSD storage | Large data migrations, edge computing | ML processing at edge, video | Exabyte-scale migrations |
+| **Weight** | 2.1 kg (4.5 lbs) | 2.1 kg (4.5 lbs) | ~23 kg (50 lbs) | ~23 kg (50 lbs) | Truck with container |
+| **DataSync** | Pre-installed agent | Pre-installed agent | No (uses Snow client) | No (uses Snow client) | N/A |
+| **Clustering** | No | No | Up to 5-10 devices | Up to 5-10 devices | N/A |
 
-### Tiempos estimados de transferencia por red vs Snow
+### Estimated Transfer Times: Network vs Snow
 
-| Volumen de datos | 100 Mbps | 1 Gbps | 10 Gbps | Solución Snow recomendada |
+| Data Volume | 100 Mbps | 1 Gbps | 10 Gbps | Recommended Snow Solution |
 |---|---|---|---|---|
-| 10 TB | ~12 días | ~30 horas | ~3 horas | Snowcone / red (depende de urgencia) |
-| 100 TB | ~120 días | ~12 días | ~30 horas | Snowball Edge |
-| 1 PB | ~3 años | ~120 días | ~12 días | Snowball Edge (múltiples dispositivos) |
-| 10 PB+ | Décadas | Años | ~120 días | Snowmobile |
+| 10 TB | ~12 days | ~30 hours | ~3 hours | Snowcone / network (depends on urgency) |
+| 100 TB | ~120 days | ~12 days | ~30 hours | Snowball Edge |
+| 1 PB | ~3 years | ~120 days | ~12 days | Snowball Edge (multiple devices) |
+| 10 PB+ | Decades | Years | ~120 days | Snowmobile |
 
-### Regla general para el examen
+### General Rule for the Exam
 
-> Si la transferencia por red tarda **más de una semana**, considera usar Snow Family.
+> If network transfer takes **more than one week**, consider using Snow Family.
 
-### Flujo de trabajo de Snow
+### Snow Workflow
 
 ```
-1. Solicitar dispositivo Snow desde la consola AWS
-2. AWS envía el dispositivo físico
-3. Conectar dispositivo y cargar datos (cliente Snow o DataSync)
-4. Devolver el dispositivo a AWS
-5. AWS carga los datos en S3
-6. AWS borra el dispositivo de forma segura (NIST 800-88)
+1. Request a Snow device from the AWS console
+2. AWS ships the physical device
+3. Connect the device and load data (Snow client or DataSync)
+4. Return the device to AWS
+5. AWS loads the data into S3
+6. AWS securely erases the device (NIST 800-88)
 ```
 
-### Snowball Edge - Tipos
+### Snowball Edge - Types
 
-- **Storage Optimized:** Máximo almacenamiento (80 TB). Ideal para migraciones de datos grandes y almacenamiento local.
-- **Compute Optimized:** Máximo cómputo (104 vCPUs). Ideal para procesamiento ML, análisis de video en edge. GPU NVIDIA Tesla V100 opcional.
+- **Storage Optimized:** Maximum storage (80 TB). Ideal for large data migrations and local storage.
+- **Compute Optimized:** Maximum compute (104 vCPUs). Ideal for ML processing, video analysis at edge. Optional NVIDIA Tesla V100 GPU.
 
 ---
 
 ## AWS Transfer Family
 
-Servicio **completamente administrado** para transferir archivos hacia y desde Amazon S3 o Amazon EFS usando protocolos estándar.
+A **fully managed** service for transferring files to and from Amazon S3 or Amazon EFS using standard protocols.
 
-### Protocolos soportados
+### Supported Protocols
 
-| Protocolo | Puerto | Cifrado | Caso de uso |
+| Protocol | Port | Encryption | Use Case |
 |---|---|---|---|
-| **SFTP** (SSH File Transfer Protocol) | 22 | Sí (SSH) | El más común, transferencias seguras |
-| **FTPS** (FTP over SSL/TLS) | 21/990 | Sí (TLS) | Sistemas legacy que requieren FTP con cifrado |
-| **FTP** (File Transfer Protocol) | 21 | No | Solo dentro de VPC (no público). Sistemas legacy |
-| **AS2** (Applicability Statement 2) | 443 | Sí | Intercambio B2B (EDI, supply chain) |
+| **SFTP** (SSH File Transfer Protocol) | 22 | Yes (SSH) | Most common, secure transfers |
+| **FTPS** (FTP over SSL/TLS) | 21/990 | Yes (TLS) | Legacy systems requiring FTP with encryption |
+| **FTP** (File Transfer Protocol) | 21 | No | Within VPC only (not public). Legacy systems |
+| **AS2** (Applicability Statement 2) | 443 | Yes | B2B exchange (EDI, supply chain) |
 
-### Características clave
+### Key Features
 
-- **Endpoint público o VPC:** Se puede exponer en internet o mantener privado dentro de VPC.
-- **Integración con Route 53:** DNS personalizado (sftp.miempresa.com).
-- **Autenticación:** AWS Directory Service, IdP personalizado (Lambda), claves SSH.
-- **Almacenamiento backend:** S3 o EFS.
-- **Sin gestión de servidores:** AWS gestiona la infraestructura.
+- **Public or VPC endpoint:** Can be exposed to the internet or kept private within a VPC.
+- **Route 53 integration:** Custom DNS (sftp.mycompany.com).
+- **Authentication:** AWS Directory Service, custom IdP (Lambda), SSH keys.
+- **Backend storage:** S3 or EFS.
+- **No server management:** AWS manages the infrastructure.
 
-> **Punto clave para el examen:** Cuando la pregunta mencione "transferir archivos usando SFTP/FTP a S3" o "reemplazar servidor FTP existente", la respuesta es **AWS Transfer Family**.
+> **Key point for the exam:** When the question mentions "transfer files using SFTP/FTP to S3" or "replace existing FTP server", the answer is **AWS Transfer Family**.
 
 ---
 
 ## AWS DataSync
 
-Servicio para **transferir datos de forma rápida y automatizada** entre almacenamiento on-premises y servicios de AWS, o entre servicios de AWS.
+A service for **fast and automated data transfer** between on-premises storage and AWS services, or between AWS services.
 
-### Escenarios de transferencia
+### Transfer Scenarios
 
 ```
 On-Premises → AWS:
-  NFS/SMB Server ──► Agente DataSync ──► (Internet o Direct Connect) ──► S3, EFS, FSx
+  NFS/SMB Server ──► DataSync Agent ──► (Internet or Direct Connect) ──► S3, EFS, FSx
 
 AWS → AWS:
   S3 ──► DataSync ──► EFS
   EFS ──► DataSync ──► FSx for Windows
-  (No necesita agente para transferencias entre servicios AWS)
+  (No agent needed for transfers between AWS services)
 ```
 
-### Características principales
+### Key Features
 
-| Característica | Detalle |
+| Feature | Detail |
 |---|---|
-| **Velocidad** | Hasta 10 Gbps por tarea, usa protocolos de transferencia optimizados |
-| **Automatización** | Tareas programadas (por hora, diaria, semanal) |
-| **Compresión** | Comprime datos en tránsito para optimizar el ancho de banda |
-| **Cifrado** | TLS en tránsito, integración con KMS para cifrado en reposo |
-| **Verificación** | Verifica integridad de datos automáticamente |
-| **Preservación de metadatos** | Conserva permisos, timestamps y atributos del sistema de archivos |
-| **Filtrado** | Puede incluir/excluir archivos según patrones |
-| **Ancho de banda** | Límite configurable para no saturar la red |
+| **Speed** | Up to 10 Gbps per task, uses optimized transfer protocols |
+| **Automation** | Scheduled tasks (hourly, daily, weekly) |
+| **Compression** | Compresses data in transit to optimize bandwidth |
+| **Encryption** | TLS in transit, KMS integration for encryption at rest |
+| **Verification** | Automatically verifies data integrity |
+| **Metadata preservation** | Preserves permissions, timestamps, and filesystem attributes |
+| **Filtering** | Can include/exclude files based on patterns |
+| **Bandwidth** | Configurable limit to avoid saturating the network |
 
-### DataSync vs otros servicios
+### DataSync vs Other Services
 
-| Servicio | Mejor para | Transferencia |
+| Service | Best For | Transfer |
 |---|---|---|
-| **DataSync** | Migración de datos y sincronización recurrente, NFS/SMB a AWS | Online, automatizada |
-| **Snow Family** | Grandes volúmenes (>10 TB) cuando la red es lenta | Offline, física |
-| **Transfer Family** | Intercambio de archivos usando SFTP/FTP con clientes externos | Online, protocolo estándar |
-| **Storage Gateway** | Acceso híbrido continuo (caché local + almacenamiento en S3) | Online, híbrido continuo |
+| **DataSync** | Data migration and recurring synchronization, NFS/SMB to AWS | Online, automated |
+| **Snow Family** | Large volumes (>10 TB) when the network is slow | Offline, physical |
+| **Transfer Family** | File exchange using SFTP/FTP with external clients | Online, standard protocol |
+| **Storage Gateway** | Continuous hybrid access (local cache + storage in S3) | Online, continuous hybrid |
 
-> **Punto clave para el examen:** DataSync es para **mover datos** (migración o sincronización). Storage Gateway es para **acceso híbrido continuo**. No confundirlos.
+> **Key point for the exam:** DataSync is for **moving data** (migration or synchronization). Storage Gateway is for **continuous hybrid access**. Don't confuse them.
 
 ---
 
 ## VMware Cloud on AWS
 
-Permite ejecutar **VMware vSphere** directamente en infraestructura de AWS con acceso nativo a servicios de AWS.
+Allows running **VMware vSphere** directly on AWS infrastructure with native access to AWS services.
 
-### Casos de uso
+### Use Cases
 
-- **Migración de centros de datos VMware** a AWS sin necesidad de re-arquitecturar (estrategia Relocate).
-- **Extensión de capacidad:** Ampliar el entorno VMware on-premises a AWS para manejar picos de demanda.
-- **Disaster Recovery:** Usar AWS como sitio DR para cargas de trabajo VMware.
-- **Modernización gradual:** Mantener VMware mientras se migran aplicaciones progresivamente a servicios nativos de AWS.
+- **VMware data center migration** to AWS without re-architecting (Relocate strategy).
+- **Capacity extension:** Expand the on-premises VMware environment to AWS to handle demand spikes.
+- **Disaster Recovery:** Use AWS as a DR site for VMware workloads.
+- **Gradual modernization:** Maintain VMware while progressively migrating applications to native AWS services.
 
-### Características
+### Features
 
-- Ejecuta VMware vSphere, vSAN y NSX directamente sobre hardware dedicado de AWS.
-- Acceso a servicios nativos de AWS (S3, RDS, Lambda, etc.) desde las VMs VMware.
-- Gestionado conjuntamente por VMware y AWS.
-- Las VMs pueden vivir en la misma AZ que los servicios de AWS para baja latencia.
+- Runs VMware vSphere, vSAN, and NSX directly on dedicated AWS hardware.
+- Access to native AWS services (S3, RDS, Lambda, etc.) from VMware VMs.
+- Jointly managed by VMware and AWS.
+- VMs can reside in the same AZ as AWS services for low latency.
 
 ---
 
-## Tips para el Examen
+## Exam Tips
 
-### Preguntas frecuentes y respuestas rápidas
+### Frequently Asked Questions and Quick Answers
 
-| Escenario del examen | Servicio / Estrategia |
+| Exam Scenario | Service / Strategy |
 |---|---|
-| Migrar servidores tal cual (lift and shift) | **MGN** (Rehost) |
-| Migrar base de datos mismo motor | **DMS** (sin SCT) |
-| Migrar base de datos diferente motor | **SCT + DMS** (heterogénea) |
-| Transferir 50 TB, red lenta (1 semana+) | **Snowball Edge** |
-| Transferir 100 PB | **Snowmobile** |
-| Mover archivos NFS/SMB a S3/EFS | **DataSync** |
-| Servidor SFTP para compartir archivos con S3 | **Transfer Family** |
-| Mapear dependencias entre servidores on-prem | **Application Discovery Service (Agent-Based)** |
-| Inventario rápido de VMs VMware | **Application Discovery Service (Agentless)** |
-| Panel centralizado de progreso de migración | **Migration Hub** |
-| Migrar entorno VMware completo | **VMware Cloud on AWS** (Relocate) |
-| Planificar la adopción organizacional de la nube | **Cloud Adoption Framework (CAF)** |
-| Migración de datos pequeña en edge remoto | **Snowcone** |
-| Replicación continua de base de datos | **DMS con CDC** |
+| Migrate servers as-is (lift and shift) | **MGN** (Rehost) |
+| Migrate database with same engine | **DMS** (without SCT) |
+| Migrate database with different engine | **SCT + DMS** (heterogeneous) |
+| Transfer 50 TB, slow network (1 week+) | **Snowball Edge** |
+| Transfer 100 PB | **Snowmobile** |
+| Move NFS/SMB files to S3/EFS | **DataSync** |
+| SFTP server for sharing files with S3 | **Transfer Family** |
+| Map dependencies between on-prem servers | **Application Discovery Service (Agent-Based)** |
+| Quick VMware VM inventory | **Application Discovery Service (Agentless)** |
+| Centralized migration progress dashboard | **Migration Hub** |
+| Migrate entire VMware environment | **VMware Cloud on AWS** (Relocate) |
+| Plan organizational cloud adoption | **Cloud Adoption Framework (CAF)** |
+| Small data migration at remote edge | **Snowcone** |
+| Continuous database replication | **DMS with CDC** |
 
-### Errores comunes a evitar
+### Common Mistakes to Avoid
 
-1. **Confundir DataSync con Storage Gateway:** DataSync mueve datos, Storage Gateway proporciona acceso híbrido continuo.
-2. **Olvidar SCT en migraciones heterogéneas:** Si los motores son diferentes, siempre se necesita SCT antes de DMS.
-3. **Elegir Snowball para pocos TB:** Si la red es razonable y el volumen es bajo (<10 TB), DataSync o transferencia directa pueden ser más rápidas.
-4. **Confundir MGN con DMS:** MGN migra servidores (aplicaciones completas), DMS migra solo bases de datos.
-5. **No considerar Relocate:** Si el entorno es VMware, Relocate (VMware Cloud on AWS) es válido y tiene menor esfuerzo que Rehost.
+1. **Confusing DataSync with Storage Gateway:** DataSync moves data, Storage Gateway provides continuous hybrid access.
+2. **Forgetting SCT in heterogeneous migrations:** If the engines are different, SCT is always needed before DMS.
+3. **Choosing Snowball for few TBs:** If the network is reasonable and volume is low (<10 TB), DataSync or direct transfer may be faster.
+4. **Confusing MGN with DMS:** MGN migrates servers (complete applications), DMS migrates only databases.
+5. **Not considering Relocate:** If the environment is VMware, Relocate (VMware Cloud on AWS) is valid and requires less effort than Rehost.
 
-### Fórmula para recordar las 7 Rs
+### Formula to Remember the 7 Rs
 
 > **R**etire, **R**etain, **R**elocate, **R**ehost, **R**eplatform, **R**epurchase, **R**efactor
-> De menor a mayor esfuerzo y de menor a mayor beneficio de la nube.
+> From lowest to highest effort and from lowest to highest cloud benefit.

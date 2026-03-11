@@ -1,14 +1,14 @@
-# Lab 03: API REST Serverless
+# Lab 03: Serverless REST API
 
-## Objetivo
+## Objective
 
-Construir una API REST serverless completa con operaciones CRUD usando API Gateway, Lambda y DynamoDB. Este patron es uno de los mas comunes en arquitecturas modernas de AWS y es fundamental para el examen de Solutions Architect.
+Build a complete serverless REST API with CRUD operations using API Gateway, Lambda and DynamoDB. This pattern is one of the most common in modern AWS architectures and is fundamental for the Solutions Architect exam.
 
-## Arquitectura
+## Architecture
 
 ```
                     +------------------+
-                    |     Cliente      |
+                    |     Client       |
                     |  (curl/browser)  |
                     +--------+---------+
                              |
@@ -39,112 +39,112 @@ Construir una API REST serverless completa con operaciones CRUD usando API Gatew
     - DynamoDB: PutItem, GetItem, Scan, UpdateItem, DeleteItem
 ```
 
-## Que vas a aprender
+## What you will learn
 
-- **Lambda Functions:** Funciones serverless que se ejecutan en respuesta a eventos
-- **API Gateway REST API:** Servicio para crear, publicar y gestionar APIs
-- **DynamoDB:** Base de datos NoSQL key-value completamente gestionada
-- **IAM Roles para Lambda:** Principio de minimo privilegio para funciones Lambda
-- **Lambda Proxy Integration:** API Gateway pasa el request completo a Lambda
-- **Stages y Deployments:** Gestion de versiones de la API
+- **Lambda Functions:** Serverless functions that execute in response to events
+- **API Gateway REST API:** Service to create, publish and manage APIs
+- **DynamoDB:** Fully managed NoSQL key-value database
+- **IAM Roles for Lambda:** Principle of least privilege for Lambda functions
+- **Lambda Proxy Integration:** API Gateway passes the complete request to Lambda
+- **Stages and Deployments:** API version management
 
-## Prerequisitos
+## Prerequisites
 
-- Lab 00 completado (backend remoto)
+- Lab 00 completed (remote backend)
 
-## Operaciones CRUD
+## CRUD Operations
 
-| Metodo | Endpoint | Descripcion |
+| Method | Endpoint | Description |
 |--------|----------|-------------|
-| GET | /items | Listar todos los items |
-| POST | /items | Crear un nuevo item |
-| GET | /items/{id} | Obtener un item por ID |
-| PUT | /items/{id} | Actualizar un item |
-| DELETE | /items/{id} | Eliminar un item |
+| GET | /items | List all items |
+| POST | /items | Create a new item |
+| GET | /items/{id} | Get an item by ID |
+| PUT | /items/{id} | Update an item |
+| DELETE | /items/{id} | Delete an item |
 
-## Pasos para Deploy
+## Deployment Steps
 
-### 1. Desplegar la infraestructura
+### 1. Deploy the infrastructure
 
 ```bash
 cd labs/03-serverless-api
 
-# Inicializar
+# Initialize
 terraform init
 
-# Revisar el plan
+# Review the plan
 terraform plan
 
-# Aplicar
+# Apply
 terraform apply
 ```
 
-### 2. Obtener la URL de la API
+### 2. Get the API URL
 
 ```bash
 export API_URL=$(terraform output -raw api_gateway_invoke_url)
 echo $API_URL
 ```
 
-### 3. Test con curl
+### 3. Test with curl
 
 ```bash
-# Crear un item
+# Create an item
 curl -X POST "$API_URL/items" \
   -H "Content-Type: application/json" \
-  -d '{"name": "Mi primer item", "description": "Creado desde el lab 03"}'
+  -d '{"name": "My first item", "description": "Created from lab 03"}'
 
-# Listar todos los items
+# List all items
 curl "$API_URL/items" | jq .
 
-# Obtener un item por ID (reemplaza <id> con el ID del item creado)
+# Get an item by ID (replace <id> with the ID of the created item)
 curl "$API_URL/items/<id>" | jq .
 
-# Actualizar un item
+# Update an item
 curl -X PUT "$API_URL/items/<id>" \
   -H "Content-Type: application/json" \
-  -d '{"name": "Item actualizado", "description": "Modificado"}'
+  -d '{"name": "Updated item", "description": "Modified"}'
 
-# Eliminar un item
+# Delete an item
 curl -X DELETE "$API_URL/items/<id>"
 ```
 
 ---
 
-## Conceptos Clave para el Examen
+## Key Concepts for the Exam
 
-- **Lambda Pricing:** Cobro por numero de requests y duracion (GB-segundo). 1M requests/mes gratis.
-- **DynamoDB Pricing:** Modo On-Demand cobra por lectura/escritura. 25 WCU + 25 RCU gratis.
-- **API Gateway:** Limite de 10,000 requests/segundo por defecto (soft limit).
-- **Lambda Concurrency:** Limite de 1000 ejecuciones concurrentes por defecto por region.
-- **Lambda Proxy Integration:** API Gateway pasa todo el HTTP request como evento a Lambda.
-- **DynamoDB Partition Key:** Elegir una buena partition key es crucial para el rendimiento.
+- **Lambda Pricing:** Charged per number of requests and duration (GB-second). 1M requests/month free.
+- **DynamoDB Pricing:** On-Demand mode charges per read/write. 25 WCU + 25 RCU free.
+- **API Gateway:** Default limit of 10,000 requests/second (soft limit).
+- **Lambda Concurrency:** Default limit of 1000 concurrent executions per region.
+- **Lambda Proxy Integration:** API Gateway passes the entire HTTP request as an event to Lambda.
+- **DynamoDB Partition Key:** Choosing a good partition key is crucial for performance.
 
-## Coste Estimado
+## Estimated Cost
 
-| Recurso | Coste |
+| Resource | Cost |
 |---------|-------|
-| Lambda | Free Tier: 1M requests + 400,000 GB-seg/mes |
-| API Gateway | Free Tier: 1M requests/mes (12 meses) |
+| Lambda | Free Tier: 1M requests + 400,000 GB-sec/month |
+| API Gateway | Free Tier: 1M requests/month (12 months) |
 | DynamoDB (On-Demand) | Free Tier: 25 WCU + 25 RCU |
 
-> **Total estimado: Gratis** dentro del Free Tier para uso de laboratorio. Perfecto para practicar sin costes.
+> **Estimated total: Free** within the Free Tier for lab usage. Perfect for practicing without costs.
 
-## Limpieza
+## Cleanup
 
 ```bash
 terraform destroy
 ```
 
-## Estructura de Ficheros
+## File Structure
 
 ```
 03-serverless-api/
   main.tf              # DynamoDB, Lambda, API Gateway, IAM
-  variables.tf         # Variables de entrada
-  outputs.tf           # Valores de salida
-  backend.tf           # Configuracion del backend remoto
+  variables.tf         # Input variables
+  outputs.tf           # Output values
+  backend.tf           # Remote backend configuration
   lambda/
-    handler.py         # Codigo Python del Lambda handler
-  README.md            # Este fichero
+    handler.py         # Python Lambda handler code
+  README.md            # This file
 ```

@@ -1,314 +1,314 @@
-# Dominio 2: Diseñar Arquitecturas Resilientes
+# Domain 2: Design Resilient Architectures
 
-## Pregunta 1
+## Question 1
 
-Una empresa tiene una aplicación web con un ALB, instancias EC2 en un Auto Scaling Group y una base de datos RDS MySQL. La aplicación experimenta caídas cuando la AZ eu-west-1a tiene problemas. ¿Cuál es la configuración correcta para alta disponibilidad?
+A company has a web application with an ALB, EC2 instances in an Auto Scaling Group, and an RDS MySQL database. The application experiences outages when AZ eu-west-1a has issues. What is the correct configuration for high availability?
 
-A) Desplegar instancias EC2 en múltiples AZs con el ASG, y habilitar Multi-AZ en RDS
-B) Desplegar instancias EC2 más grandes en una sola AZ y crear read replicas de RDS
-C) Usar Route 53 failover routing a un sitio estático en S3
-D) Desplegar la aplicación en una segunda región como standby
+A) Deploy EC2 instances in multiple AZs with the ASG, and enable Multi-AZ on RDS
+B) Deploy larger EC2 instances in a single AZ and create RDS read replicas
+C) Use Route 53 failover routing to a static site on S3
+D) Deploy the application in a second region as standby
 
 <details>
-<summary>Ver respuesta</summary>
+<summary>Show answer</summary>
 
-**Respuesta: A**
+**Answer: A**
 
-Para alta disponibilidad dentro de una región, el patrón estándar es distribuir instancias EC2 en múltiples AZs mediante el Auto Scaling Group (que el ALB ya balancea) y habilitar Multi-AZ en RDS para tener failover automático del database. Esto asegura que si una AZ falla, las instancias en otras AZs continúan sirviendo tráfico y RDS hace failover al standby en otra AZ. La opción B no resuelve el problema de AZ única. La opción C es para DR, no HA. La opción D es excesiva para un problema de una sola AZ.
+For high availability within a region, the standard pattern is to distribute EC2 instances across multiple AZs via the Auto Scaling Group (which the ALB already balances) and enable Multi-AZ on RDS for automatic database failover. This ensures that if one AZ fails, instances in other AZs continue serving traffic and RDS fails over to the standby in another AZ. Option B does not solve the single-AZ problem. Option C is for DR, not HA. Option D is excessive for a single-AZ problem.
 
-**Servicio/concepto clave:** Multi-AZ deployment, Auto Scaling Group, RDS Multi-AZ
+**Key service/concept:** Multi-AZ deployment, Auto Scaling Group, RDS Multi-AZ
 </details>
 
 ---
 
-## Pregunta 2
+## Question 2
 
-Una aplicación de e-commerce procesa pedidos enviando mensajes a una cola SQS. Durante eventos de alto tráfico (Black Friday), algunos pedidos se procesan más de una vez, causando cobros duplicados. ¿Cuál es la mejor solución?
+An e-commerce application processes orders by sending messages to an SQS queue. During high-traffic events (Black Friday), some orders are processed more than once, causing duplicate charges. What is the best solution?
 
-A) Aumentar el visibility timeout de la cola SQS Standard
-B) Reemplazar la cola SQS Standard por una cola SQS FIFO con deduplicación habilitada
-C) Añadir más instancias de procesamiento para reducir el tiempo en cola
-D) Usar Amazon MQ en lugar de SQS para garantizar entrega exacta
+A) Increase the visibility timeout of the SQS Standard queue
+B) Replace the SQS Standard queue with an SQS FIFO queue with deduplication enabled
+C) Add more processing instances to reduce time in queue
+D) Use Amazon MQ instead of SQS to guarantee exact delivery
 
 <details>
-<summary>Ver respuesta</summary>
+<summary>Show answer</summary>
 
-**Respuesta: B**
+**Answer: B**
 
-SQS FIFO ofrece procesamiento **exactly-once** con deduplicación automática (basada en deduplication ID o content-based deduplication). Esto previene que el mismo mensaje sea procesado más de una vez. SQS Standard ofrece **at-least-once delivery**, lo que puede resultar en duplicados. La opción A reduce duplicados pero no los elimina. La opción C no resuelve la causa raíz. La opción D es para protocolos legacy, no para deduplicación.
+SQS FIFO offers **exactly-once** processing with automatic deduplication (based on deduplication ID or content-based deduplication). This prevents the same message from being processed more than once. SQS Standard offers **at-least-once delivery**, which can result in duplicates. Option A reduces duplicates but does not eliminate them. Option C does not address the root cause. Option D is for legacy protocols, not for deduplication.
 
-**Servicio/concepto clave:** SQS FIFO, exactly-once processing, deduplicación
+**Key service/concept:** SQS FIFO, exactly-once processing, deduplication
 </details>
 
 ---
 
-## Pregunta 3
+## Question 3
 
-Una empresa necesita una estrategia de disaster recovery con un RTO de 1 hora y RPO de 15 minutos para su aplicación crítica que usa Aurora MySQL. La solución debe ser la más económica posible dentro de estos requisitos. ¿Qué estrategia deben usar?
+A company needs a disaster recovery strategy with an RTO of 1 hour and RPO of 15 minutes for their critical application that uses Aurora MySQL. The solution must be as cost-effective as possible within these requirements. What strategy should they use?
 
-A) Backup and Restore — restaurar desde snapshots de Aurora
-B) Pilot Light — Aurora Global Database con una instancia mínima en la región DR
-C) Warm Standby — Aurora Global Database con Auto Scaling reducido en la región DR
-D) Multi-Site Active/Active — Aurora Global Database con capacidad completa en ambas regiones
+A) Backup and Restore — restore from Aurora snapshots
+B) Pilot Light — Aurora Global Database with a minimal instance in the DR region
+C) Warm Standby — Aurora Global Database with reduced Auto Scaling in the DR region
+D) Multi-Site Active/Active — Aurora Global Database with full capacity in both regions
 
 <details>
-<summary>Ver respuesta</summary>
+<summary>Show answer</summary>
 
-**Respuesta: B**
+**Answer: B**
 
-Con un RTO de 1 hora y RPO de 15 minutos, la estrategia **Pilot Light** es suficiente y la más económica que cumple los requisitos. Aurora Global Database replica datos a la región DR con un RPO típico de ~1 segundo. El Pilot Light mantiene una instancia mínima en DR que se puede escalar cuando se necesite (dentro del RTO de 1 hora). La opción A tiene RTO/RPO demasiado largos. La opción C cumple pero es más cara. La opción D es la más cara y excede los requisitos.
+With an RTO of 1 hour and RPO of 15 minutes, the **Pilot Light** strategy is sufficient and the most cost-effective that meets the requirements. Aurora Global Database replicates data to the DR region with a typical RPO of ~1 second. Pilot Light maintains a minimal instance in DR that can be scaled when needed (within the 1-hour RTO). Option A has RTO/RPO that are too long. Option C meets requirements but is more expensive. Option D is the most expensive and exceeds the requirements.
 
-**Servicio/concepto clave:** DR strategies, Pilot Light, Aurora Global Database, RTO/RPO
+**Key service/concept:** DR strategies, Pilot Light, Aurora Global Database, RTO/RPO
 </details>
 
 ---
 
-## Pregunta 4
+## Question 4
 
-Un arquitecto debe diseñar un sistema de procesamiento de imágenes donde los usuarios suben fotos a S3 y se genera un thumbnail. El sistema debe tolerar fallos sin perder ninguna imagen y procesarlas eventualmente aunque haya picos de carga. ¿Cuál es la arquitectura más resiliente?
+An architect must design an image processing system where users upload photos to S3 and a thumbnail is generated. The system must tolerate failures without losing any image and process them eventually even during load spikes. What is the most resilient architecture?
 
-A) S3 Event Notification → Lambda directamente
-B) S3 Event Notification → SQS Queue → Lambda (procesando desde SQS)
-C) S3 Event Notification → SNS → Email al equipo para procesamiento manual
-D) CloudWatch Events → EC2 que monitorea S3 periódicamente
+A) S3 Event Notification → Lambda directly
+B) S3 Event Notification → SQS Queue → Lambda (processing from SQS)
+C) S3 Event Notification → SNS → Email to team for manual processing
+D) CloudWatch Events → EC2 that monitors S3 periodically
 
 <details>
-<summary>Ver respuesta</summary>
+<summary>Show answer</summary>
 
-**Respuesta: B**
+**Answer: B**
 
-La combinación S3 → SQS → Lambda proporciona la máxima resiliencia. SQS actúa como buffer: si Lambda falla o se alcanza el límite de concurrencia, los mensajes permanecen en la cola (hasta 14 días) y se reintentan automáticamente. Con Dead Letter Queue, los mensajes que fallen repetidamente se preservan para análisis. La opción A (Lambda directo) puede perder eventos si Lambda falla o alcanza throttling. La opción C es manual. La opción D tiene latencia alta y es frágil.
+The S3 → SQS → Lambda combination provides maximum resilience. SQS acts as a buffer: if Lambda fails or reaches the concurrency limit, messages remain in the queue (up to 14 days) and are automatically retried. With a Dead Letter Queue, messages that fail repeatedly are preserved for analysis. Option A (direct Lambda) can lose events if Lambda fails or hits throttling. Option C is manual. Option D has high latency and is fragile.
 
-**Servicio/concepto clave:** SQS como buffer, desacoplamiento, Dead Letter Queue, resiliencia
+**Key service/concept:** SQS as buffer, decoupling, Dead Letter Queue, resilience
 </details>
 
 ---
 
-## Pregunta 5
+## Question 5
 
-Una empresa tiene una aplicación con un Auto Scaling Group configurado con scaling policy de Target Tracking al 60% de CPU. El ASG tiene min=2, max=10, desired=4. Durante un despliegue, las nuevas instancias causan que CloudWatch detecte CPU alta brevemente, provocando que el ASG lance instancias innecesarias. ¿Cómo resolver esto?
+A company has an application with an Auto Scaling Group configured with a Target Tracking scaling policy at 60% CPU. The ASG has min=2, max=10, desired=4. During a deployment, new instances cause CloudWatch to detect briefly high CPU, triggering the ASG to launch unnecessary instances. How to resolve this?
 
-A) Cambiar a Simple Scaling policy
-B) Configurar un warmup period para las nuevas instancias en la scaling policy
-C) Aumentar el target CPU al 90%
-D) Deshabilitar el Auto Scaling durante los despliegues
+A) Switch to Simple Scaling policy
+B) Configure a warmup period for new instances in the scaling policy
+C) Increase the target CPU to 90%
+D) Disable Auto Scaling during deployments
 
 <details>
-<summary>Ver respuesta</summary>
+<summary>Show answer</summary>
 
-**Respuesta: B**
+**Answer: B**
 
-El **warmup period** (instance warmup) le indica al Auto Scaling Group que no incluya las métricas de las instancias nuevas en los cálculos de scaling hasta que hayan terminado de inicializarse. Esto previene que los picos transitorios de CPU durante el arranque disparen escalado innecesario. La opción A empeoraría el problema. La opción C enmascararía problemas reales de capacidad. La opción D es operacionalmente riesgosa y no escalable.
+The **warmup period** (instance warmup) tells the Auto Scaling Group not to include metrics from new instances in scaling calculations until they have finished initializing. This prevents transient CPU spikes during startup from triggering unnecessary scaling. Option A would worsen the problem. Option C would mask real capacity issues. Option D is operationally risky and not scalable.
 
-**Servicio/concepto clave:** Auto Scaling warmup period, Target Tracking scaling
+**Key service/concept:** Auto Scaling warmup period, Target Tracking scaling
 </details>
 
 ---
 
-## Pregunta 6
+## Question 6
 
-Una aplicación utiliza Aurora PostgreSQL como base de datos principal. El equipo de analytics necesita ejecutar queries pesadas de reporting que no deben afectar el rendimiento de la aplicación de producción. ¿Cuál es la mejor solución?
+An application uses Aurora PostgreSQL as its primary database. The analytics team needs to run heavy reporting queries that should not affect production application performance. What is the best solution?
 
-A) Crear un snapshot de Aurora cada noche y restaurarlo como una instancia separada para analytics
-B) Crear Aurora Read Replicas con un Custom Endpoint dedicado para las queries de analytics
-C) Migrar los datos a Redshift cada noche para analytics
-D) Escalar verticalmente la instancia Aurora principal
+A) Create an Aurora snapshot every night and restore it as a separate instance for analytics
+B) Create Aurora Read Replicas with a dedicated Custom Endpoint for analytics queries
+C) Migrate data to Redshift every night for analytics
+D) Vertically scale the primary Aurora instance
 
 <details>
-<summary>Ver respuesta</summary>
+<summary>Show answer</summary>
 
-**Respuesta: B**
+**Answer: B**
 
-Aurora permite crear hasta 15 Read Replicas y configurar **Custom Endpoints** que dirijan tráfico a replicas específicas. Se pueden designar replicas con instancias más grandes para analytics y crear un custom endpoint que solo apunte a esas replicas. Así el tráfico de analytics no afecta al writer ni a las replicas usadas por producción. La opción A tiene datos obsoletos y es costosa. La opción C añade complejidad innecesaria si solo se necesitan queries SQL. La opción D no aísla la carga.
+Aurora allows creating up to 15 Read Replicas and configuring **Custom Endpoints** that direct traffic to specific replicas. You can designate replicas with larger instances for analytics and create a custom endpoint that only points to those replicas. This way, analytics traffic does not affect the writer or the replicas used by production. Option A has stale data and is costly. Option C adds unnecessary complexity if only SQL queries are needed. Option D does not isolate the workload.
 
-**Servicio/concepto clave:** Aurora Read Replicas, Custom Endpoints
+**Key service/concept:** Aurora Read Replicas, Custom Endpoints
 </details>
 
 ---
 
-## Pregunta 7
+## Question 7
 
-Una empresa tiene una arquitectura con un ALB frente a instancias EC2 que procesan requests y las almacenan en RDS. Después de una actualización de la aplicación, el 5% de los requests fallan. Necesitan la capacidad de volver a la versión anterior rápidamente con mínimo impacto. ¿Qué estrategia de despliegue deberían haber usado?
+A company has an architecture with an ALB in front of EC2 instances that process requests and store them in RDS. After an application update, 5% of requests fail. They need the ability to quickly roll back to the previous version with minimal impact. What deployment strategy should they have used?
 
 A) All at once deployment
 B) Rolling deployment
 C) Blue/Green deployment
-D) In-place deployment con manual rollback
+D) In-place deployment with manual rollback
 
 <details>
-<summary>Ver respuesta</summary>
+<summary>Show answer</summary>
 
-**Respuesta: C**
+**Answer: C**
 
-El despliegue **Blue/Green** mantiene el entorno anterior (Blue) completamente funcional mientras el nuevo entorno (Green) recibe tráfico. Si se detectan problemas, el rollback es instantáneo: simplemente se redirige el tráfico de vuelta al entorno Blue (swap del DNS o target group del ALB). No hay downtime y el rollback toma segundos. Las opciones A, B y D requieren re-desplegar la versión anterior, lo cual es más lento y arriesgado.
+**Blue/Green** deployment keeps the previous environment (Blue) fully functional while the new environment (Green) receives traffic. If problems are detected, rollback is instantaneous: simply redirect traffic back to the Blue environment (DNS swap or ALB target group swap). There is no downtime and rollback takes seconds. Options A, B, and D require re-deploying the previous version, which is slower and riskier.
 
-**Servicio/concepto clave:** Blue/Green deployment, rollback instantáneo, ALB target groups
+**Key service/concept:** Blue/Green deployment, instant rollback, ALB target groups
 </details>
 
 ---
 
-## Pregunta 8
+## Question 8
 
-Una aplicación procesa transacciones financieras y utiliza una arquitectura de microservicios con múltiples Lambda functions. Si algún paso falla, todos los pasos anteriores deben revertirse (compensating transactions). El proceso total puede tomar hasta 30 minutos. ¿Cuál es el servicio más adecuado para orquestar este flujo?
+An application processes financial transactions and uses a microservices architecture with multiple Lambda functions. If any step fails, all previous steps must be reversed (compensating transactions). The total process can take up to 30 minutes. What is the most appropriate service to orchestrate this flow?
 
-A) SQS con Dead Letter Queue para reintentos
-B) AWS Step Functions con manejo de errores y estados de compensación
-C) SNS con múltiples suscriptores Lambda
-D) EventBridge con reglas para cada paso
+A) SQS with Dead Letter Queue for retries
+B) AWS Step Functions with error handling and compensation states
+C) SNS with multiple Lambda subscribers
+D) EventBridge with rules for each step
 
 <details>
-<summary>Ver respuesta</summary>
+<summary>Show answer</summary>
 
-**Respuesta: B**
+**Answer: B**
 
-AWS Step Functions es el servicio diseñado específicamente para orquestar workflows con múltiples pasos, incluyendo manejo de errores, reintentos, y estados de compensación (saga pattern). Permite definir catch blocks que ejecuten pasos de reversión cuando algo falla. Standard Workflows soportan hasta 1 año de duración. La opción A desacopla pero no orquesta compensaciones. Las opciones C y D son para event routing, no para workflows transaccionales complejos.
+AWS Step Functions is the service specifically designed to orchestrate workflows with multiple steps, including error handling, retries, and compensation states (saga pattern). It allows defining catch blocks that execute reversal steps when something fails. Standard Workflows support up to 1 year in duration. Option A decouples but does not orchestrate compensations. Options C and D are for event routing, not for complex transactional workflows.
 
-**Servicio/concepto clave:** AWS Step Functions, saga pattern, compensating transactions
+**Key service/concept:** AWS Step Functions, saga pattern, compensating transactions
 </details>
 
 ---
 
-## Pregunta 9
+## Question 9
 
-Una empresa tiene un sitio web estático alojado en S3 con CloudFront. Necesitan configurar una página de error personalizada que se muestre cuando el sitio principal no esté disponible, y que el failover sea automático. ¿Cuál es la mejor solución?
+A company has a static website hosted on S3 with CloudFront. They need to configure a custom error page that is displayed when the main site is unavailable, and the failover must be automatic. What is the best solution?
 
-A) Configurar S3 website hosting error document
-B) Configurar CloudFront con un Origin Group que tenga un origin primario y uno de failover (otro bucket S3 en otra región)
-C) Configurar Route 53 failover routing a dos distribuciones CloudFront
-D) Usar Lambda@Edge para detectar errores y servir contenido alternativo
+A) Configure S3 website hosting error document
+B) Configure CloudFront with an Origin Group that has a primary origin and a failover origin (another S3 bucket in another region)
+C) Configure Route 53 failover routing to two CloudFront distributions
+D) Use Lambda@Edge to detect errors and serve alternative content
 
 <details>
-<summary>Ver respuesta</summary>
+<summary>Show answer</summary>
 
-**Respuesta: B**
+**Answer: B**
 
-CloudFront Origin Groups permiten configurar failover automático a nivel de CDN. Si el origin primario devuelve errores (4xx, 5xx), CloudFront automáticamente redirige la request al origin secundario. Configurando un segundo bucket S3 en otra región como origin de failover, se obtiene resiliencia automática. La opción A solo muestra una página estática de error, no un sitio alternativo. La opción C requiere health checks adicionales y es más compleja. La opción D añade complejidad innecesaria.
+CloudFront Origin Groups allow configuring automatic failover at the CDN level. If the primary origin returns errors (4xx, 5xx), CloudFront automatically redirects the request to the secondary origin. Configuring a second S3 bucket in another region as the failover origin provides automatic resilience. Option A only displays a static error page, not an alternative site. Option C requires additional health checks and is more complex. Option D adds unnecessary complexity.
 
-**Servicio/concepto clave:** CloudFront Origin Groups, origin failover
+**Key service/concept:** CloudFront Origin Groups, origin failover
 </details>
 
 ---
 
-## Pregunta 10
+## Question 10
 
-Una aplicación móvil usa API Gateway + Lambda + DynamoDB. Durante picos de uso, la aplicación experimenta throttling en DynamoDB. La mayoría de las operaciones son lecturas de los mismos datos populares. ¿Cuál es la forma más eficaz de reducir la carga en DynamoDB y mejorar la resiliencia?
+A mobile application uses API Gateway + Lambda + DynamoDB. During usage spikes, the application experiences DynamoDB throttling. Most operations are reads of the same popular data. What is the most effective way to reduce load on DynamoDB and improve resilience?
 
-A) Cambiar DynamoDB a modo On-Demand
-B) Añadir DynamoDB Accelerator (DAX) como capa de cache
-C) Crear una read replica de DynamoDB
-D) Aumentar las RCU provisioned significativamente
+A) Switch DynamoDB to On-Demand mode
+B) Add DynamoDB Accelerator (DAX) as a cache layer
+C) Create a DynamoDB read replica
+D) Significantly increase provisioned RCUs
 
 <details>
-<summary>Ver respuesta</summary>
+<summary>Show answer</summary>
 
-**Respuesta: B**
+**Answer: B**
 
-DynamoDB Accelerator (DAX) es un cache in-memory totalmente gestionado para DynamoDB que reduce la latencia de milisegundos a microsegundos. Para patrones de lectura intensiva con datos repetidos (hot keys), DAX absorbe la carga de lectura y reduce dramáticamente las requests a DynamoDB. La opción A ayuda con el escalado pero es más cara para lecturas repetitivas. La opción C no existe en DynamoDB (no tiene read replicas como RDS). La opción D solo añade capacidad bruta sin resolver el problema de hot keys.
+DynamoDB Accelerator (DAX) is a fully managed in-memory cache for DynamoDB that reduces latency from milliseconds to microseconds. For read-intensive patterns with repeated data (hot keys), DAX absorbs the read load and dramatically reduces requests to DynamoDB. Option A helps with scaling but is more expensive for repetitive reads. Option C does not exist in DynamoDB (it does not have read replicas like RDS). Option D only adds raw capacity without solving the hot keys problem.
 
-**Servicio/concepto clave:** DynamoDB Accelerator (DAX), caching, hot partition mitigation
+**Key service/concept:** DynamoDB Accelerator (DAX), caching, hot partition mitigation
 </details>
 
 ---
 
-## Pregunta 11
+## Question 11
 
-Un arquitecto necesita diseñar una arquitectura para una aplicación que debe estar disponible incluso si una región AWS completa falla. La aplicación usa Aurora MySQL. ¿Cuál es la arquitectura correcta?
+An architect needs to design an architecture for an application that must be available even if an entire AWS region fails. The application uses Aurora MySQL. What is the correct architecture?
 
-A) Aurora Multi-AZ dentro de una región con backups automáticos
-B) Aurora Global Database con una región primaria y una región secundaria, más Route 53 failover routing
-C) RDS MySQL con read replica cross-region
-D) DynamoDB Global Tables como reemplazo de Aurora
+A) Aurora Multi-AZ within a region with automatic backups
+B) Aurora Global Database with a primary region and a secondary region, plus Route 53 failover routing
+C) RDS MySQL with cross-region read replica
+D) DynamoDB Global Tables as a replacement for Aurora
 
 <details>
-<summary>Ver respuesta</summary>
+<summary>Show answer</summary>
 
-**Respuesta: B**
+**Answer: B**
 
-Aurora Global Database replica datos a regiones secundarias con un RPO típico de ~1 segundo. Combinado con Route 53 failover routing (con health checks), si la región primaria falla, Route 53 redirige el tráfico a la región secundaria donde se puede promover el cluster de Aurora secundario a primario. La opción A solo protege contra fallos de AZ, no de región. La opción C funciona pero con RPO peor y failover manual. La opción D cambia completamente el tipo de base de datos.
+Aurora Global Database replicates data to secondary regions with a typical RPO of ~1 second. Combined with Route 53 failover routing (with health checks), if the primary region fails, Route 53 redirects traffic to the secondary region where the secondary Aurora cluster can be promoted to primary. Option A only protects against AZ failures, not region failures. Option C works but with worse RPO and manual failover. Option D completely changes the database type.
 
-**Servicio/concepto clave:** Aurora Global Database, Route 53 failover, multi-region DR
+**Key service/concept:** Aurora Global Database, Route 53 failover, multi-region DR
 </details>
 
 ---
 
-## Pregunta 12
+## Question 12
 
-Una empresa tiene una aplicación que procesa mensajes de una cola SQS. Ocasionalmente, un mensaje malformado causa que el consumer falle repetidamente, bloqueando el procesamiento de otros mensajes. ¿Cómo solucionar este problema?
+A company has an application that processes messages from an SQS queue. Occasionally, a malformed message causes the consumer to fail repeatedly, blocking the processing of other messages. How to solve this problem?
 
-A) Aumentar el visibility timeout a 24 horas
-B) Configurar una Dead Letter Queue (DLQ) con un maxReceiveCount bajo (ej: 3) para mover mensajes problemáticos fuera de la cola principal
-C) Configurar la cola para eliminar mensajes después del primer intento fallido
-D) Usar múltiples consumers para procesar más rápido
+A) Increase the visibility timeout to 24 hours
+B) Configure a Dead Letter Queue (DLQ) with a low maxReceiveCount (e.g., 3) to move problematic messages out of the main queue
+C) Configure the queue to delete messages after the first failed attempt
+D) Use multiple consumers to process faster
 
 <details>
-<summary>Ver respuesta</summary>
+<summary>Show answer</summary>
 
-**Respuesta: B**
+**Answer: B**
 
-Una **Dead Letter Queue (DLQ)** captura mensajes que no se pueden procesar después de un número máximo de intentos (maxReceiveCount). Configurando maxReceiveCount en 3, después de 3 intentos fallidos el mensaje se mueve a la DLQ, permitiendo que los demás mensajes se procesen normalmente. La DLQ permite analizar los mensajes problemáticos por separado. La opción A solo retrasa el problema. La opción C pierde datos. La opción D no resuelve el mensaje bloqueante.
+A **Dead Letter Queue (DLQ)** captures messages that cannot be processed after a maximum number of attempts (maxReceiveCount). Setting maxReceiveCount to 3, after 3 failed attempts the message is moved to the DLQ, allowing other messages to be processed normally. The DLQ allows analyzing problematic messages separately. Option A only delays the problem. Option C loses data. Option D does not solve the blocking message issue.
 
-**Servicio/concepto clave:** SQS Dead Letter Queue (DLQ), maxReceiveCount, poison messages
+**Key service/concept:** SQS Dead Letter Queue (DLQ), maxReceiveCount, poison messages
 </details>
 
 ---
 
-## Pregunta 13
+## Question 13
 
-Una aplicación necesita almacenar sesiones de usuario que deben estar disponibles para todas las instancias EC2 detrás de un ALB. Las sesiones deben sobrevivir al reciclaje de instancias y ser accesibles con latencia sub-milisegundo. ¿Cuál es la mejor solución?
+An application needs to store user sessions that must be available to all EC2 instances behind an ALB. Sessions must survive instance recycling and be accessible with sub-millisecond latency. What is the best solution?
 
-A) Usar ALB sticky sessions (session affinity)
-B) Almacenar sesiones en Amazon ElastiCache for Redis
-C) Almacenar sesiones en EBS volumes compartidos
-D) Almacenar sesiones en el sistema de archivos local de cada instancia
+A) Use ALB sticky sessions (session affinity)
+B) Store sessions in Amazon ElastiCache for Redis
+C) Store sessions on shared EBS volumes
+D) Store sessions on each instance's local file system
 
 <details>
-<summary>Ver respuesta</summary>
+<summary>Show answer</summary>
 
-**Respuesta: B**
+**Answer: B**
 
-ElastiCache for Redis es la solución estándar para almacenamiento de sesiones distribuido. Es accesible desde todas las instancias, tiene latencia sub-milisegundo, soporta replicación Multi-AZ para alta disponibilidad, y las sesiones sobreviven al reciclaje de instancias individuales. La opción A vincula usuarios a instancias específicas (si la instancia falla, se pierde la sesión). La opción C no es posible (EBS no se comparte así). La opción D pierde sesiones al reciclar.
+ElastiCache for Redis is the standard solution for distributed session storage. It is accessible from all instances, has sub-millisecond latency, supports Multi-AZ replication for high availability, and sessions survive individual instance recycling. Option A ties users to specific instances (if the instance fails, the session is lost). Option C is not possible (EBS is not shared that way). Option D loses sessions when recycling.
 
-**Servicio/concepto clave:** ElastiCache Redis, session store, stateless architecture
+**Key service/concept:** ElastiCache Redis, session store, stateless architecture
 </details>
 
 ---
 
-## Pregunta 14
+## Question 14
 
-Una empresa necesita un plan de backups centralizado para sus recursos en múltiples cuentas AWS (EC2, EBS, RDS, DynamoDB, EFS). Los backups deben seguir políticas consistentes y retenerse por 90 días. ¿Cuál es el servicio más adecuado?
+A company needs a centralized backup plan for their resources across multiple AWS accounts (EC2, EBS, RDS, DynamoDB, EFS). Backups must follow consistent policies and be retained for 90 days. What is the most appropriate service?
 
-A) Crear scripts de Lambda en cada cuenta para snapshots programados
-B) Usar AWS Backup con Backup Plans y Backup Policies de AWS Organizations
-C) Configurar cada servicio individualmente con sus backups nativos
-D) Usar S3 Cross-Region Replication para todos los datos
+A) Create Lambda scripts in each account for scheduled snapshots
+B) Use AWS Backup with Backup Plans and AWS Organizations Backup Policies
+C) Configure each service individually with its native backups
+D) Use S3 Cross-Region Replication for all data
 
 <details>
-<summary>Ver respuesta</summary>
+<summary>Show answer</summary>
 
-**Respuesta: B**
+**Answer: B**
 
-**AWS Backup** proporciona una solución centralizada para gestionar backups de múltiples servicios AWS. Con **Backup Plans** se definen políticas (frecuencia, retención, región de destino) y con **Backup Policies de AWS Organizations** se aplican consistentemente a todas las cuentas. Soporta EC2, EBS, RDS, Aurora, DynamoDB, EFS, FSx, y más. La opción A requiere desarrollo y mantenimiento custom. La opción C no es centralizada. La opción D no es una solución de backup general.
+**AWS Backup** provides a centralized solution for managing backups of multiple AWS services. With **Backup Plans** you define policies (frequency, retention, destination region) and with **AWS Organizations Backup Policies** you apply them consistently across all accounts. It supports EC2, EBS, RDS, Aurora, DynamoDB, EFS, FSx, and more. Option A requires custom development and maintenance. Option C is not centralized. Option D is not a general backup solution.
 
-**Servicio/concepto clave:** AWS Backup, Backup Plans, Organizations Backup Policies
+**Key service/concept:** AWS Backup, Backup Plans, Organizations Backup Policies
 </details>
 
 ---
 
-## Pregunta 15
+## Question 15
 
-Una aplicación usa un Network Load Balancer con instancias EC2 en un Auto Scaling Group. El equipo detecta que las instancias nuevas reciben tráfico antes de que la aplicación esté completamente lista, causando errores 503 temporales. ¿Cuál es la mejor solución?
+An application uses a Network Load Balancer with EC2 instances in an Auto Scaling Group. The team detects that new instances receive traffic before the application is fully ready, causing temporary 503 errors. What is the best solution?
 
-A) Aumentar el cooldown period del Auto Scaling Group
-B) Configurar health checks en el target group del NLB con un path que verifique que la aplicación está lista, y habilitar el slow start en el target group
-C) Usar instancias más grandes para que arranquen más rápido
-D) Reducir el número mínimo de instancias para que haya menos rotación
+A) Increase the cooldown period of the Auto Scaling Group
+B) Configure health checks on the NLB target group with a path that verifies the application is ready, and enable slow start on the target group
+C) Use larger instances so they boot faster
+D) Reduce the minimum number of instances to decrease rotation
 
 <details>
-<summary>Ver respuesta</summary>
+<summary>Show answer</summary>
 
-**Respuesta: B**
+**Answer: B**
 
-Configurar **health checks** adecuados en el target group asegura que el NLB solo envíe tráfico a instancias que pasen el health check (aplicación lista). Además, aunque NLB no soporta slow start directamente como ALB, configurar health checks con intervalos y thresholds apropiados asegura que las instancias nuevas no reciban tráfico hasta estar listas. También se puede usar lifecycle hooks en el ASG para mantener instancias en "Pending:Wait" hasta que la aplicación esté lista. La opción A no previene el envío de tráfico a instancias no preparadas. Las opciones C y D no resuelven el problema.
+Configuring proper **health checks** on the target group ensures that the NLB only sends traffic to instances that pass the health check (application ready). Additionally, although NLB does not directly support slow start like ALB, configuring health checks with appropriate intervals and thresholds ensures that new instances do not receive traffic until they are ready. ASG lifecycle hooks can also be used to keep instances in "Pending:Wait" until the application is ready. Option A does not prevent sending traffic to unready instances. Options C and D do not solve the problem.
 
-**Servicio/concepto clave:** Target Group health checks, ASG lifecycle hooks, instance readiness
+**Key service/concept:** Target Group health checks, ASG lifecycle hooks, instance readiness
 </details>

@@ -1,187 +1,187 @@
-# Networking - Cheat Sheet Rápido
+# Networking - Quick Cheat Sheet
 
-## Componentes de VPC
+## VPC Components
 
-| Componente | Descripción |
+| Component | Description |
 |-----------|-------------|
-| **VPC** | Red virtual aislada en AWS. Defines el rango CIDR (ej: 10.0.0.0/16). Máx 5 VPCs por región (ampliable) |
-| **Subnet** | Segmento de la VPC dentro de **una sola AZ**. Pública (con ruta a IGW) o privada |
-| **Internet Gateway (IGW)** | Permite comunicación entre la VPC y internet. Uno por VPC. Horizontally scaled |
-| **NAT Gateway** | Permite que instancias en subnets **privadas** accedan a internet (salida). Gestionado, alta disponibilidad en una AZ |
-| **NAT Instance** | Igual que NAT GW pero usando una instancia EC2 (más barato, menos escalable, más gestión) |
-| **Route Table** | Define las rutas de tráfico. Cada subnet se asocia a una route table |
-| **Elastic IP** | IPv4 estática pública. Se asocia a instancias o NAT Gateways |
-| **CIDR Block** | Rango de IPs de la VPC. Primario + hasta 4 secundarios. Mínimo /28, máximo /16 |
-| **ENI** | Elastic Network Interface — NIC virtual. Se puede mover entre instancias en la misma AZ |
-| **Flow Logs** | Captura tráfico IP (accept/reject) en VPC, subnet o ENI. Se envía a CloudWatch Logs o S3 |
+| **VPC** | Isolated virtual network in AWS. You define the CIDR range (e.g.: 10.0.0.0/16). Max 5 VPCs per region (expandable) |
+| **Subnet** | Segment of the VPC within **a single AZ**. Public (with route to IGW) or private |
+| **Internet Gateway (IGW)** | Enables communication between the VPC and the internet. One per VPC. Horizontally scaled |
+| **NAT Gateway** | Allows instances in **private** subnets to access the internet (outbound). Managed, high availability in one AZ |
+| **NAT Instance** | Same as NAT GW but using an EC2 instance (cheaper, less scalable, more management) |
+| **Route Table** | Defines traffic routes. Each subnet is associated with a route table |
+| **Elastic IP** | Static public IPv4. Associated with instances or NAT Gateways |
+| **CIDR Block** | IP range of the VPC. Primary + up to 4 secondary. Minimum /28, maximum /16 |
+| **ENI** | Elastic Network Interface — virtual NIC. Can be moved between instances in the same AZ |
+| **Flow Logs** | Captures IP traffic (accept/reject) at VPC, subnet, or ENI level. Sent to CloudWatch Logs or S3 |
 
-> **Clave examen:**
-> - **NAT Gateway** para alta disponibilidad → desplegar uno **por AZ**.
-> - **IGW** es necesario para que una subnet sea pública (+ route table con ruta 0.0.0.0/0 → IGW + IP pública).
+> **Exam key:**
+> - **NAT Gateway** for high availability → deploy one **per AZ**.
+> - **IGW** is required for a subnet to be public (+ route table with 0.0.0.0/0 → IGW route + public IP).
 
 ---
 
 ## Security Groups vs NACLs
 
-| Característica | Security Group | Network ACL (NACL) |
-|---------------|----------------|-------------------|
-| **Nivel** | **Instancia** (ENI) | **Subnet** |
-| **Tipo** | **Stateful** | **Stateless** |
-| **Reglas** | Solo **ALLOW** | ALLOW **y DENY** |
-| **Evaluación** | Todas las reglas se evalúan antes de decidir | Reglas evaluadas **en orden numérico** (primera coincidencia gana) |
-| **Tráfico de retorno** | **Automático** (stateful) | Debe permitirse **explícitamente** (stateless) |
-| **Default (VPC)** | Deny all inbound, Allow all outbound | Allow all inbound y outbound |
-| **Default (custom)** | Deny all inbound, Allow all outbound | **Deny all** inbound y outbound |
-| **Asociación** | Se asigna a instancias | Se asigna a **subnets** |
-| **Cantidad** | Hasta 5 SGs por ENI | 1 NACL por subnet |
+| Feature | Security Group | Network ACL (NACL) |
+|---------|----------------|-------------------|
+| **Level** | **Instance** (ENI) | **Subnet** |
+| **Type** | **Stateful** | **Stateless** |
+| **Rules** | Only **ALLOW** | ALLOW **and DENY** |
+| **Evaluation** | All rules evaluated before deciding | Rules evaluated **in numerical order** (first match wins) |
+| **Return traffic** | **Automatic** (stateful) | Must be **explicitly** allowed (stateless) |
+| **Default (VPC)** | Deny all inbound, Allow all outbound | Allow all inbound and outbound |
+| **Default (custom)** | Deny all inbound, Allow all outbound | **Deny all** inbound and outbound |
+| **Association** | Assigned to instances | Assigned to **subnets** |
+| **Quantity** | Up to 5 SGs per ENI | 1 NACL per subnet |
 
 ```
 Internet → NACL (subnet-level) → Security Group (instance-level) → EC2 Instance
                                                                          │
-EC2 Instance → Security Group (auto-allow return) → NACL (necesita regla outbound) → Internet
+EC2 Instance → Security Group (auto-allow return) → NACL (needs outbound rule) → Internet
 ```
 
-> **Regla examen:**
-> - "Bloquear una IP específica" → **NACL** (puede hacer DENY explícito)
-> - "Permitir tráfico entre instancias" → **Security Group** (referenciar otro SG)
+> **Exam rule:**
+> - "Block a specific IP" → **NACL** (can do explicit DENY)
+> - "Allow traffic between instances" → **Security Group** (reference another SG)
 > - "Stateful" = Security Group. "Stateless" = NACL.
 
 ---
 
-## Tipos de Elastic Load Balancer (ELB)
+## Elastic Load Balancer (ELB) Types
 
-| Característica | ALB | NLB | GLB |
-|---------------|-----|-----|-----|
-| **Nombre completo** | Application Load Balancer | Network Load Balancer | Gateway Load Balancer |
-| **Capa OSI** | **Layer 7** (HTTP/HTTPS) | **Layer 4** (TCP/UDP/TLS) | **Layer 3** (IP) |
-| **Protocolo** | HTTP, HTTPS, gRPC, WebSocket | TCP, UDP, TLS | IP (GENEVE encapsulation) |
-| **Rendimiento** | Bueno | **Ultra-alto** (millones de req/s) | Alto |
-| **Latencia** | ~400 ms | **~100 μs** (ultra-baja) | Variable |
-| **IP estática** | No (DNS name) | **Sí** (Elastic IP por AZ) | No |
-| **SSL termination** | Sí | Sí | No |
-| **Routing avanzado** | **Sí** (path, host, header, query string) | No | No |
-| **Sticky sessions** | Sí | No (flow hash) | No |
-| **Targets** | Instancias, IPs, Lambda, containers | Instancias, IPs, ALB | Instancias, IPs (appliances) |
-| **Caso de uso** | Apps web, microservicios, content routing | Gaming, IoT, ultra-baja latencia, IP estática | Firewalls, IDS/IPS, deep packet inspection |
+| Feature | ALB | NLB | GLB |
+|---------|-----|-----|-----|
+| **Full name** | Application Load Balancer | Network Load Balancer | Gateway Load Balancer |
+| **OSI layer** | **Layer 7** (HTTP/HTTPS) | **Layer 4** (TCP/UDP/TLS) | **Layer 3** (IP) |
+| **Protocol** | HTTP, HTTPS, gRPC, WebSocket | TCP, UDP, TLS | IP (GENEVE encapsulation) |
+| **Performance** | Good | **Ultra-high** (millions of req/s) | High |
+| **Latency** | ~400 ms | **~100 us** (ultra-low) | Variable |
+| **Static IP** | No (DNS name) | **Yes** (Elastic IP per AZ) | No |
+| **SSL termination** | Yes | Yes | No |
+| **Advanced routing** | **Yes** (path, host, header, query string) | No | No |
+| **Sticky sessions** | Yes | No (flow hash) | No |
+| **Targets** | Instances, IPs, Lambda, containers | Instances, IPs, ALB | Instances, IPs (appliances) |
+| **Use case** | Web apps, microservices, content routing | Gaming, IoT, ultra-low latency, static IP | Firewalls, IDS/IPS, deep packet inspection |
 
-> **Trucos examen:**
-> - "Routing basado en URL path" → **ALB**
-> - "IP estática" o "ultra-baja latencia" → **NLB**
-> - "Inspeccionar tráfico con appliance de terceros" → **GLB**
-> - "Necesito tanto IP estática como routing L7" → **NLB delante de ALB**
+> **Exam tricks:**
+> - "URL path-based routing" → **ALB**
+> - "Static IP" or "ultra-low latency" → **NLB**
+> - "Inspect traffic with third-party appliance" → **GLB**
+> - "Need both static IP and L7 routing" → **NLB in front of ALB**
 
 ---
 
 ## Route 53 - Routing Policies
 
-| Política | Descripción | Caso de uso |
-|----------|-------------|-------------|
-| **Simple** | Un registro, uno o más valores. Route 53 devuelve todos, cliente elige aleatoriamente | Sitio web simple sin requisitos especiales |
-| **Weighted** | Distribuye tráfico según **pesos asignados** (0-255) | A/B testing, despliegue gradual (10% nuevo, 90% viejo) |
-| **Latency-based** | Redirige al recurso con **menor latencia** desde el usuario | Apps multi-región, optimizar experiencia del usuario |
-| **Failover** | Activo/pasivo con **health checks**. Si primario falla, redirige a secundario | DR activo-pasivo, sitios estáticos S3 de backup |
-| **Geolocation** | Routing basado en la **ubicación geográfica** del usuario (continente, país) | Contenido localizado, restricciones legales por país |
-| **Geoproximity** | Routing basado en distancia geográfica + **bias** para ampliar/reducir zona | Control granular de distribución de tráfico por región |
-| **Multi-value answer** | Devuelve múltiples IPs **con health checks** por cada una | Balanceo simple client-side con health checking |
-| **IP-based** | Routing basado en el **rango IP del cliente** (CIDR blocks) | ISPs específicos, rangos IP de oficinas corporativas |
+| Policy | Description | Use Case |
+|--------|-------------|----------|
+| **Simple** | One record, one or more values. Route 53 returns all, client picks randomly | Simple website with no special requirements |
+| **Weighted** | Distributes traffic by **assigned weights** (0-255) | A/B testing, gradual deployment (10% new, 90% old) |
+| **Latency-based** | Routes to the resource with **lowest latency** from the user | Multi-region apps, optimize user experience |
+| **Failover** | Active/passive with **health checks**. If primary fails, redirects to secondary | Active-passive DR, static S3 backup sites |
+| **Geolocation** | Routing based on the user's **geographic location** (continent, country) | Localized content, legal restrictions by country |
+| **Geoproximity** | Routing based on geographic distance + **bias** to expand/reduce zone | Granular control of traffic distribution by region |
+| **Multi-value answer** | Returns multiple IPs **with health checks** for each one | Simple client-side balancing with health checking |
+| **IP-based** | Routing based on the **client's IP range** (CIDR blocks) | Specific ISPs, corporate office IP ranges |
 
-> **Clave examen:**
-> - "Menor latencia para usuarios globales" → **Latency-based**
-> - "DR activo/pasivo" → **Failover**
-> - "Contenido diferente según país" → **Geolocation**
-> - "Despliegue gradual / canary" → **Weighted**
+> **Exam key:**
+> - "Lowest latency for global users" → **Latency-based**
+> - "Active/passive DR" → **Failover**
+> - "Different content by country" → **Geolocation**
+> - "Gradual deployment / canary" → **Weighted**
 
 ---
 
 ## CloudFront vs Global Accelerator
 
-| Característica | CloudFront | Global Accelerator |
-|---------------|------------|-------------------|
-| **Tipo** | CDN (Content Delivery Network) | Network layer accelerator |
-| **Contenido** | **Cachea contenido** en edge locations | **No cachea** — proxy a nivel de red |
-| **Protocolo** | HTTP/HTTPS | TCP/UDP (cualquier protocolo) |
-| **IPs** | Dominio DNS (d123.cloudfront.net) | **2 IPs Anycast estáticas** |
-| **Edge Locations** | 400+ PoPs globales | Misma red de edge |
-| **Caso de uso** | Contenido estático/dinámico web, streaming, APIs | Apps TCP/UDP no-HTTP, gaming, IoT, IP estática global |
-| **DDoS** | AWS Shield Standard incluido | AWS Shield Standard incluido |
-| **Failover** | Origin failover groups | Endpoint health checks + failover instantáneo |
+| Feature | CloudFront | Global Accelerator |
+|---------|------------|-------------------|
+| **Type** | CDN (Content Delivery Network) | Network layer accelerator |
+| **Content** | **Caches content** at edge locations | **Does not cache** — network-level proxy |
+| **Protocol** | HTTP/HTTPS | TCP/UDP (any protocol) |
+| **IPs** | DNS domain (d123.cloudfront.net) | **2 static Anycast IPs** |
+| **Edge Locations** | 400+ global PoPs | Same edge network |
+| **Use case** | Static/dynamic web content, streaming, APIs | Non-HTTP TCP/UDP apps, gaming, IoT, global static IP |
+| **DDoS** | AWS Shield Standard included | AWS Shield Standard included |
+| **Failover** | Origin failover groups | Endpoint health checks + instant failover |
 
-> **Regla examen:**
-> - "Acelerar contenido web / API / estático" → **CloudFront**
-> - "IPs estáticas globales" o "protocolo no-HTTP" → **Global Accelerator**
-> - "Ambos" si necesitan IP estática + contenido HTTP → **Global Accelerator delante de ALB**
+> **Exam rule:**
+> - "Accelerate web content / API / static" → **CloudFront**
+> - "Global static IPs" or "non-HTTP protocol" → **Global Accelerator**
+> - "Both" if they need static IP + HTTP content → **Global Accelerator in front of ALB**
 
 ---
 
 ## VPN vs Direct Connect
 
-| Característica | Site-to-Site VPN | Direct Connect (DX) |
-|---------------|------------------|---------------------|
-| **Conexión** | Internet (cifrada con IPSec) | Fibra dedicada privada |
-| **Tiempo de setup** | **Minutos** | **Semanas a meses** |
-| **Ancho de banda** | Limitado por internet (~1.25 Gbps por túnel) | **1 Gbps, 10 Gbps, 100 Gbps** (dedicado) |
-| **Latencia** | Variable (internet) | **Consistente y baja** |
-| **Costo** | Menor (por hora + datos) | Mayor (puerto mensual + datos) |
-| **Cifrado** | **Sí** (IPSec nativo) | **No** nativo (añadir VPN sobre DX para cifrado) |
-| **Redundancia** | Dos túneles por defecto | Segundo DX o VPN backup |
-| **Caso de uso** | Conexión rápida, backup de DX, tráfico bajo-medio | Alto ancho de banda sostenido, compliance, latencia crítica |
+| Feature | Site-to-Site VPN | Direct Connect (DX) |
+|---------|------------------|---------------------|
+| **Connection** | Internet (encrypted with IPSec) | Dedicated private fiber |
+| **Setup time** | **Minutes** | **Weeks to months** |
+| **Bandwidth** | Limited by internet (~1.25 Gbps per tunnel) | **1 Gbps, 10 Gbps, 100 Gbps** (dedicated) |
+| **Latency** | Variable (internet) | **Consistent and low** |
+| **Cost** | Lower (per hour + data) | Higher (monthly port + data) |
+| **Encryption** | **Yes** (native IPSec) | **Not** native (add VPN over DX for encryption) |
+| **Redundancy** | Two tunnels by default | Second DX or VPN backup |
+| **Use case** | Quick connection, DX backup, low-medium traffic | High sustained bandwidth, compliance, critical latency |
 
-> **Claves examen:**
-> - "Conexión **inmediata** a VPC desde on-prem" → **VPN** (DX tarda semanas)
-> - "Conexión **dedicada y consistente**" → **Direct Connect**
-> - "Direct Connect + cifrado" → **VPN sobre Direct Connect**
-> - "Backup de Direct Connect económico" → **VPN como failover**
+> **Exam keys:**
+> - "**Immediate** connection to VPC from on-prem" → **VPN** (DX takes weeks)
+> - "**Dedicated and consistent** connection" → **Direct Connect**
+> - "Direct Connect + encryption" → **VPN over Direct Connect**
+> - "Economical Direct Connect backup" → **VPN as failover**
 
 ---
 
-## Opciones de Conectividad VPC
+## VPC Connectivity Options
 
-| Opción | Descripción | Límites / Notas |
-|--------|-------------|-----------------|
-| **VPC Peering** | Conexión directa entre 2 VPCs (misma o diferente cuenta/región) | **No transitivo** — A↔B y B↔C no implica A↔C. CIDRs no deben solaparse |
-| **Transit Gateway (TGW)** | Hub central que conecta múltiples VPCs, VPNs y Direct Connects | **Transitivo**. Ideal para redes complejas con muchas VPCs. Hasta 5,000 attachments |
-| **VPC Endpoint (Gateway)** | Acceso privado a **S3 y DynamoDB** sin salir a internet | Gratis. Se configura en route table. Solo S3 y DynamoDB |
-| **VPC Endpoint (Interface)** | Acceso privado a otros servicios AWS vía **ENI con IP privada** (PrivateLink) | Costo por hora + datos. Para la mayoría de servicios AWS y servicios de terceros |
-| **AWS PrivateLink** | Exponer tu servicio a otras VPCs de forma privada vía NLB + Interface Endpoint | Unidireccional. Consumer solo necesita Interface Endpoint |
-| **VPN CloudHub** | Conectar múltiples sites on-prem entre sí a través del Virtual Private Gateway | Hub-and-spoke sobre VPN. Económico |
+| Option | Description | Limits / Notes |
+|--------|-------------|----------------|
+| **VPC Peering** | Direct connection between 2 VPCs (same or different account/region) | **Not transitive** — A↔B and B↔C does not imply A↔C. CIDRs must not overlap |
+| **Transit Gateway (TGW)** | Central hub connecting multiple VPCs, VPNs, and Direct Connects | **Transitive**. Ideal for complex networks with many VPCs. Up to 5,000 attachments |
+| **VPC Endpoint (Gateway)** | Private access to **S3 and DynamoDB** without going to the internet | Free. Configured in route table. S3 and DynamoDB only |
+| **VPC Endpoint (Interface)** | Private access to other AWS services via **ENI with private IP** (PrivateLink) | Hourly + data cost. For most AWS services and third-party services |
+| **AWS PrivateLink** | Expose your service to other VPCs privately via NLB + Interface Endpoint | Unidirectional. Consumer only needs Interface Endpoint |
+| **VPN CloudHub** | Connect multiple on-prem sites through the Virtual Private Gateway | Hub-and-spoke over VPN. Economical |
 
 ```
 VPC Peering (2 VPCs):          Transit Gateway (hub-and-spoke):
 
   VPC-A ←──→ VPC-B                 VPC-A ─┐
-  (directo, no transitivo)         VPC-B ─┤── TGW ──┤── VPN
+  (direct, not transitive)        VPC-B ─┤── TGW ──┤── VPN
                                    VPC-C ─┘         └── DX
 
 VPC Endpoints:
-  EC2 (subnet privada) ──→ Gateway Endpoint ──→ S3
-  EC2 (subnet privada) ──→ Interface Endpoint (ENI) ──→ Cualquier servicio AWS
+  EC2 (private subnet) ──→ Gateway Endpoint ──→ S3
+  EC2 (private subnet) ──→ Interface Endpoint (ENI) ──→ Any AWS service
 ```
 
-> **Regla examen:**
-> - "Conectar 2-3 VPCs" → **VPC Peering** (simple, sin costo de TGW)
-> - "Conectar muchas VPCs + on-prem" → **Transit Gateway**
-> - "Acceso privado a S3 sin internet" → **Gateway Endpoint** (gratis)
-> - "Acceso privado a otros servicios" → **Interface Endpoint / PrivateLink**
-> - "Exponer tu servicio a otras cuentas" → **PrivateLink (NLB + Interface Endpoint)**
+> **Exam rule:**
+> - "Connect 2-3 VPCs" → **VPC Peering** (simple, no TGW cost)
+> - "Connect many VPCs + on-prem" → **Transit Gateway**
+> - "Private access to S3 without internet" → **Gateway Endpoint** (free)
+> - "Private access to other services" → **Interface Endpoint / PrivateLink**
+> - "Expose your service to other accounts" → **PrivateLink (NLB + Interface Endpoint)**
 
 ---
 
-## Resumen de Decisiones Rápidas - Networking
+## Quick Decision Summary - Networking
 
 ```
-PREGUNTA DEL EXAMEN                                    → RESPUESTA
+EXAM QUESTION                                        → ANSWER
 ────────────────────────────────────────────────────────────────────
-"Balanceo HTTP con routing por URL path"                → ALB
-"Ultra-baja latencia / IP estática en LB"               → NLB
-"Inspección de tráfico por appliance"                   → GLB (Gateway LB)
-"Bloquear IP específica"                                → NACL (DENY rule)
-"DR activo/pasivo con DNS"                              → Route 53 Failover
-"Menor latencia para usuarios globales"                 → Route 53 Latency-based
-"CDN para contenido estático/dinámico"                  → CloudFront
-"IP Anycast estáticas globales"                         → Global Accelerator
-"Conectar on-prem rápidamente"                          → Site-to-Site VPN
-"Conexión dedicada de alto ancho de banda"              → Direct Connect
-"Conectar muchas VPCs centralizadamente"                → Transit Gateway
-"Acceso privado a S3 desde VPC"                         → Gateway Endpoint (gratis)
-"Exponer servicio privado a otra cuenta"                → PrivateLink
+"HTTP load balancing with URL path routing"           → ALB
+"Ultra-low latency / static IP on LB"                 → NLB
+"Traffic inspection by appliance"                     → GLB (Gateway LB)
+"Block specific IP"                                   → NACL (DENY rule)
+"Active/passive DR with DNS"                          → Route 53 Failover
+"Lowest latency for global users"                     → Route 53 Latency-based
+"CDN for static/dynamic content"                      → CloudFront
+"Global static Anycast IPs"                           → Global Accelerator
+"Connect on-prem quickly"                             → Site-to-Site VPN
+"Dedicated high-bandwidth connection"                 → Direct Connect
+"Centrally connect many VPCs"                         → Transit Gateway
+"Private access to S3 from VPC"                       → Gateway Endpoint (free)
+"Expose private service to another account"           → PrivateLink
 ```

@@ -1,94 +1,94 @@
-# Lab 07: Data Pipeline - Streaming y Batch
+# Lab 07: Data Pipeline - Streaming and Batch
 
-## Objetivo
+## Objective
 
-Construir un pipeline de datos completo que procese datos tanto en streaming (tiempo real) como en batch, utilizando los servicios de analítica de AWS.
+Build a complete data pipeline that processes data both in streaming (real-time) and batch, using AWS analytics services.
 
-## Arquitectura
+## Architecture
 
 ```
-                                    ┌─────────────────┐
-                                    │   Lambda         │
-                                    │   (real-time     │
-                                    │    processing)   │
-                                    └────────▲─────────┘
-                                             │
-┌──────────┐    ┌─────────────────┐    ┌─────┴──────────┐    ┌─────────────────┐
-│ Producers│───▶│ Kinesis Data    │───▶│ Kinesis Data   │───▶│ S3 Data Lake    │
-│ (apps,   │    │ Streams         │    │ Firehose       │    │ (raw/processed) │
-│ sensors) │    │ (1 shard)       │    │ (buffer 60s)   │    │                 │
-└──────────┘    └─────────────────┘    └────────────────┘    └────────┬────────┘
-                                                                      │
-                                                              ┌───────▼────────┐
-                                                              │ AWS Glue       │
-                                                              │ Catalog        │
-                                                              │ (schema)       │
-                                                              └───────┬────────┘
-                                                                      │
-                                                              ┌───────▼────────┐
-                                                              │ Amazon Athena  │
-                                                              │ (SQL queries)  │
-                                                              └────────────────┘
+                                    +------------------+
+                                    |   Lambda         |
+                                    |   (real-time     |
+                                    |    processing)   |
+                                    +--------^---------+
+                                             |
++-----------+    +------------------+    +----+-------------+    +------------------+
+| Producers |-->| Kinesis Data     |--->| Kinesis Data     |--->| S3 Data Lake     |
+| (apps,    |    | Streams          |    | Firehose         |    | (raw/processed)  |
+| sensors)  |    | (1 shard)        |    | (buffer 60s)     |    |                  |
++-----------+    +------------------+    +------------------+    +--------+---------+
+                                                                          |
+                                                                  +-------v--------+
+                                                                  | AWS Glue       |
+                                                                  | Catalog        |
+                                                                  | (schema)       |
+                                                                  +-------+--------+
+                                                                          |
+                                                                  +-------v--------+
+                                                                  | Amazon Athena  |
+                                                                  | (SQL queries)  |
+                                                                  +----------------+
 ```
 
-## Qué vas a aprender
+## What you will learn
 
-- **Kinesis Data Streams**: ingesta de datos en streaming con shards y particiones
-- **Kinesis Data Firehose**: entrega automática de datos a destinos (S3, Redshift, etc.)
-- **Data Lake en S3**: almacenamiento centralizado de datos con lifecycle policies
-- **AWS Glue Catalog**: catálogo de metadatos para definir esquemas de datos
-- **Amazon Athena**: consultas SQL serverless sobre datos en S3
-- **Lambda con Kinesis**: procesamiento en tiempo real de eventos del stream
+- **Kinesis Data Streams**: streaming data ingestion with shards and partitions
+- **Kinesis Data Firehose**: automatic data delivery to destinations (S3, Redshift, etc.)
+- **Data Lake on S3**: centralized data storage with lifecycle policies
+- **AWS Glue Catalog**: metadata catalog for defining data schemas
+- **Amazon Athena**: serverless SQL queries on data in S3
+- **Lambda with Kinesis**: real-time event processing from the stream
 
-## Componentes desplegados
+## Deployed Components
 
-| Recurso | Descripción | Coste estimado |
+| Resource | Description | Estimated cost |
 |---------|-------------|----------------|
-| Kinesis Data Stream | 1 shard para ingesta | ~$0.36/día |
-| Kinesis Firehose | Delivery stream a S3 | ~$0.01/GB |
-| S3 Data Lake | Almacenamiento de datos | ~$0.023/GB/mes |
-| Lambda | Procesador en tiempo real | Free tier |
-| Glue Catalog | Catálogo de metadatos | Free (primeras 1M objects) |
-| Athena | Consultas SQL | ~$5/TB escaneado |
+| Kinesis Data Stream | 1 shard for ingestion | ~$0.36/day |
+| Kinesis Firehose | Delivery stream to S3 | ~$0.01/GB |
+| S3 Data Lake | Data storage | ~$0.023/GB/month |
+| Lambda | Real-time processor | Free tier |
+| Glue Catalog | Metadata catalog | Free (first 1M objects) |
+| Athena | SQL queries | ~$5/TB scanned |
 
-## Coste estimado total
+## Estimated Total Cost
 
-**~$1-2/día** (principalmente por el shard de Kinesis activo 24/7)
+**~$1-2/day** (mainly due to the Kinesis shard active 24/7)
 
-> **Nota**: El shard de Kinesis tiene un coste fijo por hora. Destruye la infraestructura cuando no la estés usando.
+> **Note**: The Kinesis shard has a fixed hourly cost. Destroy the infrastructure when you are not using it.
 
-## Cómo desplegar
+## How to Deploy
 
 ```bash
-# Inicializar Terraform
+# Initialize Terraform
 terraform init
 
-# Ver el plan de ejecución
+# View the execution plan
 terraform plan
 
-# Desplegar la infraestructura
+# Deploy the infrastructure
 terraform apply
 
-# Cuando termines, destruir todo
+# When finished, destroy everything
 terraform destroy
 ```
 
-## Cómo enviar datos de prueba al stream
+## How to Send Test Data to the Stream
 
-Usa el script `test_producer.py` incluido para enviar eventos simulados de sensores:
+Use the included `test_producer.py` script to send simulated sensor events:
 
 ```bash
-# Instalar dependencias
+# Install dependencies
 pip install boto3
 
-# Enviar 100 registros de prueba
+# Send 100 test records
 python test_producer.py
 
-# Enviar registros continuamente (1 por segundo)
+# Send records continuously (1 per second)
 python test_producer.py --continuous
 ```
 
-El script envía registros JSON con este formato:
+The script sends JSON records in this format:
 
 ```json
 {
@@ -100,41 +100,41 @@ El script envía registros JSON con este formato:
 }
 ```
 
-## Consultar datos con Athena
+## Query Data with Athena
 
-Una vez que Firehose haya entregado datos a S3 (espera al menos 60 segundos por el buffer):
+Once Firehose has delivered data to S3 (wait at least 60 seconds for the buffer):
 
 ```sql
--- Consultar los últimos registros
+-- Query the latest records
 SELECT * FROM sensor_data
 ORDER BY timestamp DESC
 LIMIT 10;
 
--- Temperatura promedio por sensor
+-- Average temperature per sensor
 SELECT sensor_id, AVG(temperature) as avg_temp
 FROM sensor_data
 GROUP BY sensor_id;
 
--- Alertas de temperatura alta
+-- High temperature alerts
 SELECT sensor_id, temperature, timestamp
 FROM sensor_data
 WHERE temperature > 30.0
 ORDER BY timestamp DESC;
 ```
 
-## Conceptos clave para el examen
+## Key Concepts for the Exam
 
-1. **Kinesis Data Streams vs Firehose**: Streams requiere consumidores personalizados, Firehose entrega automáticamente a destinos
-2. **Shards**: cada shard soporta 1MB/s entrada y 2MB/s salida
-3. **Partition Key**: determina a qué shard va cada registro
-4. **Firehose Buffer**: configurable por tiempo (60-900s) y tamaño (1-128MB)
-5. **Athena**: serverless, paga por datos escaneados, usa formato columnar (Parquet) para optimizar
-6. **Glue Catalog**: compatible con Hive metastore, central para servicios de analítica
+1. **Kinesis Data Streams vs Firehose**: Streams requires custom consumers, Firehose automatically delivers to destinations
+2. **Shards**: each shard supports 1MB/s input and 2MB/s output
+3. **Partition Key**: determines which shard each record goes to
+4. **Firehose Buffer**: configurable by time (60-900s) and size (1-128MB)
+5. **Athena**: serverless, pay per data scanned, use columnar format (Parquet) to optimize
+6. **Glue Catalog**: compatible with Hive metastore, central for analytics services
 
-## Limpieza
+## Cleanup
 
 ```bash
 terraform destroy
 ```
 
-> **Importante**: Verifica que los buckets S3 estén vacíos. Terraform puede fallar al eliminar buckets con objetos.
+> **Important**: Verify that S3 buckets are empty. Terraform may fail when deleting buckets with objects.

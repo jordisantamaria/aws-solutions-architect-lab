@@ -1,15 +1,15 @@
-# Arbol de Decisión: Selección de Servicio de Mensajería
+# Decision Tree: Messaging Service Selection
 
-## Pregunta Principal: ¿Qué necesitas comunicar y cómo?
+## Main Question: What do you need to communicate and how?
 
 ```
-¿Qué tipo de comunicación necesitas?
+What type of communication do you need?
 │
-├── NOTIFICACIONES (Pub/Sub - enviar a múltiples suscriptores)
+├── NOTIFICATIONS (Pub/Sub - send to multiple subscribers)
 │   │
 │   └──→ Amazon SNS (Simple Notification Service)
 │        │
-│        ├── Suscriptores posibles:
+│        ├── Possible subscribers:
 │        │   ├── SQS queues (fan-out pattern)
 │        │   ├── Lambda functions
 │        │   ├── HTTP/HTTPS endpoints
@@ -17,128 +17,128 @@
 │        │   ├── SMS
 │        │   └── Mobile push (APNs, FCM)
 │        │
-│        ├── Características:
-│        │   ├── Push-based (SNS envía a suscriptores)
-│        │   ├── Hasta 12.5M suscriptores por topic
-│        │   ├── Hasta 100,000 topics
-│        │   ├── Message filtering por atributos
-│        │   └── No retiene mensajes (si no hay suscriptor, se pierde)
+│        ├── Features:
+│        │   ├── Push-based (SNS sends to subscribers)
+│        │   ├── Up to 12.5M subscribers per topic
+│        │   ├── Up to 100,000 topics
+│        │   ├── Message filtering by attributes
+│        │   └── Does not retain messages (if no subscriber, message is lost)
 │        │
-│        └── Precio: Por publicación + entrega
+│        └── Pricing: Per publish + delivery
 │
-├── COLA DE MENSAJES (desacoplar productores y consumidores)
+├── MESSAGE QUEUE (decouple producers and consumers)
 │   │
 │   └──→ Amazon SQS (Simple Queue Service)
 │        │
-│        ├── ¿Qué tipo de cola?
+│        ├── What type of queue?
 │        │   │
-│        │   ├── ¿Necesitas orden EXACTO y deduplicación?
+│        │   ├── Do you need EXACT order and deduplication?
 │        │   │   └──→ SQS FIFO
-│        │   │       ├── Orden garantizado (FIFO)
+│        │   │       ├── Guaranteed order (FIFO)
 │        │   │       ├── Exactly-once processing
-│        │   │       ├── Hasta 300 msg/s (3,000 con batching)
-│        │   │       └── Ideal: transacciones financieras, flujos ordenados
+│        │   │       ├── Up to 300 msg/s (3,000 with batching)
+│        │   │       └── Ideal: financial transactions, ordered workflows
 │        │   │
-│        │   └── ¿Máximo throughput, sin importar orden estricto?
+│        │   └── Maximum throughput, strict order not required?
 │        │       └──→ SQS Standard
-│        │           ├── Throughput ilimitado
-│        │           ├── At-least-once delivery (posibles duplicados)
+│        │           ├── Unlimited throughput
+│        │           ├── At-least-once delivery (possible duplicates)
 │        │           ├── Best-effort ordering
-│        │           └── Ideal: desacoplamiento general, procesamiento async
+│        │           └── Ideal: general decoupling, async processing
 │        │
-│        ├── Características comunes:
-│        │   ├── Pull-based (consumidores piden mensajes)
-│        │   ├── Retención: 1 min a 14 días (default 4 días)
-│        │   ├── Visibility timeout: evitar procesamiento duplicado
-│        │   ├── Dead Letter Queue (DLQ): mensajes fallidos
-│        │   ├── Long polling: reduce costos (espera hasta 20s)
-│        │   └── Tamaño máximo mensaje: 256 KB
+│        ├── Common features:
+│        │   ├── Pull-based (consumers request messages)
+│        │   ├── Retention: 1 min to 14 days (default 4 days)
+│        │   ├── Visibility timeout: prevent duplicate processing
+│        │   ├── Dead Letter Queue (DLQ): failed messages
+│        │   ├── Long polling: reduces costs (waits up to 20s)
+│        │   └── Maximum message size: 256 KB
 │        │
-│        └── Precio: Por request (muy económico)
+│        └── Pricing: Per request (very economical)
 │
-├── ENRUTAMIENTO DE EVENTOS (reglas, filtros, múltiples destinos)
+├── EVENT ROUTING (rules, filters, multiple destinations)
 │   │
 │   └──→ Amazon EventBridge
 │        │
-│        ├── Características:
-│        │   ├── Event bus centralizado
-│        │   ├── Reglas con patrones de filtrado
+│        ├── Features:
+│        │   ├── Centralized event bus
+│        │   ├── Rules with filtering patterns
 │        │   ├── Schema registry / discovery
-│        │   ├── Eventos de servicios AWS nativos
-│        │   ├── Eventos de SaaS (Zendesk, Datadog, Shopify, etc.)
-│        │   ├── Archive & replay de eventos
-│        │   ├── Eventos programados (cron/rate)
-│        │   └── Pipes: point-to-point con transformación
+│        │   ├── Native AWS service events
+│        │   ├── SaaS events (Zendesk, Datadog, Shopify, etc.)
+│        │   ├── Archive & replay of events
+│        │   ├── Scheduled events (cron/rate)
+│        │   └── Pipes: point-to-point with transformation
 │        │
-│        ├── Destinos: Lambda, SQS, SNS, Step Functions, API Gateway,
-│        │   Kinesis, ECS tasks, CodePipeline, y más
+│        ├── Destinations: Lambda, SQS, SNS, Step Functions, API Gateway,
+│        │   Kinesis, ECS tasks, CodePipeline, and more
 │        │
-│        └── vs CloudWatch Events: EventBridge es la evolución
-│            (misma API subyacente, más features)
+│        └── vs CloudWatch Events: EventBridge is the evolution
+│            (same underlying API, more features)
 │
-├── ORQUESTACIÓN / WORKFLOWS (pasos, decisiones, reintentos)
+├── ORCHESTRATION / WORKFLOWS (steps, decisions, retries)
 │   │
 │   └──→ AWS Step Functions
 │        │
-│        ├── Tipos:
-│        │   ├── Standard: hasta 1 año de duración, exactly-once
-│        │   └── Express: hasta 5 minutos, at-least-once, alto throughput
+│        ├── Types:
+│        │   ├── Standard: up to 1 year duration, exactly-once
+│        │   └── Express: up to 5 minutes, at-least-once, high throughput
 │        │
-│        ├── Características:
-│        │   ├── Máquinas de estado visuales (ASL - JSON)
-│        │   ├── Manejo de errores y reintentos integrado
+│        ├── Features:
+│        │   ├── Visual state machines (ASL - JSON)
+│        │   ├── Built-in error handling and retries
 │        │   ├── Parallel execution
 │        │   ├── Wait states
-│        │   ├── Map state (procesamiento iterativo)
-│        │   ├── Choice state (decisiones condicionales)
-│        │   └── Integración directa con 200+ servicios AWS
+│        │   ├── Map state (iterative processing)
+│        │   ├── Choice state (conditional decisions)
+│        │   └── Direct integration with 200+ AWS services
 │        │
-│        └── Ideal para: saga patterns, ETL, approval workflows,
-│            orquestación de microservicios
+│        └── Ideal for: saga patterns, ETL, approval workflows,
+│            microservice orchestration
 │
-├── STREAMING EN TIEMPO REAL (datos continuos, alta velocidad)
+├── REAL-TIME STREAMING (continuous data, high velocity)
 │   │
-│   ├── ¿Necesitas procesamiento custom de cada registro?
+│   ├── Do you need custom processing of each record?
 │   │   │
 │   │   └──→ Amazon Kinesis Data Streams
-│   │        ├── Retención: 24 horas (default) hasta 365 días
-│   │        ├── Múltiples consumidores simultáneos
-│   │        ├── Shards para escalar (provisioned o on-demand)
-│   │        ├── Ordering por partition key dentro del shard
-│   │        ├── Consumidores: Lambda, KCL apps, Spark, Flink
+│   │        ├── Retention: 24 hours (default) up to 365 days
+│   │        ├── Multiple simultaneous consumers
+│   │        ├── Shards for scaling (provisioned or on-demand)
+│   │        ├── Ordering by partition key within shard
+│   │        ├── Consumers: Lambda, KCL apps, Spark, Flink
 │   │        └── Ideal: real-time analytics, logs, clickstream
 │   │
-│   └── ¿Solo necesitas entregar datos a un destino (S3, Redshift, etc.)?
+│   └── Do you just need to deliver data to a destination (S3, Redshift, etc.)?
 │       │
 │       └──→ Amazon Kinesis Data Firehose
-│            ├── Near real-time (buffer de 60s mínimo)
-│            ├── Completamente serverless (sin shards)
+│            ├── Near real-time (minimum 60s buffer)
+│            ├── Fully serverless (no shards)
 │            ├── Auto-scaling
-│            ├── Transformación con Lambda opcional
-│            ├── Destinos: S3, Redshift, OpenSearch, Splunk, HTTP
-│            ├── Compresión y cifrado automático
-│            └── Ideal: ingest a data lake, log delivery
+│            ├── Optional transformation with Lambda
+│            ├── Destinations: S3, Redshift, OpenSearch, Splunk, HTTP
+│            ├── Automatic compression and encryption
+│            └── Ideal: data lake ingest, log delivery
 │
-├── PROTOCOLOS LEGACY (JMS, AMQP, MQTT, STOMP, OpenWire)
+├── LEGACY PROTOCOLS (JMS, AMQP, MQTT, STOMP, OpenWire)
 │   │
 │   └──→ Amazon MQ
-│        ├── Motores: ActiveMQ o RabbitMQ gestionado
-│        ├── Compatibilidad con aplicaciones existentes
-│        ├── Migración sin cambiar código de la app
-│        ├── Multi-AZ para alta disponibilidad
-│        └── Ideal: migrar message broker on-prem a AWS sin refactorizar
+│        ├── Engines: Managed ActiveMQ or RabbitMQ
+│        ├── Compatibility with existing applications
+│        ├── Migration without changing app code
+│        ├── Multi-AZ for high availability
+│        └── Ideal: migrate on-prem message broker to AWS without refactoring
 │
-└── COMUNICACIÓN API (request/response, sincrónica)
+└── API COMMUNICATION (request/response, synchronous)
     │
     ├── REST APIs ──→ API Gateway (REST)
-    │   ├── Throttling, caching, autorización
-    │   └── Lambda o HTTP backend
+    │   ├── Throttling, caching, authorization
+    │   └── Lambda or HTTP backend
     │
-    ├── HTTP APIs (más simple) ──→ API Gateway (HTTP)
-    │   └── Menor latencia y costo que REST API
+    ├── HTTP APIs (simpler) ──→ API Gateway (HTTP)
+    │   └── Lower latency and cost than REST API
     │
     ├── WebSocket ──→ API Gateway (WebSocket)
-    │   └── Chat, notificaciones en tiempo real
+    │   └── Chat, real-time notifications
     │
     └── GraphQL ──→ AWS AppSync
         └── Real-time subscriptions, offline sync
@@ -146,87 +146,87 @@
 
 ---
 
-## Patrón Fan-Out: SNS + SQS
+## Fan-Out Pattern: SNS + SQS
 
 ```
-                              ┌──── SQS Queue A ──→ Consumer A (procesamiento de pedidos)
+                              ┌──── SQS Queue A ──→ Consumer A (order processing)
                               │
-Producer ──→ SNS Topic ──────├──── SQS Queue B ──→ Consumer B (envío de emails)
+Producer ──→ SNS Topic ──────├──── SQS Queue B ──→ Consumer B (email sending)
                               │
                               ├──── SQS Queue C ──→ Consumer C (analytics)
                               │
-                              └──── Lambda ──→ Procesamiento inmediato
+                              └──── Lambda ──→ Immediate processing
 ```
 
-**Ventajas del patrón fan-out:**
-- Cada consumidor procesa independientemente
-- Si un consumidor falla, los demás no se afectan
-- Cada SQS tiene su propia DLQ para reintentos
-- SNS garantiza la entrega a las colas suscritas
-- Desacopla completamente productores de consumidores
+**Fan-out pattern advantages:**
+- Each consumer processes independently
+- If one consumer fails, the others are not affected
+- Each SQS has its own DLQ for retries
+- SNS guarantees delivery to subscribed queues
+- Completely decouples producers from consumers
 
-> **Clave examen:** "Enviar el mismo mensaje a múltiples servicios para procesamiento independiente" = **SNS + SQS fan-out**.
-
----
-
-## Tabla Comparativa Rápida
-
-| Servicio | Modelo | Retención | Orden | Throughput | Caso principal |
-|----------|--------|-----------|-------|------------|---------------|
-| **SNS** | Pub/Sub (push) | No retiene | No | Alto | Notificaciones, fan-out |
-| **SQS Standard** | Queue (pull) | Hasta 14 días | Best-effort | Ilimitado | Desacoplar servicios |
-| **SQS FIFO** | Queue (pull) | Hasta 14 días | **FIFO** | 300-3,000/s | Orden estricto |
-| **EventBridge** | Event bus (push) | Archive opcional | No | Alto | Routing con reglas |
-| **Step Functions** | Workflow | Estado interno | Secuencial | Medio | Orquestación |
-| **Kinesis Streams** | Streaming (pull) | 24h - 365 días | **Por shard** | Muy alto | Real-time analytics |
-| **Kinesis Firehose** | Delivery (push) | Buffer solo | N/A | Auto-scale | Entrega a S3/Redshift |
-| **Amazon MQ** | Broker (push/pull) | Configurable | Sí | Medio | Protocolos legacy |
+> **Exam key:** "Send the same message to multiple services for independent processing" = **SNS + SQS fan-out**.
 
 ---
 
-## Tabla de Decisión por Caso de Uso
+## Quick Comparison Table
 
-| Necesitas... | Usa... |
+| Service | Model | Retention | Order | Throughput | Main Use Case |
+|---------|-------|-----------|-------|------------|---------------|
+| **SNS** | Pub/Sub (push) | No retention | No | High | Notifications, fan-out |
+| **SQS Standard** | Queue (pull) | Up to 14 days | Best-effort | Unlimited | Decouple services |
+| **SQS FIFO** | Queue (pull) | Up to 14 days | **FIFO** | 300-3,000/s | Strict ordering |
+| **EventBridge** | Event bus (push) | Optional archive | No | High | Routing with rules |
+| **Step Functions** | Workflow | Internal state | Sequential | Medium | Orchestration |
+| **Kinesis Streams** | Streaming (pull) | 24h - 365 days | **Per shard** | Very high | Real-time analytics |
+| **Kinesis Firehose** | Delivery (push) | Buffer only | N/A | Auto-scale | Delivery to S3/Redshift |
+| **Amazon MQ** | Broker (push/pull) | Configurable | Yes | Medium | Legacy protocols |
+
+---
+
+## Decision Table by Use Case
+
+| You need... | Use... |
 |-------------|--------|
-| Enviar email/SMS/push a usuarios | **SNS** |
-| Desacoplar microservicios | **SQS** |
-| Procesamiento en orden exacto | **SQS FIFO** |
-| Un mensaje → múltiples procesadores | **SNS → SQS** (fan-out) |
-| Reaccionar a eventos AWS | **EventBridge** |
-| Eventos de SaaS externos | **EventBridge** |
-| Cron/scheduled jobs serverless | **EventBridge** (regla cron) |
-| Workflow con pasos y decisiones | **Step Functions** |
-| Saga pattern / compensaciones | **Step Functions** |
-| Real-time streaming de datos | **Kinesis Data Streams** |
-| Cargar logs/datos a S3 continuamente | **Kinesis Firehose** |
-| Migrar ActiveMQ/RabbitMQ a AWS | **Amazon MQ** |
-| Comunicación MQTT (IoT) | **IoT Core** (o Amazon MQ) |
+| Send email/SMS/push to users | **SNS** |
+| Decouple microservices | **SQS** |
+| Processing in exact order | **SQS FIFO** |
+| One message → multiple processors | **SNS → SQS** (fan-out) |
+| React to AWS events | **EventBridge** |
+| External SaaS events | **EventBridge** |
+| Serverless cron/scheduled jobs | **EventBridge** (cron rule) |
+| Workflow with steps and decisions | **Step Functions** |
+| Saga pattern / compensations | **Step Functions** |
+| Real-time data streaming | **Kinesis Data Streams** |
+| Continuously load logs/data to S3 | **Kinesis Firehose** |
+| Migrate ActiveMQ/RabbitMQ to AWS | **Amazon MQ** |
+| MQTT communication (IoT) | **IoT Core** (or Amazon MQ) |
 | Request/response HTTP API | **API Gateway** |
-| Real-time bidireccional | **API Gateway WebSocket** o **AppSync** |
+| Real-time bidirectional | **API Gateway WebSocket** or **AppSync** |
 
 ---
 
-## Kinesis Family - Resumen
+## Kinesis Family - Summary
 
 ```
 Kinesis Family
 │
 ├── Kinesis Data Streams
-│   └── Ingest y procesamiento real-time (shards, KCL, Lambda)
+│   └── Real-time ingest and processing (shards, KCL, Lambda)
 │
 ├── Kinesis Data Firehose
-│   └── Delivery near real-time a S3, Redshift, OpenSearch, Splunk
+│   └── Near real-time delivery to S3, Redshift, OpenSearch, Splunk
 │
-├── Kinesis Data Analytics (ahora Managed Apache Flink)
-│   └── SQL/Flink sobre streams en tiempo real
+├── Kinesis Data Analytics (now Managed Apache Flink)
+│   └── SQL/Flink on real-time streams
 │
 └── Kinesis Video Streams
-    └── Ingest y procesamiento de video en tiempo real
+    └── Real-time video ingest and processing
 ```
 
 ---
 
-## Keywords del Examen → Servicio
+## Exam Keywords → Service
 
 ```
 "Decouple services / message queue"           → SQS

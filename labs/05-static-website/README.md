@@ -1,89 +1,89 @@
-# Lab 05: Hosting de Web Estática con CloudFront y S3
+# Lab 05: Static Website Hosting with CloudFront and S3
 
-## Objetivo
+## Objective
 
-Desplegar un sitio web estático con distribución global usando Amazon S3 como origen y CloudFront como CDN. Este patrón es fundamental para entender cómo AWS sirve contenido estático de forma segura, rápida y económica.
+Deploy a static website with global distribution using Amazon S3 as the origin and CloudFront as the CDN. This pattern is fundamental for understanding how AWS serves static content securely, quickly and economically.
 
-## Arquitectura
+## Architecture
 
 ```
-                    ┌──────────────────┐
-                    │     Usuario      │
-                    │   (navegador)    │
-                    └────────┬─────────┘
-                             │
-                             ▼
-                    ┌──────────────────┐
-                    │    Route 53      │  ◄── Opcional: DNS personalizado
-                    │  (DNS resolver)  │      (ejemplo.com)
-                    └────────┬─────────┘
-                             │
-                             ▼
-              ┌──────────────────────────────┐
-              │       CloudFront CDN         │
-              │  ┌────────────────────────┐  │
-              │  │  Edge Locations        │  │  ◄── Caché global
-              │  │  (PriceClass_100)      │  │      (NA + EU)
-              │  └────────────┬───────────┘  │
-              │               │              │
-              │  ┌────────────┴───────────┐  │
-              │  │  Origin Access Control │  │  ◄── OAC: acceso seguro al S3
-              │  │  (OAC)                 │  │
-              │  └────────────┬───────────┘  │
-              └───────────────┼──────────────┘
-                              │
-                              ▼
-              ┌──────────────────────────────┐
-              │         S3 Bucket            │
-              │  ┌────────────────────────┐  │
-              │  │  index.html            │  │
-              │  │  error.html            │  │
-              │  │  (bloqueo público)     │  │  ◄── Sin acceso público directo
-              │  └────────────────────────┘  │
-              └──────────────────────────────┘
+                    +------------------+
+                    |     User         |
+                    |   (browser)      |
+                    +--------+---------+
+                             |
+                             v
+                    +------------------+
+                    |    Route 53      |  <-- Optional: custom DNS
+                    |  (DNS resolver)  |      (example.com)
+                    +--------+---------+
+                             |
+                             v
+              +------------------------------+
+              |       CloudFront CDN         |
+              |  +------------------------+  |
+              |  |  Edge Locations        |  |  <-- Global cache
+              |  |  (PriceClass_100)      |  |      (NA + EU)
+              |  +------------+-----------+  |
+              |               |              |
+              |  +------------+----------+   |
+              |  |  Origin Access Control |   |  <-- OAC: secure access to S3
+              |  |  (OAC)                 |   |
+              |  +------------+-----------+   |
+              +---------------|--+------------+
+                              |
+                              v
+              +------------------------------+
+              |         S3 Bucket            |
+              |  +------------------------+  |
+              |  |  index.html            |  |
+              |  |  error.html            |  |
+              |  |  (public blocked)      |  |  <-- No direct public access
+              |  +------------------------+  |
+              +------------------------------+
 
-              ┌──────────────────────────────┐
-              │   ACM Certificate            │  ◄── Opcional: SSL en us-east-1
-              │   (us-east-1, requerido      │      para dominio personalizado
-              │    por CloudFront)            │
-              └──────────────────────────────┘
+              +------------------------------+
+              |   ACM Certificate            |  <-- Optional: SSL in us-east-1
+              |   (us-east-1, required       |      for custom domain
+              |    by CloudFront)            |
+              +------------------------------+
 ```
 
-## Qué vas a aprender
+## What you will learn
 
-- **S3 Static Hosting**: almacenamiento de objetos como origen de contenido web
-- **CloudFront Distributions**: CDN global con edge locations para baja latencia
-- **Origin Access Control (OAC)**: acceso seguro de CloudFront a S3 sin hacer el bucket público
-- **SSL/TLS con ACM**: certificados gratuitos para HTTPS
-- **DNS con Route 53**: resolución de nombres de dominio personalizado
-- **Redirect HTTP a HTTPS**: forzar conexiones seguras
-- **Custom Error Responses**: manejo de errores para SPAs (404 -> index.html)
+- **S3 Static Hosting**: object storage as a web content origin
+- **CloudFront Distributions**: global CDN with edge locations for low latency
+- **Origin Access Control (OAC)**: secure CloudFront access to S3 without making the bucket public
+- **SSL/TLS with ACM**: free certificates for HTTPS
+- **DNS with Route 53**: custom domain name resolution
+- **HTTP to HTTPS Redirect**: force secure connections
+- **Custom Error Responses**: error handling for SPAs (404 -> index.html)
 
-## Componentes desplegados
+## Deployed Components
 
-| Componente | Servicio AWS | Notas |
+| Component | AWS Service | Notes |
 |---|---|---|
-| Almacenamiento | S3 Bucket | Bloqueo público activado |
+| Storage | S3 Bucket | Public access blocked |
 | CDN | CloudFront Distribution | PriceClass_100 (NA + EU) |
-| Acceso seguro | CloudFront OAC | Reemplaza a OAI (legacy) |
-| Certificado SSL | ACM | Opcional, en us-east-1 |
-| DNS | Route 53 | Opcional, requiere dominio |
+| Secure access | CloudFront OAC | Replaces OAI (legacy) |
+| SSL Certificate | ACM | Optional, in us-east-1 |
+| DNS | Route 53 | Optional, requires domain |
 
-## Nota sobre el dominio
+## Note about the domain
 
-El dominio Route 53 es **opcional**. Sin un dominio personalizado, puedes acceder al sitio directamente a través del dominio de CloudFront (ejemplo: `d1234abcd.cloudfront.net`).
+The Route 53 domain is **optional**. Without a custom domain, you can access the site directly through the CloudFront domain (e.g., `d1234abcd.cloudfront.net`).
 
-Si quieres usar un dominio personalizado:
-1. Registra o transfiere un dominio a Route 53 (~$12/año para `.com`)
-2. Descomenta las secciones de ACM y Route 53 en `main.tf`
-3. Configura la variable `domain_name`
+If you want to use a custom domain:
+1. Register or transfer a domain to Route 53 (~$12/year for `.com`)
+2. Uncomment the ACM and Route 53 sections in `main.tf`
+3. Configure the `domain_name` variable
 
-## Requisitos previos
+## Prerequisites
 
-- AWS CLI configurado
+- AWS CLI configured
 - Terraform >= 1.0
 
-## Despliegue
+## Deployment
 
 ```bash
 terraform init
@@ -91,18 +91,18 @@ terraform plan
 terraform apply
 ```
 
-Tras el despliegue, accede a la URL de CloudFront que aparece en los outputs.
+After deployment, access the CloudFront URL shown in the outputs.
 
-## Coste estimado
+## Estimated Cost
 
-**~$0.50/mes** (principalmente el almacenamiento S3).
+**~$0.50/month** (mainly S3 storage).
 
-| Servicio | Coste aproximado |
+| Service | Approximate cost |
 |---|---|
-| S3 (almacenamiento) | ~$0.02/mes |
-| CloudFront (transferencia) | Free Tier: 1 TB/mes |
-| Route 53 (zona hosted) | $0.50/mes (si se usa) |
-| Dominio | ~$12/año (si se compra) |
-| ACM | Gratis |
+| S3 (storage) | ~$0.02/month |
+| CloudFront (transfer) | Free Tier: 1 TB/month |
+| Route 53 (hosted zone) | $0.50/month (if used) |
+| Domain | ~$12/year (if purchased) |
+| ACM | Free |
 
-Este lab es muy económico y puede dejarse activo sin preocuparse por costes elevados.
+This lab is very economical and can be left active without worrying about high costs.

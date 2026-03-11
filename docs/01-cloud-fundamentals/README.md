@@ -1,322 +1,322 @@
-# Fundamentos de Cloud Computing y AWS
+# Cloud Computing and AWS Fundamentals
 
-## Tabla de Contenidos
+## Table of Contents
 
-- [Qué es Cloud Computing](#qué-es-cloud-computing)
+- [What is Cloud Computing](#what-is-cloud-computing)
 - [AWS Global Infrastructure](#aws-global-infrastructure)
-- [Cómo elegir una Región](#cómo-elegir-una-región)
+- [How to Choose a Region](#how-to-choose-a-region)
 - [AWS Well-Architected Framework](#aws-well-architected-framework)
 - [Shared Responsibility Model](#shared-responsibility-model)
 - [AWS Support Plans](#aws-support-plans)
 - [Pricing Fundamentals](#pricing-fundamentals)
-- [Key Points para el Examen](#key-points-para-el-examen)
+- [Key Points for the Exam](#key-points-for-the-exam)
 
 ---
 
-## Qué es Cloud Computing
+## What is Cloud Computing
 
-### Definición NIST
+### NIST Definition
 
-El National Institute of Standards and Technology (NIST) define cloud computing como un modelo que permite el acceso ubicuo, conveniente y bajo demanda a un conjunto compartido de recursos informáticos configurables (redes, servidores, almacenamiento, aplicaciones y servicios) que pueden ser rápidamente aprovisionados y liberados con un esfuerzo mínimo de gestión o interacción del proveedor de servicios.
+The National Institute of Standards and Technology (NIST) defines cloud computing as a model that enables ubiquitous, convenient, on-demand network access to a shared pool of configurable computing resources (networks, servers, storage, applications, and services) that can be rapidly provisioned and released with minimal management effort or service provider interaction.
 
-### Cinco características esenciales (NIST)
+### Five Essential Characteristics (NIST)
 
-1. **Autoservicio bajo demanda** - El usuario aprovisiona recursos sin interacción humana con el proveedor.
-2. **Acceso amplio a la red** - Los recursos están disponibles a través de la red mediante mecanismos estándar.
-3. **Pool de recursos compartido** - Los recursos del proveedor se agrupan para servir a múltiples consumidores (multi-tenant).
-4. **Elasticidad rápida** - Los recursos pueden aprovisionarse y liberarse elásticamente, a veces de forma automática.
-5. **Servicio medido** - El uso de recursos se monitoriza, controla y se reporta de forma transparente.
+1. **On-demand self-service** - The user provisions resources without human interaction with the provider.
+2. **Broad network access** - Resources are available over the network through standard mechanisms.
+3. **Resource pooling** - The provider's resources are pooled to serve multiple consumers (multi-tenant).
+4. **Rapid elasticity** - Resources can be elastically provisioned and released, sometimes automatically.
+5. **Measured service** - Resource usage is monitored, controlled, and reported transparently.
 
-### Modelos de Servicio
+### Service Models
 
-| Modelo | Descripción | Tú gestionas | AWS gestiona | Ejemplo AWS |
-|--------|-------------|---------------|--------------|-------------|
-| **IaaS** (Infrastructure as a Service) | Infraestructura básica virtualizada | SO, apps, datos, middleware, runtime | Hardware, red, virtualización | EC2, VPC, EBS |
-| **PaaS** (Platform as a Service) | Plataforma para desarrollar y desplegar apps | Código de aplicación y datos | SO, middleware, runtime, infraestructura | Elastic Beanstalk, RDS, Lambda |
-| **SaaS** (Software as a Service) | Aplicación completa gestionada | Solo uso y configuración | Todo lo demás | Amazon WorkMail, Amazon Chime |
+| Model | Description | You manage | AWS manages | AWS Example |
+|-------|-------------|------------|-------------|-------------|
+| **IaaS** (Infrastructure as a Service) | Basic virtualized infrastructure | OS, apps, data, middleware, runtime | Hardware, network, virtualization | EC2, VPC, EBS |
+| **PaaS** (Platform as a Service) | Platform for developing and deploying apps | Application code and data | OS, middleware, runtime, infrastructure | Elastic Beanstalk, RDS, Lambda |
+| **SaaS** (Software as a Service) | Fully managed application | Usage and configuration only | Everything else | Amazon WorkMail, Amazon Chime |
 
-### Modelos de Despliegue
+### Deployment Models
 
-| Modelo | Descripción | Caso de uso |
-|--------|-------------|-------------|
-| **Cloud Público** | Recursos propiedad del proveedor cloud, entregados por internet | Startups, aplicaciones web escalables |
-| **Cloud Privado** | Infraestructura cloud exclusiva de una organización | Regulaciones estrictas, control total |
-| **Cloud Híbrido** | Combinación de cloud público y privado/on-premises | Migración gradual, datos sensibles on-prem |
+| Model | Description | Use Case |
+|-------|-------------|----------|
+| **Public Cloud** | Resources owned by the cloud provider, delivered over the internet | Startups, scalable web applications |
+| **Private Cloud** | Cloud infrastructure exclusive to one organization | Strict regulations, full control |
+| **Hybrid Cloud** | Combination of public cloud and private/on-premises | Gradual migration, sensitive data on-prem |
 
 ---
 
 ## AWS Global Infrastructure
 
-### Regions (Regiones)
+### Regions
 
-- Una **Región** es un área geográfica que contiene múltiples Availability Zones.
-- Cada Región está completamente aislada de las demás para lograr la máxima tolerancia a fallos.
-- La mayoría de los servicios de AWS son **regionales** (los datos no se replican automáticamente entre regiones).
-- Actualmente hay más de 30 regiones a nivel global.
+- A **Region** is a geographic area containing multiple Availability Zones.
+- Each Region is completely isolated from others to achieve maximum fault tolerance.
+- Most AWS services are **regional** (data is not automatically replicated between regions).
+- There are currently more than 30 regions globally.
 
 ### Availability Zones (AZs)
 
-- Cada Región tiene **mínimo 2 AZs** (generalmente 3, algunas tienen hasta 6).
-- Cada AZ es uno o más data centers discretos con energía, red y conectividad redundantes.
-- Las AZs dentro de una Región están conectadas con redes de **baja latencia, alto throughput y alta redundancia**.
-- Están físicamente separadas (distancia significativa) para proteger contra desastres locales.
-- Se identifican con un código de región + letra (ej: `eu-west-1a`, `eu-west-1b`).
+- Each Region has **at least 2 AZs** (generally 3, some have up to 6).
+- Each AZ is one or more discrete data centers with redundant power, networking, and connectivity.
+- AZs within a Region are connected with **low-latency, high-throughput, highly redundant** networks.
+- They are physically separated (significant distance) to protect against local disasters.
+- Identified with a region code + letter (e.g., `eu-west-1a`, `eu-west-1b`).
 
-> **Importante para el examen:** Las letras de AZ se mapean de forma distinta por cuenta. La AZ `us-east-1a` de tu cuenta puede no ser el mismo data center que `us-east-1a` de otra cuenta. Usa los **AZ IDs** (ej: `use1-az1`) para identificar de forma consistente.
+> **Important for the exam:** AZ letters are mapped differently per account. The AZ `us-east-1a` in your account may not be the same data center as `us-east-1a` in another account. Use **AZ IDs** (e.g., `use1-az1`) for consistent identification.
 
 ### Edge Locations
 
-- Son puntos de presencia (PoP) distribuidos mundialmente (más de 400+).
-- Usados por **CloudFront** (CDN) y **Route 53** (DNS).
-- Permiten servir contenido con baja latencia a los usuarios finales.
-- También usados por **AWS WAF** y **AWS Shield** para protección DDoS.
-- Los **Regional Edge Caches** son un nivel intermedio entre el Origin y las Edge Locations.
+- Points of Presence (PoP) distributed worldwide (400+).
+- Used by **CloudFront** (CDN) and **Route 53** (DNS).
+- Allow serving content with low latency to end users.
+- Also used by **AWS WAF** and **AWS Shield** for DDoS protection.
+- **Regional Edge Caches** are an intermediate level between the Origin and Edge Locations.
 
 ### Local Zones
 
-- Extensiones de una Región que colocan servicios de cómputo, almacenamiento y base de datos más cerca de grandes centros de población.
-- Proporcionan latencia de un solo dígito de milisegundos para aplicaciones sensibles a la latencia.
-- Ejemplo: `us-east-1-bos-1a` (Boston Local Zone de us-east-1).
-- Ideal para gaming, streaming en tiempo real, machine learning inference.
+- Extensions of a Region that place compute, storage, and database services closer to large population centers.
+- Provide single-digit millisecond latency for latency-sensitive applications.
+- Example: `us-east-1-bos-1a` (Boston Local Zone of us-east-1).
+- Ideal for gaming, real-time streaming, machine learning inference.
 
 ### AWS Wavelength
 
-- Infraestructura AWS embebida dentro de las redes 5G de operadores de telecomunicaciones.
-- Latencia ultra baja para aplicaciones móviles.
-- Caso de uso: aplicaciones que necesitan latencia de un solo dígito de milisegundos desde dispositivos 5G.
+- AWS infrastructure embedded within 5G networks of telecommunications operators.
+- Ultra-low latency for mobile applications.
+- Use case: applications requiring single-digit millisecond latency from 5G devices.
 
 ### AWS Outposts
 
-- Hardware de AWS instalado en tu propio data center on-premises.
-- Ofrece los mismos servicios, APIs y herramientas de AWS en tu infraestructura.
-- Para cargas de trabajo que requieren baja latencia al sistema on-premises o residencia de datos local.
+- AWS hardware installed in your own on-premises data center.
+- Offers the same AWS services, APIs, and tools on your infrastructure.
+- For workloads requiring low latency to on-premises systems or local data residency.
 
 ---
 
-## Cómo elegir una Región
+## How to Choose a Region
 
-Al seleccionar una Región de AWS, considera estos cuatro factores (en orden de prioridad habitual):
+When selecting an AWS Region, consider these four factors (in typical priority order):
 
-| Factor | Descripción | Ejemplo |
+| Factor | Description | Example |
 |--------|-------------|---------|
-| **Compliance / Cumplimiento normativo** | Requisitos legales sobre dónde deben residir los datos | GDPR exige datos de ciudadanos UE en la UE; datos del gobierno francés deben estar en Francia |
-| **Latencia / Proximidad a usuarios** | Elegir la región más cercana a los usuarios finales | App para usuarios en España -> `eu-west-1` (Irlanda) o `eu-south-2` (España) |
-| **Servicios disponibles** | No todos los servicios están disponibles en todas las regiones | Nuevos servicios suelen lanzarse primero en `us-east-1` |
-| **Coste** | Los precios varían entre regiones | São Paulo suele ser más caro que Virginia |
+| **Compliance / Regulatory requirements** | Legal requirements about where data must reside | GDPR requires EU citizen data in the EU; French government data must be in France |
+| **Latency / Proximity to users** | Choose the region closest to end users | App for users in Spain -> `eu-west-1` (Ireland) or `eu-south-2` (Spain) |
+| **Available services** | Not all services are available in all regions | New services usually launch first in `us-east-1` |
+| **Cost** | Prices vary between regions | Sao Paulo is usually more expensive than Virginia |
 
-> **Tip para el examen:** Si una pregunta menciona requisitos de compliance o regulación, **siempre** prioriza la región que cumple esos requisitos, incluso si no es la más barata o cercana.
+> **Exam tip:** If a question mentions compliance or regulatory requirements, **always** prioritize the region that meets those requirements, even if it's not the cheapest or closest.
 
 ---
 
 ## AWS Well-Architected Framework
 
-El Well-Architected Framework proporciona un enfoque consistente para evaluar arquitecturas y orientaciones para implementar diseños que escalen con el tiempo. Consta de **6 pilares**:
+The Well-Architected Framework provides a consistent approach for evaluating architectures and guidance for implementing designs that scale over time. It consists of **6 pillars**:
 
-### 1. Excelencia Operativa (Operational Excellence)
+### 1. Operational Excellence
 
-- **Objetivo:** Ejecutar y monitorizar sistemas para entregar valor de negocio y mejorar continuamente procesos y procedimientos.
-- **Principios clave:**
-  - Realizar operaciones como código (IaC).
-  - Hacer cambios frecuentes, pequeños y reversibles.
-  - Refinar procedimientos operativos frecuentemente.
-  - Anticipar fallos y aprender de todos los fallos operacionales.
-- **Servicios clave:** CloudFormation, AWS Config, CloudWatch, CloudTrail, X-Ray.
+- **Goal:** Run and monitor systems to deliver business value and continuously improve processes and procedures.
+- **Key principles:**
+  - Perform operations as code (IaC).
+  - Make frequent, small, reversible changes.
+  - Refine operations procedures frequently.
+  - Anticipate failure and learn from all operational failures.
+- **Key services:** CloudFormation, AWS Config, CloudWatch, CloudTrail, X-Ray.
 
-### 2. Seguridad (Security)
+### 2. Security
 
-- **Objetivo:** Proteger datos, sistemas y activos mediante evaluaciones de riesgo y estrategias de mitigación.
-- **Principios clave:**
-  - Implementar una base de identidad sólida (least privilege).
-  - Habilitar trazabilidad.
-  - Aplicar seguridad en todas las capas.
-  - Automatizar las mejores prácticas de seguridad.
-  - Proteger datos en tránsito y en reposo.
-  - Mantener a las personas alejadas de los datos.
-  - Prepararse para eventos de seguridad.
-- **Servicios clave:** IAM, KMS, CloudTrail, GuardDuty, WAF, Shield, Macie.
+- **Goal:** Protect data, systems, and assets through risk assessments and mitigation strategies.
+- **Key principles:**
+  - Implement a strong identity foundation (least privilege).
+  - Enable traceability.
+  - Apply security at all layers.
+  - Automate security best practices.
+  - Protect data in transit and at rest.
+  - Keep people away from data.
+  - Prepare for security events.
+- **Key services:** IAM, KMS, CloudTrail, GuardDuty, WAF, Shield, Macie.
 
-### 3. Fiabilidad (Reliability)
+### 3. Reliability
 
-- **Objetivo:** Asegurar que un sistema pueda recuperarse de fallos de infraestructura o servicio, adquirir dinámicamente recursos para satisfacer la demanda y mitigar disrupciones.
-- **Principios clave:**
-  - Probar procedimientos de recuperación automáticamente.
-  - Recuperarse automáticamente de fallos.
-  - Escalar horizontalmente para aumentar disponibilidad.
-  - Dejar de adivinar capacidad.
-  - Gestionar el cambio a través de automatización.
-- **Servicios clave:** Auto Scaling, CloudWatch, Route 53, S3, RDS Multi-AZ, Backup.
+- **Goal:** Ensure a system can recover from infrastructure or service failures, dynamically acquire resources to meet demand, and mitigate disruptions.
+- **Key principles:**
+  - Automatically test recovery procedures.
+  - Automatically recover from failure.
+  - Scale horizontally to increase availability.
+  - Stop guessing capacity.
+  - Manage change through automation.
+- **Key services:** Auto Scaling, CloudWatch, Route 53, S3, RDS Multi-AZ, Backup.
 
-### 4. Eficiencia del Rendimiento (Performance Efficiency)
+### 4. Performance Efficiency
 
-- **Objetivo:** Usar los recursos informáticos de forma eficiente para satisfacer los requisitos del sistema y mantener esa eficiencia a medida que la demanda cambia y las tecnologías evolucionan.
-- **Principios clave:**
-  - Democratizar tecnologías avanzadas (usar servicios gestionados).
-  - Ir global en minutos.
-  - Usar arquitecturas serverless.
-  - Experimentar con más frecuencia.
-  - Tener afinidad mecánica (usar la tecnología adecuada para cada caso).
-- **Servicios clave:** Auto Scaling, Lambda, ECS/EKS, ElastiCache, CloudFront, Global Accelerator.
+- **Goal:** Use computing resources efficiently to meet system requirements and maintain that efficiency as demand changes and technologies evolve.
+- **Key principles:**
+  - Democratize advanced technologies (use managed services).
+  - Go global in minutes.
+  - Use serverless architectures.
+  - Experiment more frequently.
+  - Have mechanical sympathy (use the right technology for each use case).
+- **Key services:** Auto Scaling, Lambda, ECS/EKS, ElastiCache, CloudFront, Global Accelerator.
 
-### 5. Optimización de Costes (Cost Optimization)
+### 5. Cost Optimization
 
-- **Objetivo:** Ejecutar sistemas para entregar valor de negocio al coste más bajo posible.
-- **Principios clave:**
-  - Implementar Cloud Financial Management.
-  - Adoptar un modelo de consumo (pagar solo por lo que usas).
-  - Medir la eficiencia general.
-  - Dejar de gastar dinero en trabajo indiferenciado (usar servicios gestionados).
-  - Analizar y atribuir gastos.
-- **Servicios clave:** Cost Explorer, Budgets, Reserved Instances, Savings Plans, S3 Intelligent-Tiering, Trusted Advisor.
+- **Goal:** Run systems to deliver business value at the lowest possible cost.
+- **Key principles:**
+  - Implement Cloud Financial Management.
+  - Adopt a consumption model (pay only for what you use).
+  - Measure overall efficiency.
+  - Stop spending money on undifferentiated heavy lifting (use managed services).
+  - Analyze and attribute expenditure.
+- **Key services:** Cost Explorer, Budgets, Reserved Instances, Savings Plans, S3 Intelligent-Tiering, Trusted Advisor.
 
-### 6. Sostenibilidad (Sustainability)
+### 6. Sustainability
 
-- **Objetivo:** Minimizar el impacto ambiental de la ejecución de cargas de trabajo en la nube.
-- **Principios clave:**
-  - Comprender el impacto.
-  - Establecer objetivos de sostenibilidad.
-  - Maximizar la utilización.
-  - Anticipar y adoptar nuevas ofertas de hardware/software más eficientes.
-  - Usar servicios gestionados.
-  - Reducir el impacto posterior de las cargas de trabajo en la nube.
-- **Servicios clave:** EC2 Auto Scaling (right-sizing), Graviton instances, S3 lifecycle policies, Lambda.
+- **Goal:** Minimize the environmental impact of running workloads in the cloud.
+- **Key principles:**
+  - Understand the impact.
+  - Establish sustainability goals.
+  - Maximize utilization.
+  - Anticipate and adopt new, more efficient hardware/software offerings.
+  - Use managed services.
+  - Reduce the downstream impact of cloud workloads.
+- **Key services:** EC2 Auto Scaling (right-sizing), Graviton instances, S3 lifecycle policies, Lambda.
 
 ---
 
 ## Shared Responsibility Model
 
-El modelo de responsabilidad compartida define qué gestiona AWS y qué gestionas tú como cliente. Es uno de los conceptos **más preguntados** en el examen.
+The shared responsibility model defines what AWS manages and what you manage as a customer. It is one of the **most frequently asked** concepts on the exam.
 
-### Regla general
+### General Rule
 
-- **AWS es responsable de la seguridad "DE" la nube** (infraestructura).
-- **El cliente es responsable de la seguridad "EN" la nube** (datos, configuración).
+- **AWS is responsible for security "OF" the cloud** (infrastructure).
+- **The customer is responsible for security "IN" the cloud** (data, configuration).
 
-### Desglose detallado
+### Detailed Breakdown
 
-| Capa | AWS gestiona | El cliente gestiona |
-|------|-------------|-------------------|
-| **Infraestructura física** | Data centers, hardware, red global, energía, refrigeración | - |
-| **Infraestructura de red** | Red física, switches, routers | Configuración de Security Groups, NACLs, Route Tables |
-| **Virtualización** | Hipervisor, aislamiento entre instancias | - |
-| **Sistema Operativo** | SO del host (hipervisor) | SO del guest (parches, actualizaciones en EC2) |
-| **Aplicaciones** | Servicios gestionados (RDS engine, Lambda runtime) | Código de aplicación, configuración de aplicaciones |
-| **Datos** | Durabilidad del almacenamiento (S3 11 9s) | Cifrado de datos, clasificación, backups, permisos de acceso |
-| **Identidad** | Infraestructura de IAM | Gestión de usuarios, MFA, políticas, rotación de claves |
+| Layer | AWS manages | Customer manages |
+|-------|-------------|------------------|
+| **Physical infrastructure** | Data centers, hardware, global network, power, cooling | - |
+| **Network infrastructure** | Physical network, switches, routers | Security Groups, NACLs, Route Tables configuration |
+| **Virtualization** | Hypervisor, isolation between instances | - |
+| **Operating System** | Host OS (hypervisor) | Guest OS (patches, updates on EC2) |
+| **Applications** | Managed services (RDS engine, Lambda runtime) | Application code, application configuration |
+| **Data** | Storage durability (S3 11 9s) | Data encryption, classification, backups, access permissions |
+| **Identity** | IAM infrastructure | User management, MFA, policies, key rotation |
 
-### Ejemplos por servicio
+### Examples by Service
 
-| Servicio | Responsabilidad de AWS | Responsabilidad del cliente |
-|----------|----------------------|---------------------------|
-| **EC2** | Hardware, hipervisor, red física | Parches SO, firewall (SGs), IAM roles, cifrado datos |
-| **RDS** | Hardware, SO, parches de DB engine, backups automáticos | Security Groups, políticas IAM, cifrado datos, gestión usuarios DB |
-| **S3** | Infraestructura, durabilidad, disponibilidad | Bucket policies, ACLs, cifrado, versionado, lifecycle |
-| **Lambda** | Todo lo de infraestructura + runtime + parches | Código de función, IAM roles, configuración de VPC |
+| Service | AWS Responsibility | Customer Responsibility |
+|---------|-------------------|------------------------|
+| **EC2** | Hardware, hypervisor, physical network | OS patches, firewall (SGs), IAM roles, data encryption |
+| **RDS** | Hardware, OS, DB engine patches, automatic backups | Security Groups, IAM policies, data encryption, DB user management |
+| **S3** | Infrastructure, durability, availability | Bucket policies, ACLs, encryption, versioning, lifecycle |
+| **Lambda** | All infrastructure + runtime + patches | Function code, IAM roles, VPC configuration |
 
-> **Tip para el examen:** Cuanto más "gestionado" es el servicio, más responsabilidades asume AWS. Lambda/Fargate = AWS gestiona casi todo. EC2 = tú gestionas el SO y aplicación.
+> **Exam tip:** The more "managed" the service, the more responsibilities AWS assumes. Lambda/Fargate = AWS manages almost everything. EC2 = you manage the OS and application.
 
 ---
 
 ## AWS Support Plans
 
-| Característica | Basic | Developer | Business | Enterprise On-Ramp | Enterprise |
-|---------------|-------|-----------|----------|-------------------|------------|
-| **Coste** | Gratis | Desde $29/mes | Desde $100/mes | Desde $5,500/mes | Desde $15,000/mes |
-| **Trusted Advisor** | 7 checks básicos | 7 checks básicos | Todos los checks | Todos los checks | Todos los checks |
-| **Soporte técnico** | No | 1 contacto, horario laboral | Contactos ilimitados, 24/7 | Contactos ilimitados, 24/7 | Contactos ilimitados, 24/7 |
-| **Severidad General** | - | < 24h laborables | < 24h | < 24h | < 24h |
-| **Severidad Sistema afectado** | - | < 12h laborables | < 12h | < 12h | < 12h |
-| **Severidad Sistema producción afectado** | - | - | < 4h | < 4h | < 4h |
-| **Severidad Sistema producción caído** | - | - | < 1h | < 1h | < 1h |
-| **Severidad Business-critical caído** | - | - | - | < 30 min | < 15 min |
-| **Technical Account Manager (TAM)** | No | No | No | Pool de TAMs | TAM designado |
-| **Concierge Support Team** | No | No | No | No | Sí |
-| **Infrastructure Event Management** | No | No | Por coste adicional | 1 por año incluido | Incluido |
-| **Well-Architected Reviews** | No | No | No | Sí | Sí |
-| **API de AWS Support** | No | No | Sí | Sí | Sí |
+| Feature | Basic | Developer | Business | Enterprise On-Ramp | Enterprise |
+|---------|-------|-----------|----------|-------------------|------------|
+| **Cost** | Free | From $29/month | From $100/month | From $5,500/month | From $15,000/month |
+| **Trusted Advisor** | 7 basic checks | 7 basic checks | All checks | All checks | All checks |
+| **Technical support** | No | 1 contact, business hours | Unlimited contacts, 24/7 | Unlimited contacts, 24/7 | Unlimited contacts, 24/7 |
+| **General severity** | - | < 24 business hours | < 24h | < 24h | < 24h |
+| **System impaired severity** | - | < 12 business hours | < 12h | < 12h | < 12h |
+| **Production system impaired** | - | - | < 4h | < 4h | < 4h |
+| **Production system down** | - | - | < 1h | < 1h | < 1h |
+| **Business-critical system down** | - | - | - | < 30 min | < 15 min |
+| **Technical Account Manager (TAM)** | No | No | No | Pool of TAMs | Designated TAM |
+| **Concierge Support Team** | No | No | No | No | Yes |
+| **Infrastructure Event Management** | No | No | Additional cost | 1 per year included | Included |
+| **Well-Architected Reviews** | No | No | No | Yes | Yes |
+| **AWS Support API** | No | No | Yes | Yes | Yes |
 
-> **Tip para el examen:** Si preguntan sobre "TAM" o "Technical Account Manager", la respuesta es Enterprise. Si preguntan por "todos los checks de Trusted Advisor", es Business o superior.
+> **Exam tip:** If they ask about "TAM" or "Technical Account Manager", the answer is Enterprise. If they ask about "all Trusted Advisor checks", it's Business or higher.
 
 ---
 
 ## Pricing Fundamentals
 
-### Modelos de compra para EC2
+### EC2 Purchase Models
 
-| Modelo | Descripción | Descuento vs On-Demand | Compromiso | Ideal para |
-|--------|-------------|----------------------|------------|------------|
-| **On-Demand** | Paga por hora o segundo sin compromiso | 0% (precio base) | Ninguno | Cargas impredecibles, desarrollo, pruebas |
-| **Reserved Instances (RI)** | Reserva de capacidad por 1 o 3 años | Hasta ~72% | 1 o 3 años | Cargas estables y predecibles (bases de datos) |
-| **Savings Plans** | Compromiso de gasto por hora en $/h | Hasta ~72% | 1 o 3 años | Flexibilidad entre tipos/regiones/servicios |
-| **Spot Instances** | Capacidad sobrante de AWS al mejor precio | Hasta ~90% | Ninguno (puede interrumpirse) | Cargas tolerantes a fallos (batch, CI/CD, HPC) |
-| **Dedicated Hosts** | Servidor físico dedicado exclusivamente | Varía | Ninguno u On-Demand o Reservado | Licencias BYOL, compliance |
-| **Dedicated Instances** | Instancia en hardware dedicado a tu cuenta | Varía | Ninguno | Aislamiento a nivel de hardware |
-| **Capacity Reservations** | Reserva de capacidad en una AZ específica | 0% (pagas On-Demand) | Ninguno | Garantizar capacidad para eventos |
+| Model | Description | Discount vs On-Demand | Commitment | Ideal for |
+|-------|-------------|----------------------|------------|-----------|
+| **On-Demand** | Pay per hour or second with no commitment | 0% (base price) | None | Unpredictable workloads, development, testing |
+| **Reserved Instances (RI)** | Capacity reservation for 1 or 3 years | Up to ~72% | 1 or 3 years | Stable, predictable workloads (databases) |
+| **Savings Plans** | Spending commitment per hour in $/h | Up to ~72% | 1 or 3 years | Flexibility across types/regions/services |
+| **Spot Instances** | AWS surplus capacity at the best price | Up to ~90% | None (can be interrupted) | Fault-tolerant workloads (batch, CI/CD, HPC) |
+| **Dedicated Hosts** | Physical server exclusively dedicated | Varies | None or On-Demand or Reserved | BYOL licensing, compliance |
+| **Dedicated Instances** | Instance on hardware dedicated to your account | Varies | None | Hardware-level isolation |
+| **Capacity Reservations** | Capacity reservation in a specific AZ | 0% (you pay On-Demand) | None | Guaranteeing capacity for events |
 
-### Tipos de Reserved Instances
+### Types of Reserved Instances
 
-| Tipo | Flexibilidad | Descuento |
-|------|-------------|-----------|
-| **Standard RI** | Tipo de instancia fijo | Mayor descuento (hasta ~72%) |
-| **Convertible RI** | Puedes cambiar tipo de instancia | Menor descuento (hasta ~54%) |
+| Type | Flexibility | Discount |
+|------|------------|----------|
+| **Standard RI** | Fixed instance type | Higher discount (up to ~72%) |
+| **Convertible RI** | Can change instance type | Lower discount (up to ~54%) |
 
-### Opciones de pago para RI
+### Payment Options for RI
 
-| Opción | Descripción | Descuento |
-|--------|-------------|-----------|
-| **All Upfront** | Pago total adelantado | Mayor descuento |
-| **Partial Upfront** | Pago parcial adelantado + mensual | Descuento medio |
-| **No Upfront** | Sin pago adelantado, solo mensual | Menor descuento |
+| Option | Description | Discount |
+|--------|-------------|----------|
+| **All Upfront** | Full upfront payment | Highest discount |
+| **Partial Upfront** | Partial upfront payment + monthly | Medium discount |
+| **No Upfront** | No upfront payment, monthly only | Lowest discount |
 
-### Savings Plans - Tipos
+### Savings Plans - Types
 
-| Tipo | Cobertura | Flexibilidad |
-|------|-----------|-------------|
-| **Compute Savings Plans** | EC2, Lambda, Fargate | Máxima flexibilidad (cualquier región, familia, SO, tenancy) |
-| **EC2 Instance Savings Plans** | Solo EC2 | Fijo a familia de instancia y región, flexible en SO/tenancy/tamaño |
-| **SageMaker Savings Plans** | Solo SageMaker | Flexible en tipo de instancia, región y componente |
+| Type | Coverage | Flexibility |
+|------|----------|-------------|
+| **Compute Savings Plans** | EC2, Lambda, Fargate | Maximum flexibility (any region, family, OS, tenancy) |
+| **EC2 Instance Savings Plans** | EC2 only | Fixed to instance family and region, flexible in OS/tenancy/size |
+| **SageMaker Savings Plans** | SageMaker only | Flexible in instance type, region, and component |
 
-### Principios generales de pricing en AWS
+### General AWS Pricing Principles
 
-1. **Paga solo por lo que usas** - Sin costes iniciales (excepto RI upfront).
-2. **Paga menos al usar más** - Descuentos por volumen (ej: S3 storage tiers).
-3. **Paga menos al reservar** - Compromisos a largo plazo tienen descuento.
-4. **Transferencia de datos** - Inbound es gratis. Outbound tiene coste (inter-region > inter-AZ > intra-AZ). Intra-AZ con IP privada es gratis.
+1. **Pay only for what you use** - No upfront costs (except RI upfront).
+2. **Pay less when you use more** - Volume discounts (e.g., S3 storage tiers).
+3. **Pay less when you reserve** - Long-term commitments get discounts.
+4. **Data transfer** - Inbound is free. Outbound has cost (inter-region > inter-AZ > intra-AZ). Intra-AZ with private IP is free.
 
 ---
 
-## Key Points para el Examen
+## Key Points for the Exam
 
 ### Cloud Fundamentals
-- Conocer los 5 atributos de cloud computing según NIST.
-- Diferenciar IaaS, PaaS y SaaS con ejemplos concretos de servicios AWS.
-- Entender que cloud híbrido = on-premises + cloud público.
+- Know the 5 cloud computing attributes according to NIST.
+- Differentiate IaaS, PaaS, and SaaS with concrete AWS service examples.
+- Understand that hybrid cloud = on-premises + public cloud.
 
 ### Global Infrastructure
-- Región > AZ > Data Center. Mínimo 2 AZs por región.
-- Edge Locations son para CloudFront y Route 53 (no confundir con AZs).
-- Local Zones = baja latencia a ciudades específicas.
-- Wavelength = latencia ultra baja en redes 5G.
+- Region > AZ > Data Center. Minimum 2 AZs per region.
+- Edge Locations are for CloudFront and Route 53 (don't confuse with AZs).
+- Local Zones = low latency to specific cities.
+- Wavelength = ultra-low latency on 5G networks.
 
 ### Well-Architected Framework
-- Memorizar los 6 pilares y sus principios clave.
-- Preguntas frecuentes sobre cuál pilar aplica a un escenario dado.
-- Sostenibilidad fue el pilar más reciente en añadirse (diciembre 2021).
+- Memorize the 6 pillars and their key principles.
+- Common questions about which pillar applies to a given scenario.
+- Sustainability was the most recently added pillar (December 2021).
 
 ### Shared Responsibility Model
-- "Seguridad DE la nube" (AWS) vs "Seguridad EN la nube" (cliente).
-- Si el examen pregunta quién parchea el SO de una instancia EC2 -> cliente.
-- Si pregunta quién parchea el motor de base de datos en RDS -> AWS.
-- Cifrado de datos es **siempre** responsabilidad del cliente (aunque AWS proporciona las herramientas).
+- "Security OF the cloud" (AWS) vs "Security IN the cloud" (customer).
+- If the exam asks who patches the OS on an EC2 instance -> customer.
+- If it asks who patches the database engine on RDS -> AWS.
+- Data encryption is **always** the customer's responsibility (although AWS provides the tools).
 
 ### Support Plans
-- TAM = solo Enterprise.
-- Trusted Advisor completo = Business o superior.
-- Respuesta en 15 minutos para business-critical = solo Enterprise.
-- Concierge = solo Enterprise.
+- TAM = Enterprise only.
+- Full Trusted Advisor = Business or higher.
+- 15-minute response for business-critical = Enterprise only.
+- Concierge = Enterprise only.
 
 ### Pricing
-- Spot puede dar hasta 90% de descuento pero puede interrumpirse con 2 minutos de aviso.
-- Reserved Instances: 1 o 3 años, Standard no cambia tipo, Convertible sí.
-- Savings Plans: más flexibles que RI, compromiso en $/hora.
-- Data transfer entre AZs tiene coste. Usar IP privada dentro de la misma AZ es gratis.
-- Dedicated Hosts es necesario para licencias BYOL (Bring Your Own License).
+- Spot can give up to 90% discount but can be interrupted with 2 minutes notice.
+- Reserved Instances: 1 or 3 years, Standard doesn't change type, Convertible does.
+- Savings Plans: more flexible than RI, commitment in $/hour.
+- Data transfer between AZs has cost. Using private IP within the same AZ is free.
+- Dedicated Hosts is required for BYOL (Bring Your Own License) licensing.

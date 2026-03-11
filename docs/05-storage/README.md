@@ -1,338 +1,338 @@
-# Almacenamiento en AWS (Storage)
+# Storage in AWS
 
-## Índice
+## Table of Contents
 
-- [Tipos de almacenamiento: Block vs File vs Object](#tipos-de-almacenamiento-block-vs-file-vs-object)
+- [Storage Types: Block vs File vs Object](#storage-types-block-vs-file-vs-object)
 - [Amazon S3](#amazon-s3)
-- [Clases de almacenamiento S3](#clases-de-almacenamiento-s3)
-- [Características de S3](#características-de-s3)
-- [Rendimiento de S3](#rendimiento-de-s3)
-- [Control de acceso en S3](#control-de-acceso-en-s3)
-- [Notificaciones de eventos S3](#notificaciones-de-eventos-s3)
+- [S3 Storage Classes](#s3-storage-classes)
+- [S3 Features](#s3-features)
+- [S3 Performance](#s3-performance)
+- [S3 Access Control](#s3-access-control)
+- [S3 Event Notifications](#s3-event-notifications)
 - [Amazon EBS](#amazon-ebs)
 - [Amazon EFS](#amazon-efs)
 - [Amazon FSx](#amazon-fsx)
 - [AWS Storage Gateway](#aws-storage-gateway)
 - [AWS Snow Family](#aws-snow-family)
 - [AWS DataSync vs Transfer Family](#aws-datasync-vs-transfer-family)
-- [Tips para el examen](#tips-para-el-examen)
+- [Exam Tips](#exam-tips)
 
 ---
 
-## Tipos de almacenamiento: Block vs File vs Object
+## Storage Types: Block vs File vs Object
 
-Antes de ver los servicios individuales, es fundamental entender los tres modelos de almacenamiento porque el examen pregunta cuál usar en cada escenario.
+Before looking at individual services, it is essential to understand the three storage models because the exam asks which one to use in each scenario.
 
 | | Block Storage | File Storage | Object Storage |
 |---|---|---|---|
-| **Analogía** | Un disco duro conectado a tu PC | Una carpeta compartida en red (NAS) | Un almacén de paquetes con etiqueta |
-| **Unidad** | Bloques de bytes (como sectores de disco) | Archivos organizados en directorios | Objetos con key + metadata |
-| **Acceso** | Directo, byte a byte | Por ruta jerárquica (NFS/SMB) | Por HTTP (GET/PUT) |
-| **Modificación parcial** | Sí (cambiar 1 byte) | Sí (editar un fichero) | **No** (reescribir el objeto entero) |
-| **Latencia** | Sub-milisegundo | Milisegundos | Milisegundos a cientos de ms |
-| **El SO lo ve como** | Un disco local (le pone su filesystem: NTFS, ext4) | Un punto de montaje de red | No se monta; se accede por API |
-| **Caso de uso** | Bases de datos, trading apps, boot volumes | Ficheros compartidos, home dirs, CMS | Backups, media, data lakes, web assets |
-| **Servicios AWS** | **EBS**, FSx for NetApp ONTAP (iSCSI) | **EFS** (NFS), **FSx** (SMB/NFS) | **S3** |
+| **Analogy** | A hard drive connected to your PC | A shared network folder (NAS) | A package warehouse with labels |
+| **Unit** | Byte blocks (like disk sectors) | Files organized in directories | Objects with key + metadata |
+| **Access** | Direct, byte by byte | By hierarchical path (NFS/SMB) | By HTTP (GET/PUT) |
+| **Partial modification** | Yes (change 1 byte) | Yes (edit a file) | **No** (rewrite the entire object) |
+| **Latency** | Sub-millisecond | Milliseconds | Milliseconds to hundreds of ms |
+| **The OS sees it as** | A local disk (applies its filesystem: NTFS, ext4) | A network mount point | Not mounted; accessed by API |
+| **Use case** | Databases, trading apps, boot volumes | Shared files, home dirs, CMS | Backups, media, data lakes, web assets |
+| **AWS services** | **EBS**, FSx for NetApp ONTAP (iSCSI) | **EFS** (NFS), **FSx** (SMB/NFS) | **S3** |
 
-### Por qué importa la distinción para el examen
+### Why the Distinction Matters for the Exam
 
 ```
-App transaccional (BD, trading)  →  necesita leer/escribir bloques individuales rápido
-                                 →  Block Storage (EBS o iSCSI)
+Transactional app (DB, trading)  ->  needs to read/write individual blocks fast
+                                 ->  Block Storage (EBS or iSCSI)
 
-Ficheros compartidos entre servers →  necesita rutas /datos/informe.pdf accesibles por varios servers
-                                   →  File Storage (EFS o FSx)
+Files shared between servers     ->  needs paths /data/report.pdf accessible by multiple servers
+                                 ->  File Storage (EFS or FSx)
 
-Almacenar millones de objetos      →  no necesita edición parcial, escala infinita
-                                   →  Object Storage (S3)
+Store millions of objects        ->  no need for partial editing, infinite scale
+                                 ->  Object Storage (S3)
 ```
 
-> **Tip para el examen:** Si el escenario dice "low-latency block storage" compartido multi-AZ, EBS no sirve (es single-AZ). La respuesta es **FSx for NetApp ONTAP con iSCSI**, que expone block storage por red accesible desde múltiples AZs. Si solo dice "block storage single-AZ", la respuesta es **EBS**.
+> **Exam tip:** If the scenario says "low-latency block storage" shared multi-AZ, EBS doesn't work (it's single-AZ). The answer is **FSx for NetApp ONTAP with iSCSI**, which exposes block storage over the network accessible from multiple AZs. If it only says "block storage single-AZ", the answer is **EBS**.
 
 ---
 
 ## Amazon S3
 
-Amazon Simple Storage Service (S3) es un servicio de almacenamiento de objetos que ofrece escalabilidad, disponibilidad de datos, seguridad y rendimiento líderes en la industria.
+Amazon Simple Storage Service (S3) is an object storage service that offers industry-leading scalability, data availability, security, and performance.
 
-**Conceptos clave:**
+**Key concepts:**
 
-- **Buckets**: Contenedores de objetos. Nombres globalmente únicos.
-- **Objetos**: Archivos almacenados. Tamaño máximo de un objeto: **5 TB**. Para uploads mayores a 5 GB se debe usar multipart upload.
-- **Key**: Ruta completa del objeto (prefijo + nombre).
-- No hay concepto de "directorios" reales, solo prefijos en la key.
+- **Buckets**: Object containers. Globally unique names.
+- **Objects**: Stored files. Maximum object size: **5 TB**. For uploads larger than 5 GB, multipart upload must be used.
+- **Key**: Full path of the object (prefix + name).
+- There is no concept of real "directories", only prefixes in the key.
 
 ---
 
-## Clases de almacenamiento S3
+## S3 Storage Classes
 
-| Clase | Durabilidad | Disponibilidad | AZs | Latencia | Coste relativo | Caso de uso |
+| Class | Durability | Availability | AZs | Latency | Relative Cost | Use Case |
 |---|---|---|---|---|---|---|
-| **S3 Standard** | 99.999999999% (11 9s) | 99.99% | >= 3 | ms | $$$$$ | Datos accedidos frecuentemente |
-| **S3 Intelligent-Tiering** | 99.999999999% | 99.9% | >= 3 | ms | $$$$$ (+ tarifa monitoreo) | Patrones de acceso impredecibles |
-| **S3 Standard-IA** | 99.999999999% | 99.9% | >= 3 | ms | $$$$ | Datos poco frecuentes, acceso rápido necesario |
-| **S3 One Zone-IA** | 99.999999999% | 99.5% | 1 | ms | $$$ | Datos poco frecuentes, recreables |
-| **S3 Glacier Instant Retrieval** | 99.999999999% | 99.9% | >= 3 | ms | $$$ | Archivos accedidos 1 vez/trimestre, acceso inmediato |
-| **S3 Glacier Flexible Retrieval** | 99.999999999% | 99.99% (tras restaurar) | >= 3 | min-hrs | $$ | Archivos con recuperación flexible |
-| **S3 Glacier Deep Archive** | 99.999999999% | 99.99% (tras restaurar) | >= 3 | hrs | $ | Retención a largo plazo (7-10 años) |
+| **S3 Standard** | 99.999999999% (11 9s) | 99.99% | >= 3 | ms | $$$$$ | Frequently accessed data |
+| **S3 Intelligent-Tiering** | 99.999999999% | 99.9% | >= 3 | ms | $$$$$ (+ monitoring fee) | Unpredictable access patterns |
+| **S3 Standard-IA** | 99.999999999% | 99.9% | >= 3 | ms | $$$$ | Infrequently accessed data, fast access needed |
+| **S3 One Zone-IA** | 99.999999999% | 99.5% | 1 | ms | $$$ | Infrequently accessed data, recreatable |
+| **S3 Glacier Instant Retrieval** | 99.999999999% | 99.9% | >= 3 | ms | $$$ | Archives accessed once/quarter, immediate access |
+| **S3 Glacier Flexible Retrieval** | 99.999999999% | 99.99% (after restore) | >= 3 | min-hrs | $$ | Archives with flexible retrieval |
+| **S3 Glacier Deep Archive** | 99.999999999% | 99.99% (after restore) | >= 3 | hrs | $ | Long-term retention (7-10 years) |
 
-### Detalles de Intelligent-Tiering
+### Intelligent-Tiering Details
 
-Mueve automáticamente los objetos entre niveles sin impacto en rendimiento ni cargos por recuperación:
+Automatically moves objects between tiers without performance impact or retrieval charges:
 
-- **Frequent Access tier**: acceso normal (por defecto).
-- **Infrequent Access tier**: objetos no accedidos en 30 días.
-- **Archive Instant Access tier**: objetos no accedidos en 90 días.
-- **Archive Access tier** (opcional): objetos no accedidos en 90-730 días.
-- **Deep Archive Access tier** (opcional): objetos no accedidos en 180-730 días.
+- **Frequent Access tier**: Normal access (default).
+- **Infrequent Access tier**: Objects not accessed in 30 days.
+- **Archive Instant Access tier**: Objects not accessed in 90 days.
+- **Archive Access tier** (optional): Objects not accessed in 90-730 days.
+- **Deep Archive Access tier** (optional): Objects not accessed in 180-730 days.
 
-### Tiempos de recuperación en Glacier
+### Glacier Retrieval Times
 
-| Clase | Expedited | Standard | Bulk |
+| Class | Expedited | Standard | Bulk |
 |---|---|---|---|
 | **Glacier Flexible Retrieval** | 1-5 min | 3-5 hrs | 5-12 hrs |
-| **Glacier Deep Archive** | No disponible | 12 hrs | 48 hrs |
+| **Glacier Deep Archive** | Not available | 12 hrs | 48 hrs |
 
-**Detalle de cada tipo de retrieval:**
+**Detail of each retrieval type:**
 ```
-Expedited:  1-5 minutos, hasta 150 MB/s throughput
-            ⚠️ Sin provisioned capacity → puede fallar en alta demanda
-            Con provisioned capacity → GARANTIZADO siempre disponible
+Expedited:  1-5 minutes, up to 150 MB/s throughput
+            Warning: Without provisioned capacity -> may fail under high demand
+            With provisioned capacity -> GUARANTEED always available
 
-Standard:   3-5 horas, para datos que no son urgentes
+Standard:   3-5 hours, for non-urgent data
 
-Bulk:       5-12 horas, lo más barato, para grandes volúmenes sin prisa
+Bulk:       5-12 hours, cheapest, for large volumes without urgency
 ```
 
 **Provisioned Retrieval Capacity:**
 ```
-Problema: Expedited retrieval usa capacidad compartida de AWS
-          En momentos de alta demanda, tu request puede ser rechazado
+Problem: Expedited retrieval uses AWS shared capacity
+         During high-demand periods, your request may be rejected
 
-Solución: Compras "provisioned capacity" (~$100/mes por unidad)
-          → Garantiza que Expedited SIEMPRE funciona
-          → Cada unidad = 3 retrievals cada 5 min + 150 MB/s throughput
+Solution: You purchase "provisioned capacity" (~$100/month per unit)
+          -> Guarantees Expedited ALWAYS works
+          -> Each unit = 3 retrievals every 5 min + 150 MB/s throughput
 
-Cuándo usarlo:
-  - Compliance que exige acceso garantizado ("under all circumstances")
-  - Auditorías sorpresa que necesitan datos en minutos
-  - SLA estricto de recuperación de datos
+When to use it:
+  - Compliance that requires guaranteed access ("under all circumstances")
+  - Surprise audits that need data in minutes
+  - Strict data recovery SLA
 ```
 
-> **Clave para el examen**: Glacier Instant Retrieval ofrece acceso en milisegundos. Glacier Flexible Retrieval requiere restauración previa. Deep Archive es la opción más barata pero con tiempos de recuperación de horas. Si el enunciado pide acceso garantizado en minutos "under all circumstances" → Expedited + Provisioned Retrieval Capacity.
+> **Key for the exam**: Glacier Instant Retrieval offers millisecond access. Glacier Flexible Retrieval requires prior restoration. Deep Archive is the cheapest option but with retrieval times of hours. If the question asks for guaranteed access in minutes "under all circumstances" -> Expedited + Provisioned Retrieval Capacity.
 
 ---
 
-## Características de S3
+## S3 Features
 
-### Versionado (Versioning)
+### Versioning
 
-- Se habilita a nivel de bucket.
-- Cada objeto tiene un **Version ID**.
-- Protege contra eliminaciones accidentales (los deletes crean un **delete marker**).
-- Versiones anteriores se pueden restaurar eliminando el delete marker.
-- Una vez habilitado, solo se puede suspender, **no deshabilitar**.
-- Los objetos previos a la habilitación tienen Version ID = `null`.
+- Enabled at the bucket level.
+- Each object has a **Version ID**.
+- Protects against accidental deletions (deletes create a **delete marker**).
+- Previous versions can be restored by removing the delete marker.
+- Once enabled, it can only be suspended, **not disabled**.
+- Objects prior to enabling have Version ID = `null`.
 
-### Políticas de ciclo de vida (Lifecycle Policies)
+### Lifecycle Policies
 
-Permiten automatizar la transición entre clases de almacenamiento o la expiración de objetos:
+Allow automating the transition between storage classes or object expiration:
 
-- **Transition actions**: Mover objetos a otra clase tras X días.
-- **Expiration actions**: Eliminar objetos tras X días.
-- Se pueden aplicar a prefijos específicos o tags.
-- Se pueden aplicar a versiones actuales y/o anteriores.
+- **Transition actions**: Move objects to another class after X days.
+- **Expiration actions**: Delete objects after X days.
+- Can be applied to specific prefixes or tags.
+- Can be applied to current and/or previous versions.
 
-**Reglas de transición permitidas:**
+**Allowed transition rules:**
 
 ```
-Standard → Standard-IA → Intelligent-Tiering → One Zone-IA
-    ↓                                               ↓
-Glacier Instant → Glacier Flexible → Glacier Deep Archive
+Standard -> Standard-IA -> Intelligent-Tiering -> One Zone-IA
+    |                                               |
+Glacier Instant -> Glacier Flexible -> Glacier Deep Archive
 ```
 
-> **Clave**: Mínimo 30 días en Standard antes de transicionar a Standard-IA o One Zone-IA. Mínimo 30 días adicionales antes de transicionar a Glacier.
+> **Key**: Minimum 30 days in Standard before transitioning to Standard-IA or One Zone-IA. Minimum 30 additional days before transitioning to Glacier.
 
-### Replicación
+### Replication
 
-| Característica | CRR (Cross-Region Replication) | SRR (Same-Region Replication) |
+| Feature | CRR (Cross-Region Replication) | SRR (Same-Region Replication) |
 |---|---|---|
-| **Regiones** | Diferentes regiones | Misma región |
-| **Caso de uso** | Compliance, menor latencia, replicación entre cuentas | Agregación de logs, replicación entre cuentas en producción/test |
-| **Requisitos** | Versionado habilitado en origen y destino | Versionado habilitado en origen y destino |
+| **Regions** | Different regions | Same region |
+| **Use case** | Compliance, lower latency, cross-account replication | Log aggregation, production/test cross-account replication |
+| **Requirements** | Versioning enabled on source and destination | Versioning enabled on source and destination |
 
-**Notas importantes sobre replicación:**
+**Important notes about replication:**
 
-- Solo se replican objetos nuevos tras habilitar la regla.
-- Para replicar objetos existentes se usa **S3 Batch Replication**.
-- Los delete markers **no se replican** por defecto (se puede habilitar).
-- No hay replicación en cadena (A → B → C: los objetos replicados en B no se replican a C).
+- Only new objects are replicated after enabling the rule.
+- To replicate existing objects, use **S3 Batch Replication**.
+- Delete markers are **not replicated** by default (can be enabled).
+- There is no chain replication (A -> B -> C: objects replicated to B are not replicated to C).
 
-### Cifrado (Encryption)
+### Encryption
 
-| Método | Gestión de claves | Cuándo usar |
+| Method | Key Management | When to Use |
 |---|---|---|
-#### Server-Side Encryption (SSE) — AWS cifra después de recibir el objeto
+#### Server-Side Encryption (SSE) -- AWS encrypts after receiving the object
 
-| Método | Quién gestiona la clave | Datos viajan sin cifrar a AWS? | Clave en AWS? |
+| Method | Who manages the key | Does data travel unencrypted to AWS? | Key in AWS? |
 |---|---|---|---|
-| **SSE-S3** | AWS completamente (AES-256) | Sí (cifrados en tránsito por HTTPS, pero AWS los ve) | Sí |
-| **SSE-KMS** | AWS KMS (tú controlas la key policy) | Sí | Sí |
-| **SSE-C** | Tú proporcionas la clave en cada request | Sí (solo HTTPS) | No se almacena (AWS la usa y descarta) |
+| **SSE-S3** | AWS completely (AES-256) | Yes (encrypted in transit by HTTPS, but AWS sees them) | Yes |
+| **SSE-KMS** | AWS KMS (you control the key policy) | Yes | Yes |
+| **SSE-C** | You provide the key in each request | Yes (HTTPS only) | Not stored (AWS uses it and discards it) |
 
 ```
-Cliente  ──── objeto en claro (HTTPS) ────►  S3  ──► cifra con la clave ──► almacena cifrado
+Client  ---- plaintext object (HTTPS) ---->  S3  --> encrypts with the key --> stores encrypted
 ```
 
-En los tres casos SSE, AWS recibe el objeto sin cifrar (protegido por HTTPS en tránsito) y lo cifra antes de escribirlo a disco.
+In all three SSE cases, AWS receives the object unencrypted (protected by HTTPS in transit) and encrypts it before writing to disk.
 
-#### Client-Side Encryption — El cliente cifra ANTES de enviar
+#### Client-Side Encryption -- The client encrypts BEFORE sending
 
-| Variante | Master key | Master key sale del cliente? | Datos sin cifrar llegan a AWS? |
+| Variant | Master key | Does master key leave the client? | Does unencrypted data reach AWS? |
 |---|---|---|---|
-| **Client-Side con KMS key** | AWS KMS genera la data key | Sí (pides la data key a KMS via API) | **No** |
-| **Client-Side con client-side master key** | Tú la gestionas localmente | **No** (nunca sale de tu entorno) | **No** |
+| **Client-Side with KMS key** | AWS KMS generates the data key | Yes (you request the data key from KMS via API) | **No** |
+| **Client-Side with client-side master key** | You manage it locally | **No** (never leaves your environment) | **No** |
 
 ```
-Client-Side con KMS:
-Cliente ──► pide data key a KMS ──► cifra localmente ──► sube cifrado a S3
+Client-Side with KMS:
+Client --> requests data key from KMS --> encrypts locally --> uploads encrypted to S3
 
-Client-Side con client master key:
-Cliente ──► genera data key con su master key local ──► cifra localmente ──► sube cifrado a S3
-                (la master key NUNCA sale del cliente)
+Client-Side with client master key:
+Client --> generates data key with its local master key --> encrypts locally --> uploads encrypted to S3
+                (the master key NEVER leaves the client)
 ```
 
-**Con client-side encryption el objeto en S3 es ilegible.** No se puede ver desde la consola de AWS, ni con acceso directo al bucket. Para leerlo hay que descargarlo y descifrarlo con la master key correspondiente.
+**With client-side encryption the object in S3 is unreadable.** It cannot be viewed from the AWS console, nor with direct bucket access. To read it you must download it and decrypt it with the corresponding master key.
 
-**Cómo funciona (envelope encryption):**
-1. El SDK genera una **data key** aleatoria para cada objeto.
-2. Cifra el objeto con esa data key.
-3. Cifra la data key con la **master key** (KMS o local).
-4. Sube el objeto cifrado + la data key cifrada como metadata (`x-amz-meta-x-amz-key`).
-5. Para leer: descarga, descifra la data key con la master key, descifra el objeto con la data key.
+**How it works (envelope encryption):**
+1. The SDK generates a random **data key** for each object.
+2. Encrypts the object with that data key.
+3. Encrypts the data key with the **master key** (KMS or local).
+4. Uploads the encrypted object + the encrypted data key as metadata (`x-amz-meta-x-amz-key`).
+5. To read: download, decrypt the data key with the master key, decrypt the object with the data key.
 
-> Si pierdes la master key, **pierdes los datos para siempre**. AWS no puede ayudarte.
+> If you lose the master key, **you lose the data forever**. AWS cannot help you.
 
-#### Cuándo usar cada método (para el examen)
+#### When to Use Each Method (for the exam)
 
-| Requisito del escenario | Método |
+| Scenario Requirement | Method |
 |---|---|
-| Sin requisitos especiales, cifrado básico | **SSE-S3** (por defecto) |
-| Auditoría de uso de claves con CloudTrail | **SSE-KMS** |
-| "El cliente debe controlar la clave" pero acepta que AWS cifre | **SSE-C** |
-| "Los datos no deben llegar sin cifrar a AWS" | **Client-Side** |
-| "La master key no debe salir del entorno del cliente / no debe ir a AWS" | **Client-Side con client-side master key** |
-| "Datos no cifrados ni master key deben llegar a AWS" | **Client-Side con client-side master key** |
+| No special requirements, basic encryption | **SSE-S3** (default) |
+| Key usage auditing with CloudTrail | **SSE-KMS** |
+| "The customer must control the key" but accepts AWS encrypting | **SSE-C** |
+| "Data must not reach AWS unencrypted" | **Client-Side** |
+| "The master key must not leave the customer's environment / must not go to AWS" | **Client-Side with client-side master key** |
+| "Neither unencrypted data nor master key should reach AWS" | **Client-Side with client-side master key** |
 
-> **Clave para el examen**: SSE-KMS tiene un límite de cuota de API de KMS (5,500-30,000 requests/s según región). Para cargas masivas, considerar SSE-S3 o S3 Bucket Keys (reduce llamadas a KMS un 99%).
+> **Key for the exam**: SSE-KMS has a KMS API quota limit (5,500-30,000 requests/s depending on region). For massive workloads, consider SSE-S3 or S3 Bucket Keys (reduces KMS calls by 99%).
 
-**Cifrado por defecto:**
-- Desde enero 2023, SSE-S3 se aplica automáticamente a todos los objetos nuevos.
-- Se puede forzar SSE-KMS mediante bucket policy denegando uploads sin el header correcto.
+**Default encryption:**
+- Since January 2023, SSE-S3 is automatically applied to all new objects.
+- SSE-KMS can be enforced via bucket policy denying uploads without the correct header.
 
-### Object Lock y Glacier Vault Lock
+### Object Lock and Glacier Vault Lock
 
-**S3 Object Lock** (requiere versionado):
-- **Retention mode - Compliance**: Nadie puede eliminar ni modificar la retención, ni siquiera el usuario root.
-- **Retention mode - Governance**: Solo usuarios con permisos especiales pueden modificar la retención.
-- **Legal Hold**: Protege el objeto indefinidamente, independiente del período de retención. Se puede establecer/quitar con permiso `s3:PutObjectLegalHold`.
+**S3 Object Lock** (requires versioning):
+- **Retention mode - Compliance**: Nobody can delete or modify the retention, not even the root user.
+- **Retention mode - Governance**: Only users with special permissions can modify the retention.
+- **Legal Hold**: Protects the object indefinitely, independent of the retention period. Can be set/removed with `s3:PutObjectLegalHold` permission.
 
-**Glacier Vault Lock**: Política de vault que una vez bloqueada no puede modificarse. Ideal para compliance (WORM - Write Once Read Many).
+**Glacier Vault Lock**: Vault policy that once locked cannot be modified. Ideal for compliance (WORM - Write Once Read Many).
 
 ### S3 Server Access Logging
 
-- Registra todas las peticiones realizadas a un bucket S3.
-- Los logs se almacenan en **otro bucket S3** (nunca en el mismo bucket, para evitar loops infinitos).
-- Información incluida: requester, bucket name, request time, action, response status, **error code**, **referrer**, turnaround time.
-- **No es en tiempo real**: Los logs pueden tardar horas en aparecer (best-effort delivery).
-- No se puede enviar directamente a CloudWatch Logs (a diferencia de CloudTrail).
+- Logs all requests made to an S3 bucket.
+- Logs are stored in **another S3 bucket** (never in the same bucket, to avoid infinite loops).
+- Information included: requester, bucket name, request time, action, response status, **error code**, **referrer**, turnaround time.
+- **Not real-time**: Logs can take hours to appear (best-effort delivery).
+- Cannot be sent directly to CloudWatch Logs (unlike CloudTrail).
 
 **S3 Server Access Logging vs CloudTrail Data Events:**
 
-| Característica | S3 Server Access Logging | CloudTrail Data Events |
+| Feature | S3 Server Access Logging | CloudTrail Data Events |
 |---------------|-------------------------|----------------------|
-| **Latencia** | Horas (best-effort) | Minutos (~15 min) |
-| **Campos extra** | Referrer, turnaround time, error code, bytes sent | Principal ARN, source IP, request parameters |
-| **Destino** | Otro bucket S3 | S3, CloudWatch Logs, EventBridge |
-| **Coste** | Gratis (solo pagas por el almacenamiento de los logs) | Coste por evento ($0.10 por 100,000 eventos) |
-| **Caso de uso** | Auditoría detallada de acceso, análisis de errores HTTP | Auditoría de seguridad, compliance, alertas en tiempo real |
+| **Latency** | Hours (best-effort) | Minutes (~15 min) |
+| **Extra fields** | Referrer, turnaround time, error code, bytes sent | Principal ARN, source IP, request parameters |
+| **Destination** | Another S3 bucket | S3, CloudWatch Logs, EventBridge |
+| **Cost** | Free (you only pay for the log storage) | Cost per event ($0.10 per 100,000 events) |
+| **Use case** | Detailed access auditing, HTTP error analysis | Security auditing, compliance, real-time alerts |
 
-> **Tip para el examen:** Si la pregunta pide "auditoría detallada con referrer y error codes" → **S3 Server Access Logging**. Si pide "alertas en tiempo real sobre acceso a S3" → **CloudTrail Data Events + EventBridge**.
+> **Exam tip:** If the question asks for "detailed auditing with referrer and error codes" -> **S3 Server Access Logging**. If it asks for "real-time alerts on S3 access" -> **CloudTrail Data Events + EventBridge**.
 
-### Cargos mínimos de duración por clase de almacenamiento
+### Minimum Duration Charges by Storage Class
 
-AWS cobra un **mínimo de duración** al usar ciertas clases de S3. Si eliminas o mueves un objeto antes de ese período, pagas por el período completo igualmente:
+AWS charges a **minimum duration** when using certain S3 classes. If you delete or move an object before that period, you pay for the full period anyway:
 
-| Clase | Duración mínima de facturación |
+| Class | Minimum Billing Duration |
 |---|---|
-| **S3 Standard** | Sin mínimo |
-| **S3 Standard-IA** | **30 días** |
-| **S3 One Zone-IA** | **30 días** |
-| **S3 Glacier Instant Retrieval** | **90 días** |
-| **S3 Glacier Flexible Retrieval** | **90 días** |
-| **S3 Glacier Deep Archive** | **180 días** |
+| **S3 Standard** | No minimum |
+| **S3 Standard-IA** | **30 days** |
+| **S3 One Zone-IA** | **30 days** |
+| **S3 Glacier Instant Retrieval** | **90 days** |
+| **S3 Glacier Flexible Retrieval** | **90 days** |
+| **S3 Glacier Deep Archive** | **180 days** |
 
-**Impacto en Lifecycle Policies:**
-- No puedes transicionar de Standard a Standard-IA antes de **30 días** (AWS lo impide).
-- Sí puedes transicionar de Standard a Glacier Flexible directamente **sin mínimo de días**.
-- **Trampa del examen**: Si una pregunta propone "Standard-IA after 7 days", es incorrecta (viola el mínimo de 30 días). Pero "Glacier Flexible after 7 days" sí es válido.
+**Impact on Lifecycle Policies:**
+- You cannot transition from Standard to Standard-IA before **30 days** (AWS prevents it).
+- You can transition from Standard to Glacier Flexible directly **with no minimum days**.
+- **Exam trap**: If a question proposes "Standard-IA after 7 days", it is incorrect (violates the 30-day minimum). But "Glacier Flexible after 7 days" is valid.
 
-> **Tip para el examen:** Recuerda: Standard-IA y One Zone-IA → mínimo 30 días. Glacier → mínimo 90 días. Deep Archive → mínimo 180 días. Las transiciones lifecycle deben respetar estos mínimos.
+> **Exam tip:** Remember: Standard-IA and One Zone-IA -> minimum 30 days. Glacier -> minimum 90 days. Deep Archive -> minimum 180 days. Lifecycle transitions must respect these minimums.
 
 ### Presigned URLs
 
-- URLs temporales que otorgan acceso a un objeto privado.
-- Se generan con el SDK o CLI.
-- Expiración configurable: por defecto **3600 segundos** (1 hora), máximo 168 horas con CLI.
-- El que accede hereda los permisos del usuario que generó la URL.
-- Caso de uso: compartir temporalmente archivos privados, permitir uploads temporales.
+- Temporary URLs that grant access to a private object.
+- Generated with the SDK or CLI.
+- Configurable expiration: default **3600 seconds** (1 hour), maximum 168 hours with CLI.
+- The accessor inherits the permissions of the user who generated the URL.
+- Use case: temporarily share private files, allow temporary uploads.
 
 ---
 
-## Rendimiento de S3
+## S3 Performance
 
-### Línea base de rendimiento
+### Performance Baseline
 
-- **3,500 PUT/COPY/POST/DELETE** requests por segundo por prefijo.
-- **5,500 GET/HEAD** requests por segundo por prefijo.
-- No hay límite en el número de prefijos.
+- **3,500 PUT/COPY/POST/DELETE** requests per second per prefix.
+- **5,500 GET/HEAD** requests per second per prefix.
+- No limit on the number of prefixes.
 
 ### Multipart Upload
 
-- **Recomendado** para archivos > 100 MB.
-- **Obligatorio** para archivos > 5 GB.
-- Paraleliza la subida dividiendo el archivo en partes.
-- Si una parte falla, solo esa parte se re-sube.
+- **Recommended** for files > 100 MB.
+- **Mandatory** for files > 5 GB.
+- Parallelizes the upload by splitting the file into parts.
+- If one part fails, only that part is re-uploaded.
 
 ### S3 Transfer Acceleration
 
-- Usa edge locations de CloudFront para acelerar transferencias de larga distancia.
-- El archivo se sube al edge más cercano y luego viaja por la red interna de AWS al bucket.
-- Compatible con multipart upload.
-- Coste adicional; útil cuando los usuarios están lejos de la región del bucket.
+- Uses CloudFront edge locations to accelerate long-distance transfers.
+- The file is uploaded to the nearest edge and then travels through AWS's internal network to the bucket.
+- Compatible with multipart upload.
+- Additional cost; useful when users are far from the bucket's region.
 
 ### S3 Byte-Range Fetches
 
-- Paraleliza GETs solicitando rangos de bytes específicos.
-- Mejor resiliencia ante fallos (se puede reintentar un rango específico).
-- Caso de uso: descargar solo los primeros N bytes (ej: header de un archivo).
+- Parallelizes GETs by requesting specific byte ranges.
+- Better resilience against failures (a specific range can be retried).
+- Use case: download only the first N bytes (e.g., header of a file).
 
-### S3 Select y Glacier Select
+### S3 Select and Glacier Select
 
-- Permiten usar SQL para filtrar datos directamente en S3.
-- Reduce la transferencia de datos hasta un **80%** y el coste un **400%**.
-- Filtra filas y columnas de archivos CSV, JSON o Parquet.
-- Reemplazado progresivamente por S3 Object Lambda para transformaciones más complejas.
+- Allow using SQL to filter data directly in S3.
+- Reduces data transfer by up to **80%** and cost by up to **400%**.
+- Filters rows and columns of CSV, JSON or Parquet files.
+- Progressively being replaced by S3 Object Lambda for more complex transformations.
 
 ---
 
-## Control de acceso en S3
+## S3 Access Control
 
 ### Bucket Policies
 
-- Políticas basadas en JSON aplicadas al bucket.
-- Permiten acceso cross-account.
-- Casos de uso: forzar cifrado, conceder acceso público, requerir MFA para delete.
+- JSON-based policies applied to the bucket.
+- Allow cross-account access.
+- Use cases: enforce encryption, grant public access, require MFA for delete.
 
 ```json
 {
@@ -343,7 +343,7 @@ AWS cobra un **mínimo de duración** al usar ciertas clases de S3. Si eliminas 
       "Effect": "Deny",
       "Principal": "*",
       "Action": "s3:PutObject",
-      "Resource": "arn:aws:s3:::mi-bucket/*",
+      "Resource": "arn:aws:s3:::my-bucket/*",
       "Condition": {
         "StringNotEquals": {
           "s3:x-amz-server-side-encryption": "aws:kms"
@@ -356,318 +356,318 @@ AWS cobra un **mínimo de duración** al usar ciertas clases de S3. Si eliminas 
 
 ### ACLs (Access Control Lists)
 
-- Mecanismo legacy, **AWS recomienda deshabilitarlas**.
-- A nivel de bucket u objeto.
-- Desde abril 2023, nuevos buckets tienen ACLs deshabilitadas por defecto (BucketOwnerEnforced).
+- Legacy mechanism, **AWS recommends disabling them**.
+- At bucket or object level.
+- Since April 2023, new buckets have ACLs disabled by default (BucketOwnerEnforced).
 
 ### S3 Access Points
 
-- Simplifican la gestión de acceso para datasets compartidos.
-- Cada access point tiene su propio DNS y política.
-- Se pueden restringir a una VPC específica (VPC origin).
-- Caso de uso: equipos diferentes necesitan acceso a diferentes prefijos del mismo bucket.
+- Simplify access management for shared datasets.
+- Each access point has its own DNS and policy.
+- Can be restricted to a specific VPC (VPC origin).
+- Use case: different teams need access to different prefixes of the same bucket.
 
 ### S3 Object Lambda
 
-- Permite transformar datos al vuelo durante un GET request.
-- Usa funciones Lambda para modificar el objeto antes de devolverlo.
-- Casos de uso: redactar datos PII, convertir formatos, redimensionar imágenes, enriquecer datos.
+- Allows transforming data on the fly during a GET request.
+- Uses Lambda functions to modify the object before returning it.
+- Use cases: redact PII data, convert formats, resize images, enrich data.
 
 ---
 
-## Notificaciones de eventos S3
+## S3 Event Notifications
 
-Se pueden enviar notificaciones cuando ocurren eventos en el bucket (ej: `s3:ObjectCreated:*`, `s3:ObjectRemoved:*`):
+Notifications can be sent when events occur in the bucket (e.g., `s3:ObjectCreated:*`, `s3:ObjectRemoved:*`):
 
-| Destino | Notas |
+| Destination | Notes |
 |---|---|
-| **Amazon SNS** | Requiere SNS Resource Policy que permita a S3 publicar |
-| **Amazon SQS** | Requiere SQS Resource Policy que permita a S3 enviar mensajes |
-| **AWS Lambda** | Requiere Lambda Resource Policy que permita a S3 invocar |
-| **Amazon EventBridge** | Se habilita a nivel de bucket. Permite reglas avanzadas, múltiples destinos, archivo, replay |
+| **Amazon SNS** | Requires SNS Resource Policy allowing S3 to publish |
+| **Amazon SQS** | Requires SQS Resource Policy allowing S3 to send messages |
+| **AWS Lambda** | Requires Lambda Resource Policy allowing S3 to invoke |
+| **Amazon EventBridge** | Enabled at bucket level. Allows advanced rules, multiple destinations, archiving, replay |
 
-> **Clave para el examen**: EventBridge ofrece filtrado avanzado (JSON rules), múltiples destinos y capacidades de archivo/replay que los otros destinos no tienen.
+> **Key for the exam**: EventBridge offers advanced filtering (JSON rules), multiple destinations and archive/replay capabilities that the other destinations do not have.
 
 ---
 
 ## Amazon EBS
 
-Amazon Elastic Block Store proporciona volúmenes de almacenamiento en bloque para instancias EC2.
+Amazon Elastic Block Store provides block storage volumes for EC2 instances.
 
-**Características clave:**
+**Key features:**
 
-- Ligado a una **AZ específica** (para mover entre AZs, crear snapshot y restaurar).
-- Solo se puede adjuntar a instancias en la misma AZ.
-- Se factura por capacidad provisionada.
-- Permite cambiar tipo y tamaño en caliente (con limitaciones).
+- Tied to a **specific AZ** (to move between AZs, create snapshot and restore).
+- Can only be attached to instances in the same AZ.
+- Billed by provisioned capacity.
+- Allows changing type and size on the fly (with limitations).
 
-### Tipos de volúmenes EBS
+### EBS Volume Types
 
-| Tipo | Categoría | IOPS máx | Throughput máx | Tamaño | Caso de uso |
+| Type | Category | Max IOPS | Max Throughput | Size | Use Case |
 |---|---|---|---|---|---|
-| **gp3** | SSD General Purpose | 16,000 | 1,000 MB/s | 1 GB - 16 TB | Boot volumes, apps interactivas, dev/test |
+| **gp3** | SSD General Purpose | 16,000 | 1,000 MB/s | 1 GB - 16 TB | Boot volumes, interactive apps, dev/test |
 | **gp2** | SSD General Purpose | 16,000 (burst) | 250 MB/s | 1 GB - 16 TB | Boot volumes (legacy, burst IOPS) |
-| **io2 Block Express** | SSD Provisioned IOPS | 256,000 | 4,000 MB/s | 4 GB - 64 TB | Cargas críticas, bases de datos de alto rendimiento |
-| **io2** | SSD Provisioned IOPS | 64,000 | 1,000 MB/s | 4 GB - 16 TB | Bases de datos con requisitos consistentes de IOPS |
-| **io1** | SSD Provisioned IOPS | 64,000 | 1,000 MB/s | 4 GB - 16 TB | Similar a io2 (legacy) |
-| **st1** | HDD Throughput Optimized | 500 | 500 MB/s | 125 GB - 16 TB | Big data, data warehouses, procesamiento de logs |
-| **sc1** | HDD Cold | 250 | 250 MB/s | 125 GB - 16 TB | Datos poco accedidos, coste mínimo |
+| **io2 Block Express** | SSD Provisioned IOPS | 256,000 | 4,000 MB/s | 4 GB - 64 TB | Critical workloads, high-performance databases |
+| **io2** | SSD Provisioned IOPS | 64,000 | 1,000 MB/s | 4 GB - 16 TB | Databases with consistent IOPS requirements |
+| **io1** | SSD Provisioned IOPS | 64,000 | 1,000 MB/s | 4 GB - 16 TB | Similar to io2 (legacy) |
+| **st1** | HDD Throughput Optimized | 500 | 500 MB/s | 125 GB - 16 TB | Big data, data warehouses, log processing |
+| **sc1** | HDD Cold | 250 | 250 MB/s | 125 GB - 16 TB | Infrequently accessed data, minimum cost |
 
-**Notas importantes:**
+**Important notes:**
 
-- Solo **gp2, gp3, io1, io2** pueden ser boot volumes.
-- **gp2**: IOPS escalan con el tamaño del volumen (3 IOPS por GB, mínimo 100, máximo 16,000). Burst hasta 3,000 IOPS para volúmenes < 1 TB.
-- **gp3**: IOPS y throughput se configuran **independientemente** del tamaño. Base: 3,000 IOPS y 125 MB/s incluidos.
-- **io1/io2**: Ratio máximo IOPS:GB es 50:1 (io1) y 500:1 (io2).
+- Only **gp2, gp3, io1, io2** can be boot volumes.
+- **gp2**: IOPS scale with volume size (3 IOPS per GB, minimum 100, maximum 16,000). Burst up to 3,000 IOPS for volumes < 1 TB.
+- **gp3**: IOPS and throughput are configured **independently** of size. Base: 3,000 IOPS and 125 MB/s included.
+- **io1/io2**: Maximum IOPS:GB ratio is 50:1 (io1) and 500:1 (io2).
 
 ### EBS Snapshots
 
-- Copia incremental del volumen en un punto en el tiempo.
-- Se almacenan en S3 (gestionado por AWS).
-- No es necesario detach el volumen, pero se recomienda.
-- Se pueden copiar entre regiones y cuentas.
+- Incremental copy of the volume at a point in time.
+- Stored in S3 (managed by AWS).
+- Not necessary to detach the volume, but recommended.
+- Can be copied between regions and accounts.
 
-**Características de snapshots:**
+**Snapshot features:**
 
-- **EBS Snapshot Archive**: Mover snapshot a un tier 75% más barato. Restauración tarda 24-72 horas.
-- **Recycle Bin**: Protección contra eliminación accidental. Configurable de 1 día a 1 año.
-- **Fast Snapshot Restore (FSR)**: Elimina la latencia en el primer acceso. Costoso ($$$).
+- **EBS Snapshot Archive**: Move snapshot to a 75% cheaper tier. Restoration takes 24-72 hours.
+- **Recycle Bin**: Protection against accidental deletion. Configurable from 1 day to 1 year.
+- **Fast Snapshot Restore (FSR)**: Eliminates latency on first access. Expensive ($$$).
 
 ### EBS Encryption
 
-- Cifrado AES-256 con claves KMS.
-- Cifra datos en reposo, datos en tránsito (entre instancia y volumen), snapshots y volúmenes creados desde snapshots cifrados.
-- Impacto mínimo en latencia.
-- Para cifrar un volumen existente no cifrado:
-  1. Crear snapshot del volumen.
-  2. Copiar el snapshot habilitando cifrado.
-  3. Crear nuevo volumen desde el snapshot cifrado.
+- AES-256 encryption with KMS keys.
+- Encrypts data at rest, data in transit (between instance and volume), snapshots and volumes created from encrypted snapshots.
+- Minimal impact on latency.
+- To encrypt an existing unencrypted volume:
+  1. Create a snapshot of the volume.
+  2. Copy the snapshot enabling encryption.
+  3. Create a new volume from the encrypted snapshot.
 
 ### EBS Multi-Attach
 
-- Solo disponible para volúmenes **io1/io2**.
-- Permite adjuntar un volumen a **hasta 16 instancias EC2** en la **misma AZ**.
-- Cada instancia tiene permisos de lectura y escritura.
-- Requiere un sistema de archivos cluster-aware (ej: GFS2, no ext4/XFS).
-- Caso de uso: aplicaciones de alta disponibilidad en cluster.
+- Only available for **io1/io2** volumes.
+- Allows attaching a volume to **up to 16 EC2 instances** in the **same AZ**.
+- Each instance has read and write permissions.
+- Requires a cluster-aware filesystem (e.g., GFS2, not ext4/XFS).
+- Use case: high-availability cluster applications.
 
 ---
 
 ## Amazon EFS
 
-Amazon Elastic File System es un sistema de archivos NFS gestionado que puede montarse en múltiples instancias EC2 simultáneamente.
+Amazon Elastic File System is a managed NFS file system that can be mounted on multiple EC2 instances simultaneously.
 
-**Características principales:**
+**Main features:**
 
-- Funciona **cross-AZ** (a diferencia de EBS).
-- Solo compatible con instancias **Linux** (basado en POSIX/NFS v4.1).
-- Escala automáticamente (pago por uso, no hay provisionamiento de capacidad).
-- Puede crecer hasta **petabytes**.
-- Alta disponibilidad y durabilidad.
+- Works **cross-AZ** (unlike EBS).
+- Only compatible with **Linux** instances (based on POSIX/NFS v4.1).
+- Scales automatically (pay per use, no capacity provisioning).
+- Can grow up to **petabytes**.
+- High availability and durability.
 
-### Performance Modes (se definen al crear)
+### Performance Modes (defined at creation)
 
-| Modo | Latencia | Throughput | Caso de uso |
+| Mode | Latency | Throughput | Use Case |
 |---|---|---|---|
-| **General Purpose** (default) | Baja (sub-ms) | Normal | Web servers, CMS, desarrollo |
-| **Max I/O** | Mayor latencia | Mayor throughput paralelo | Big data, procesamiento de media |
+| **General Purpose** (default) | Low (sub-ms) | Normal | Web servers, CMS, development |
+| **Max I/O** | Higher latency | Higher parallel throughput | Big data, media processing |
 
-> **Nota**: Con EFS elástico, el modo Max I/O se considera legacy. AWS recomienda General Purpose para la mayoría de cargas.
+> **Note**: With elastic EFS, the Max I/O mode is considered legacy. AWS recommends General Purpose for most workloads.
 
 ### Throughput Modes
 
-| Modo | Descripción | Caso de uso |
+| Mode | Description | Use Case |
 |---|---|---|
-| **Bursting** | Throughput escala con el tamaño del filesystem | Cargas con picos esporádicos |
-| **Provisioned** | Throughput fijo independiente del tamaño | Throughput alto con poco almacenamiento |
-| **Elastic** (recomendado) | Escala automáticamente según la carga | Cargas impredecibles |
+| **Bursting** | Throughput scales with filesystem size | Workloads with sporadic peaks |
+| **Provisioned** | Fixed throughput independent of size | High throughput with little storage |
+| **Elastic** (recommended) | Scales automatically based on load | Unpredictable workloads |
 
-### Storage Classes de EFS
+### EFS Storage Classes
 
-| Clase | Descripción |
+| Class | Description |
 |---|---|
-| **Standard** | Acceso frecuente |
-| **Standard-IA** | Acceso infrecuente, menor coste |
-| **One Zone** | Una sola AZ, acceso frecuente |
-| **One Zone-IA** | Una sola AZ, acceso infrecuente (la más barata) |
+| **Standard** | Frequent access |
+| **Standard-IA** | Infrequent access, lower cost |
+| **One Zone** | Single AZ, frequent access |
+| **One Zone-IA** | Single AZ, infrequent access (cheapest) |
 
-Se pueden configurar lifecycle policies para mover archivos entre clases (ej: mover a IA tras 30 días sin acceso).
+Lifecycle policies can be configured to move files between classes (e.g., move to IA after 30 days without access).
 
-### EFS vs EBS - Comparación
+### EFS vs EBS - Comparison
 
-| Característica | EBS | EFS |
+| Feature | EBS | EFS |
 |---|---|---|
-| **Tipo** | Block storage | File storage (NFS) |
-| **Adjunto** | 1 instancia (excepto multi-attach io1/io2) | Múltiples instancias |
-| **Alcance** | Una AZ | Multi-AZ |
-| **SO** | Linux y Windows | Solo Linux |
-| **Escalado** | Tamaño fijo (provisionado) | Automático |
-| **Rendimiento** | Más rápido (directamente adjunto) | Bueno para compartir |
-| **Coste** | Menor (por GB provisionado) | Mayor (pero pago por uso) |
+| **Type** | Block storage | File storage (NFS) |
+| **Attachment** | 1 instance (except multi-attach io1/io2) | Multiple instances |
+| **Scope** | One AZ | Multi-AZ |
+| **OS** | Linux and Windows | Linux only |
+| **Scaling** | Fixed size (provisioned) | Automatic |
+| **Performance** | Faster (directly attached) | Good for sharing |
+| **Cost** | Lower (per GB provisioned) | Higher (but pay per use) |
 | **Backup** | Snapshots | AWS Backup |
 
 ---
 
 ## Amazon FSx
 
-Servicios de sistemas de archivos de alto rendimiento gestionados por AWS.
+High-performance managed file system services by AWS.
 
 ### FSx for Windows File Server
 
-- **Protocolo**: SMB (Server Message Block) y NTFS.
-- Integración con **Microsoft Active Directory**.
-- Soporta **DFS (Distributed File System)** namespaces y replicación.
-- Accesible desde instancias Windows y Linux.
-- Almacenamiento SSD o HDD.
-- Multi-AZ para alta disponibilidad.
-- Backups diarios a S3.
+- **Protocol**: SMB (Server Message Block) and NTFS.
+- Integration with **Microsoft Active Directory**.
+- Supports **DFS (Distributed File System)** namespaces and replication.
+- Accessible from Windows and Linux instances.
+- SSD or HDD storage.
+- Multi-AZ for high availability.
+- Daily backups to S3.
 
-**Cuándo usar**: Aplicaciones Windows que necesitan almacenamiento compartido, home directories, cargas de trabajo Microsoft.
+**When to use**: Windows applications that need shared storage, home directories, Microsoft workloads.
 
 ### FSx for Lustre
 
-- Sistema de archivos de **alto rendimiento** (HPC - High Performance Computing).
-- Throughput de hasta **cientos de GB/s**, millones de IOPS, latencias sub-ms.
-- Integración nativa con **S3**: puede leer/escribir datos directamente desde/hacia S3.
-- **Scratch**: temporal, no replicado, alto rendimiento (procesamiento corto).
-- **Persistent**: almacenamiento a largo plazo, replicado dentro de una AZ.
+- **High-performance** file system (HPC - High Performance Computing).
+- Throughput of up to **hundreds of GB/s**, millions of IOPS, sub-ms latencies.
+- Native integration with **S3**: can read/write data directly from/to S3.
+- **Scratch**: temporary, not replicated, high performance (short processing).
+- **Persistent**: long-term storage, replicated within an AZ.
 
-**Cuándo usar**: Machine learning, HPC, procesamiento de video, modelado financiero, análisis genómico.
+**When to use**: Machine learning, HPC, video processing, financial modeling, genomic analysis.
 
 ### FSx for NetApp ONTAP
 
-- Compatible con protocolos **NFS, SMB, iSCSI**.
-- Compatible con **cualquier SO** (Linux, Windows, macOS).
-- Almacenamiento auto-escalable.
-- Snapshots, replicación, clonación instantánea.
-- Compresión y deduplicación de datos.
+- Compatible with **NFS, SMB, iSCSI** protocols.
+- Compatible with **any OS** (Linux, Windows, macOS).
+- Auto-scaling storage.
+- Snapshots, replication, instant cloning.
+- Data compression and deduplication.
 - Point-in-time cloning.
-- **Multi-AZ** para alta disponibilidad.
+- **Multi-AZ** for high availability.
 
-**iSCSI = block storage por red:** El protocolo iSCSI hace que la instancia vea el almacenamiento remoto como un disco local (block device). Esto lo diferencia de FSx for Windows (solo file/SMB) y EFS (solo file/NFS). Es el único FSx que ofrece **block storage compartido multi-AZ**.
+**iSCSI = block storage over network:** The iSCSI protocol makes the instance see the remote storage as a local disk (block device). This differentiates it from FSx for Windows (file/SMB only) and EFS (file/NFS only). It is the only FSx that offers **shared multi-AZ block storage**.
 
-**Cuándo usar**: Migración de workloads NetApp on-premises, necesidad de multi-protocolo, entornos heterogéneos, **block storage compartido multi-AZ** (trading, bases de datos Windows).
+**When to use**: Migration of NetApp on-premises workloads, need for multi-protocol, heterogeneous environments, **shared multi-AZ block storage** (trading, Windows databases).
 
 ### FSx for OpenZFS
 
-- Compatible con protocolo **NFS**.
-- Rendimiento hasta **1,000,000 IOPS** con latencia < 0.5 ms.
-- Snapshots, compresión.
-- Point-in-time cloning (útil para testing).
+- Compatible with **NFS** protocol.
+- Performance up to **1,000,000 IOPS** with latency < 0.5 ms.
+- Snapshots, compression.
+- Point-in-time cloning (useful for testing).
 
-**Cuándo usar**: Migración de workloads ZFS on-premises, cargas que requieren alto rendimiento con NFS.
+**When to use**: Migration of ZFS on-premises workloads, workloads requiring high performance with NFS.
 
-### Resumen de FSx - Cuándo usar cada uno
+### FSx Summary - When to Use Each
 
-| Servicio | Protocolo | SO | Caso de uso principal |
+| Service | Protocol | OS | Primary Use Case |
 |---|---|---|---|
-| **FSx for Windows** | SMB | Windows (y Linux) | Active Directory, apps Windows |
-| **FSx for Lustre** | POSIX | Linux | HPC, ML, procesamiento masivo |
-| **FSx for NetApp ONTAP** | NFS, SMB, iSCSI | Todos | Multi-protocolo, migración NetApp |
-| **FSx for OpenZFS** | NFS | Linux | Migración ZFS, alto rendimiento |
+| **FSx for Windows** | SMB | Windows (and Linux) | Active Directory, Windows apps |
+| **FSx for Lustre** | POSIX | Linux | HPC, ML, massive processing |
+| **FSx for NetApp ONTAP** | NFS, SMB, iSCSI | All | Multi-protocol, NetApp migration |
+| **FSx for OpenZFS** | NFS | Linux | ZFS migration, high performance |
 
 ---
 
 ## AWS Storage Gateway
 
-Servicio de almacenamiento híbrido que conecta infraestructura on-premises con almacenamiento en la nube de AWS. Se ejecuta como VM on-premises o como hardware appliance.
+Hybrid storage service that connects on-premises infrastructure with AWS cloud storage. Runs as an on-premises VM or hardware appliance.
 
-### Tipos de Storage Gateway
+### Storage Gateway Types
 
-| Gateway | Backend en AWS | Protocolo | Cache local | Caso de uso |
+| Gateway | Backend in AWS | Protocol | Local Cache | Use Case |
 |---|---|---|---|---|
-| **S3 File Gateway** | S3 (todas las clases excepto Glacier) | NFS, SMB | Sí | Extender almacenamiento de archivos a S3 |
-| **FSx File Gateway** | FSx for Windows | SMB | Sí | Cache local de FSx for Windows |
-| **Volume Gateway - Cached** | S3 (con EBS snapshots) | iSCSI | Datos frecuentes en cache | Volúmenes de bloque con cache local |
-| **Volume Gateway - Stored** | S3 (con EBS snapshots) | iSCSI | Todos los datos locales | Backups de volúmenes completos |
-| **Tape Gateway** | S3 y Glacier | iSCSI VTL | Sí | Reemplazo de cintas físicas (backup) |
+| **S3 File Gateway** | S3 (all classes except Glacier) | NFS, SMB | Yes | Extend file storage to S3 |
+| **FSx File Gateway** | FSx for Windows | SMB | Yes | Local cache for FSx for Windows |
+| **Volume Gateway - Cached** | S3 (with EBS snapshots) | iSCSI | Frequently accessed data in cache | Block volumes with local cache |
+| **Volume Gateway - Stored** | S3 (with EBS snapshots) | iSCSI | All data local | Full volume backups |
+| **Tape Gateway** | S3 and Glacier | iSCSI VTL | Yes | Physical tape replacement (backup) |
 
-### S3 File Gateway — Detalle
+### S3 File Gateway -- Detail
 
-Es una VM (o appliance) que se instala on-premises y expone una carpeta compartida **NFS/SMB**. Los servidores on-premises la ven como un file share normal, pero los datos se almacenan en S3.
+It is a VM (or appliance) installed on-premises that exposes an **NFS/SMB** shared folder. On-premises servers see it as a normal file share, but data is stored in S3.
 
 ```
 On-premises                                          AWS
-┌────────────────────────────┐          ┌─────────────────────────┐
-│  Servidor ──► \\gateway\docs (SMB) │          │  Amazon S3              │
-│                │                   │          │  (todos los datos)      │
-│         ┌──────▼──────────┐        │  sube    │                         │
-│         │ S3 File Gateway │ ────────────────► │  Lifecycle Policy:      │
-│         │ [Local Cache]   │        │  auto    │  0-6m: S3 Standard      │
-│         │ SSD con datos   │        │          │  6m+: Glacier           │
-│         │ recientes       │        │          └─────────────────────────┘
-│         └─────────────────┘        │
-└────────────────────────────────────┘
++----------------------------+          +-------------------------+
+|  Server --> \\gateway\docs (SMB) |          |  Amazon S3              |
+|                |                   |          |  (all data)             |
+|         +------v----------+        |  upload  |                         |
+|         | S3 File Gateway | -----------------> |  Lifecycle Policy:      |
+|         | [Local Cache]   |        |  auto    |  0-6m: S3 Standard      |
+|         | SSD with recent |        |          |  6m+: Glacier           |
+|         | data            |        |          +-------------------------+
+|         +-----------------+        |
++------------------------------------+
 ```
 
-**Cómo funciona el local cache:**
-- Al subir un fichero: se guarda en cache local **y** se sube a S3 automáticamente.
-- Al leer un fichero reciente: se lee del cache local (baja latencia, sin coste de egress).
-- Al leer un fichero antiguo (no en cache): se descarga de S3 y entra en cache. Lecturas siguientes son locales.
-- El cache usa LRU (Least Recently Used): evicta los ficheros menos accedidos para hacer espacio.
+**How the local cache works:**
+- When uploading a file: saved in local cache **and** uploaded to S3 automatically.
+- When reading a recent file: read from local cache (low latency, no egress cost).
+- When reading an old file (not in cache): downloaded from S3 and enters cache. Subsequent reads are local.
+- The cache uses LRU (Least Recently Used): evicts the least accessed files to make space.
 
-**Beneficios:**
-- Los empleados ven una carpeta SMB normal — no saben que los datos están en S3.
-- Integra con **Active Directory** para autenticación SMB.
-- Se pueden aplicar **S3 Lifecycle Policies** (mover a Glacier tras X meses).
-- Reduce **data egress charges**: lecturas frecuentes se sirven del cache local, no de S3.
+**Benefits:**
+- Employees see a normal SMB folder -- they don't know the data is in S3.
+- Integrates with **Active Directory** for SMB authentication.
+- **S3 Lifecycle Policies** can be applied (move to Glacier after X months).
+- Reduces **data egress charges**: frequent reads are served from local cache, not from S3.
 
-### Notas importantes sobre los demás tipos
+### Important Notes About Other Types
 
-- **Volume Gateway - Cached**: Solo los datos más accedidos se mantienen localmente; el dataset completo está en S3.
-- **Volume Gateway - Stored**: Todos los datos están on-premises con backups asíncronos a S3.
-- **Tape Gateway**: Compatible con software de backup existente (NetBackup, Veeam, etc.). Las cintas virtuales se archivan en S3 Glacier o Deep Archive. Protocolo iSCSI VTL (no SMB/NFS).
+- **Volume Gateway - Cached**: Only the most accessed data is kept locally; the complete dataset is in S3.
+- **Volume Gateway - Stored**: All data is on-premises with asynchronous backups to S3.
+- **Tape Gateway**: Compatible with existing backup software (NetBackup, Veeam, etc.). Virtual tapes are archived in S3 Glacier or Deep Archive. iSCSI VTL protocol (not SMB/NFS).
 
 ### Storage Gateway vs DataSync
 
 | | S3 File Gateway | DataSync |
 |---|---|---|
-| **Propósito** | Acceso híbrido continuo (on-premises ↔ S3) | Migración/sincronización de datos (one-time o scheduled) |
-| **Local cache** | **Sí** (baja latencia para datos recientes) | **No** |
-| **Protocolo** | NFS, SMB (como un file share normal) | Agente que transfiere datos |
-| **Patrón** | Los usuarios acceden a ficheros diariamente | Copiar/mover datos de A a B |
+| **Purpose** | Continuous hybrid access (on-premises <-> S3) | Data migration/synchronization (one-time or scheduled) |
+| **Local cache** | **Yes** (low latency for recent data) | **No** |
+| **Protocol** | NFS, SMB (like a normal file share) | Agent that transfers data |
+| **Pattern** | Users access files daily | Copy/move data from A to B |
 
-> **Clave para el examen:**
-> - "Cache local" + "acceso a ficheros on-premises" + "datos en S3" → **S3 File Gateway**.
-> - "SMB + Active Directory + lifecycle a Glacier" → **S3 File Gateway**.
-> - "Migración de cintas de backup" → **Tape Gateway**.
-> - "Migración de datos NFS/SMB a AWS (sin cache)" → **DataSync**.
+> **Key for the exam:**
+> - "Local cache" + "on-premises file access" + "data in S3" -> **S3 File Gateway**.
+> - "SMB + Active Directory + lifecycle to Glacier" -> **S3 File Gateway**.
+> - "Backup tape migration" -> **Tape Gateway**.
+> - "NFS/SMB data migration to AWS (no cache)" -> **DataSync**.
 
 ---
 
 ## AWS Snow Family
 
-Dispositivos físicos para transferencia de datos offline y edge computing.
+Physical devices for offline data transfer and edge computing.
 
-| Característica | Snowcone / Snowcone SSD | Snowball Edge Storage Optimized | Snowball Edge Compute Optimized | Snowmobile |
+| Feature | Snowcone / Snowcone SSD | Snowball Edge Storage Optimized | Snowball Edge Compute Optimized | Snowmobile |
 |---|---|---|---|---|
-| **Capacidad** | 8 TB HDD / 14 TB SSD | 80 TB usable | 42 TB usable | 100 PB |
-| **Compute** | 2 vCPU, 4 GB RAM | 40 vCPU, 80 GB RAM | 104 vCPU, 416 GB RAM (GPU opcional) | No |
-| **Tipo de transferencia** | Offline / DataSync (online) | Offline | Offline | Offline |
-| **Caso de uso** | Entornos con espacio limitado, edge computing ligero | Migración masiva de datos, edge storage | HPC en edge, ML inference | Migración a escala de exabytes |
-| **Peso** | ~2.1 kg | ~22 kg | ~22 kg | Camión completo |
+| **Capacity** | 8 TB HDD / 14 TB SSD | 80 TB usable | 42 TB usable | 100 PB |
+| **Compute** | 2 vCPU, 4 GB RAM | 40 vCPU, 80 GB RAM | 104 vCPU, 416 GB RAM (optional GPU) | No |
+| **Transfer type** | Offline / DataSync (online) | Offline | Offline | Offline |
+| **Use case** | Space-limited environments, lightweight edge computing | Massive data migration, edge storage | Edge HPC, ML inference | Exabyte-scale migration |
+| **Weight** | ~2.1 kg | ~22 kg | ~22 kg | Full truck |
 
-### Cuándo usar Snow Family vs transferencia por red
+### When to Use Snow Family vs Network Transfer
 
-**Regla general**: Si la transferencia por red tardaría más de **1 semana**, considerar Snow Family.
+**General rule**: If network transfer would take more than **1 week**, consider Snow Family.
 
-| Volumen de datos | Red (100 Mbps) | Red (1 Gbps) | Red (10 Gbps) | Dispositivo recomendado |
+| Data Volume | Network (100 Mbps) | Network (1 Gbps) | Network (10 Gbps) | Recommended Device |
 |---|---|---|---|---|
-| 10 TB | 12 días | 30 horas | 3 horas | Red si >= 1 Gbps |
-| 100 TB | 120 días | 12 días | 30 horas | Snowball Edge |
-| 1 PB | 3 años | 120 días | 12 días | Snowball Edge (varios) |
-| 10+ PB | 30 años | 3 años | 120 días | Snowmobile |
+| 10 TB | 12 days | 30 hours | 3 hours | Network if >= 1 Gbps |
+| 100 TB | 120 days | 12 days | 30 hours | Snowball Edge |
+| 1 PB | 3 years | 120 days | 12 days | Snowball Edge (multiple) |
+| 10+ PB | 30 years | 3 years | 120 days | Snowmobile |
 
-### Edge Computing con Snow
+### Edge Computing with Snow
 
-- Se pueden ejecutar instancias EC2 y funciones Lambda (usando IoT Greengrass).
-- Procesamiento de datos donde no hay conexión a Internet o hay conectividad limitada.
-- Se configuran antes del envío con AMIs y funciones Lambda.
+- EC2 instances and Lambda functions can be run (using IoT Greengrass).
+- Data processing where there is no Internet connection or limited connectivity.
+- Configured before shipping with AMIs and Lambda functions.
 
 ### OpsHub
 
-- Aplicación de escritorio para gestionar dispositivos Snow.
-- Transferencia de datos, lanzar instancias, monitoreo.
+- Desktop application for managing Snow devices.
+- Data transfer, launching instances, monitoring.
 
 ---
 
@@ -675,100 +675,100 @@ Dispositivos físicos para transferencia de datos offline y edge computing.
 
 ### AWS DataSync
 
-- Servicio para **mover grandes cantidades de datos** entre:
-  - On-premises → AWS (requiere DataSync agent)
-  - AWS → AWS (entre servicios sin agent)
-- **Destinos**: S3, EFS, FSx.
-- **Orígenes**: NFS, SMB, HDFS, otros servicios AWS.
-- Tareas programables (no continuas).
-- Preserva metadatos y permisos.
-- **Ancho de banda**: Puede consumir toda la red o limitarse.
-- Cifrado en tránsito y verificación de integridad.
+- Service for **moving large amounts of data** between:
+  - On-premises -> AWS (requires DataSync agent)
+  - AWS -> AWS (between services without agent)
+- **Destinations**: S3, EFS, FSx.
+- **Sources**: NFS, SMB, HDFS, other AWS services.
+- Schedulable tasks (not continuous).
+- Preserves metadata and permissions.
+- **Bandwidth**: Can consume all network or be limited.
+- Encryption in transit and integrity verification.
 
-- **Preserva metadatos y permisos**: Incluye permisos NTFS, timestamps, ownership. Ideal para migrar file servers Windows con sus ACLs intactas.
-- **Modos de transferencia**:
-  - **Transfer only data that has changed**: Solo transfiere archivos nuevos o modificados (incremental). Por defecto.
-  - **Transfer all data**: Transfiere todo, útil para sincronización completa inicial.
+- **Preserves metadata and permissions**: Includes NTFS permissions, timestamps, ownership. Ideal for migrating Windows file servers with their ACLs intact.
+- **Transfer modes**:
+  - **Transfer only data that has changed**: Only transfers new or modified files (incremental). Default.
+  - **Transfer all data**: Transfers everything, useful for complete initial synchronization.
 
-**Caso de uso**: Migración de datos, replicación para DR, archivado de datos.
+**Use case**: Data migration, DR replication, data archiving.
 
 ### AWS Transfer Family
 
-- Servicio gestionado para transferencias de archivos hacia/desde S3 o EFS usando protocolos estándar:
+- Managed service for file transfers to/from S3 or EFS using standard protocols:
   - **SFTP** (SSH File Transfer Protocol)
-  - **FTPS** (FTP sobre SSL)
-  - **FTP** (solo dentro de VPC)
+  - **FTPS** (FTP over SSL)
+  - **FTP** (within VPC only)
   - **AS2** (Applicability Statement 2)
-- Integración con sistemas de autenticación existentes (Active Directory, LDAP, custom).
-- Se expone como endpoint público o VPC.
+- Integration with existing authentication systems (Active Directory, LDAP, custom).
+- Exposed as public or VPC endpoint.
 
-**Caso de uso**: Socios comerciales que necesitan enviar/recibir archivos usando protocolos estándar (FTP/SFTP), flujos de trabajo B2B.
+**Use case**: Business partners who need to send/receive files using standard protocols (FTP/SFTP), B2B workflows.
 
-### Comparación
+### Comparison
 
-| Característica | DataSync | Transfer Family |
+| Feature | DataSync | Transfer Family |
 |---|---|---|
-| **Protocolo** | Propietario (agent) | SFTP, FTPS, FTP, AS2 |
-| **Dirección** | Bi-direccional (batch) | Bi-direccional (individual) |
-| **Velocidad** | Alta (hasta 10 Gbps) | Depende del protocolo |
-| **Uso** | Migración/replicación masiva | Intercambio de archivos con terceros |
-| **Programación** | Tareas programables | Continuo (endpoint siempre activo) |
+| **Protocol** | Proprietary (agent) | SFTP, FTPS, FTP, AS2 |
+| **Direction** | Bi-directional (batch) | Bi-directional (individual) |
+| **Speed** | High (up to 10 Gbps) | Depends on the protocol |
+| **Usage** | Massive migration/replication | File exchange with third parties |
+| **Scheduling** | Schedulable tasks | Continuous (endpoint always active) |
 
 ---
 
-## Tips para el examen
+## Exam Tips
 
 ### S3
 
-1. **"Acceso infrecuente pero inmediato"** → S3 Standard-IA o One Zone-IA.
-2. **"Patrón de acceso impredecible"** → S3 Intelligent-Tiering.
-3. **"Archivado con acceso en milisegundos"** → Glacier Instant Retrieval.
-4. **"Archivado largo plazo, no importa esperar horas"** → Glacier Deep Archive.
-5. **"Forzar cifrado"** → Bucket policy con condición en el header de encryption.
-6. **"Compartir archivo temporalmente"** → Presigned URL.
-7. **"Datos deben ser inmutables (WORM)"** → Object Lock (Compliance mode) o Glacier Vault Lock.
-8. **"Alto volumen de requests a S3"** → Distribuir objetos en múltiples prefijos.
-9. **"Throttling con SSE-KMS"** → Usar S3 Bucket Keys o SSE-S3.
-10. **"Replicar objetos existentes"** → S3 Batch Replication.
+1. **"Infrequent access but immediate"** -> S3 Standard-IA or One Zone-IA.
+2. **"Unpredictable access pattern"** -> S3 Intelligent-Tiering.
+3. **"Archive with millisecond access"** -> Glacier Instant Retrieval.
+4. **"Long-term archive, doesn't matter waiting hours"** -> Glacier Deep Archive.
+5. **"Enforce encryption"** -> Bucket policy with condition on the encryption header.
+6. **"Temporarily share a file"** -> Presigned URL.
+7. **"Data must be immutable (WORM)"** -> Object Lock (Compliance mode) or Glacier Vault Lock.
+8. **"High volume of requests to S3"** -> Distribute objects across multiple prefixes.
+9. **"Throttling with SSE-KMS"** -> Use S3 Bucket Keys or SSE-S3.
+10. **"Replicate existing objects"** -> S3 Batch Replication.
 
 ### EBS
 
-1. **"Base de datos con IOPS altos y consistentes"** → io2/io2 Block Express.
-2. **"Boot volume económico"** → gp3.
-3. **"Alto throughput secuencial (logs, big data)"** → st1.
-4. **"Almacenamiento frío, coste mínimo"** → sc1.
-5. **"Compartir volumen entre instancias en misma AZ"** → Multi-Attach io1/io2.
-6. **"Mover volumen a otra AZ"** → Snapshot + restaurar en otra AZ.
-7. **"Cifrar volumen existente"** → Snapshot → copiar con cifrado → crear volumen.
+1. **"Database with high and consistent IOPS"** -> io2/io2 Block Express.
+2. **"Economical boot volume"** -> gp3.
+3. **"High sequential throughput (logs, big data)"** -> st1.
+4. **"Cold storage, minimum cost"** -> sc1.
+5. **"Share volume between instances in the same AZ"** -> Multi-Attach io1/io2.
+6. **"Move volume to another AZ"** -> Snapshot + restore in another AZ.
+7. **"Encrypt existing volume"** -> Snapshot -> copy with encryption -> create volume.
 
 ### EFS
 
-1. **"Almacenamiento compartido entre múltiples instancias Linux"** → EFS.
-2. **"Almacenamiento compartido cross-AZ"** → EFS.
-3. **"Windows file share"** → NO es EFS, es FSx for Windows.
+1. **"Shared storage between multiple Linux instances"** -> EFS.
+2. **"Shared cross-AZ storage"** -> EFS.
+3. **"Windows file share"** -> NOT EFS, it's FSx for Windows.
 
 ### FSx
 
-1. **"Windows file share con Active Directory"** → FSx for Windows.
-2. **"HPC, ML, alto throughput en Linux"** → FSx for Lustre.
-3. **"Multi-protocolo (NFS + SMB + iSCSI)"** → FSx for NetApp ONTAP.
-4. **"Block storage compartido multi-AZ"** o **"low-latency block storage + Windows + multi-AZ"** → FSx for NetApp ONTAP con iSCSI (no EBS, que es single-AZ).
-5. **"Migración de ZFS on-premises"** → FSx for OpenZFS.
+1. **"Windows file share with Active Directory"** -> FSx for Windows.
+2. **"HPC, ML, high throughput on Linux"** -> FSx for Lustre.
+3. **"Multi-protocol (NFS + SMB + iSCSI)"** -> FSx for NetApp ONTAP.
+4. **"Shared multi-AZ block storage"** or **"low-latency block storage + Windows + multi-AZ"** -> FSx for NetApp ONTAP with iSCSI (not EBS, which is single-AZ).
+5. **"ZFS on-premises migration"** -> FSx for OpenZFS.
 
 ### Storage Gateway
 
-1. **"Extensión de almacenamiento on-premises a la nube"** → Storage Gateway.
-2. **"Cache local + datos en S3"** → S3 File Gateway o Volume Gateway Cached.
-3. **"Backup de cintas a la nube"** → Tape Gateway.
-4. **"Latencia baja desde on-premises a FSx"** → FSx File Gateway.
+1. **"Extend on-premises storage to the cloud"** -> Storage Gateway.
+2. **"Local cache + data in S3"** -> S3 File Gateway or Volume Gateway Cached.
+3. **"Backup tape migration to the cloud"** -> Tape Gateway.
+4. **"Low latency from on-premises to FSx"** -> FSx File Gateway.
 
 ### Snow Family
 
-1. **"Transferencia > 1 semana por red"** → Snow Family.
-2. **"Edge computing sin Internet"** → Snowball Edge o Snowcone.
-3. **"Migración de exabytes"** → Snowmobile.
+1. **"Transfer > 1 week over network"** -> Snow Family.
+2. **"Edge computing without Internet"** -> Snowball Edge or Snowcone.
+3. **"Exabyte migration"** -> Snowmobile.
 
 ### DataSync vs Transfer Family
 
-1. **"Migración masiva de datos NFS/SMB a AWS"** → DataSync.
-2. **"Socios comerciales necesitan SFTP/FTP"** → Transfer Family.
+1. **"Massive NFS/SMB data migration to AWS"** -> DataSync.
+2. **"Business partners need SFTP/FTP"** -> Transfer Family.

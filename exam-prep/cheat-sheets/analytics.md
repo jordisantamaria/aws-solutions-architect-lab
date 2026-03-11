@@ -1,66 +1,66 @@
-# Analytics y Big Data - Cheat Sheet
+# Analytics and Big Data - Cheat Sheet
 
-## Cuándo usar cada servicio
+## When to Use Each Service
 
-| Necesidad | Servicio | Clave para recordar |
-|-----------|---------|-------------------|
-| SQL sobre S3 sin infra | **Athena** | Serverless, $5/TB escaneado |
-| Catálogo de datos centralizado | **Glue Data Catalog** | Metastore para Athena/EMR/Redshift |
-| Descubrir schema automáticamente | **Glue Crawler** | Escanea S3/RDS → crea tablas en catálogo |
-| ETL serverless | **Glue ETL** | Spark bajo el capó |
-| ETL visual sin código | **Glue DataBrew** | Limpieza y normalización |
-| Big data (Hadoop/Spark/Hive) | **EMR** | Cluster gestionado, Task Nodes con Spot |
-| Spark sin cluster | **EMR Serverless** o **Glue** | Sin infra |
-| Dashboards / BI | **QuickSight** | SPICE = motor in-memory |
-| Búsqueda full-text | **OpenSearch** | Ex-Elasticsearch |
-| Análisis de logs en tiempo real | **OpenSearch** + Dashboards | Ex-Kibana |
-| Streaming AWS-native | **Kinesis** | Data Streams + Firehose |
-| Streaming Kafka | **MSK** | Portable, ecosistema Kafka |
-| Gobernanza data lake | **Lake Formation** | Permisos por columna/fila en S3 |
-| Data warehouse SQL | **Redshift** | MPP, columnar, petabyte-scale |
-| Convertir CSV → Parquet | **Glue ETL** | Formato columnar = Athena más barato |
+| Need | Service | Key to Remember |
+|------|---------|-----------------|
+| SQL on S3 without infra | **Athena** | Serverless, $5/TB scanned |
+| Centralized data catalog | **Glue Data Catalog** | Metastore for Athena/EMR/Redshift |
+| Automatically discover schema | **Glue Crawler** | Scans S3/RDS → creates tables in catalog |
+| Serverless ETL | **Glue ETL** | Spark under the hood |
+| No-code visual ETL | **Glue DataBrew** | Cleaning and normalization |
+| Big data (Hadoop/Spark/Hive) | **EMR** | Managed cluster, Task Nodes with Spot |
+| Spark without cluster | **EMR Serverless** or **Glue** | No infra |
+| Dashboards / BI | **QuickSight** | SPICE = in-memory engine |
+| Full-text search | **OpenSearch** | Ex-Elasticsearch |
+| Real-time log analytics | **OpenSearch** + Dashboards | Ex-Kibana |
+| AWS-native streaming | **Kinesis** | Data Streams + Firehose |
+| Kafka streaming | **MSK** | Portable, Kafka ecosystem |
+| Data lake governance | **Lake Formation** | Column/row-level permissions on S3 |
+| SQL data warehouse | **Redshift** | MPP, columnar, petabyte-scale |
+| Convert CSV → Parquet | **Glue ETL** | Columnar format = cheaper Athena |
 
-## Diferenciadores rápidos
+## Quick Differentiators
 
-| Pregunta del examen | Respuesta |
-|---------------------|-----------|
-| "Analizar datos en S3 con SQL" | Athena |
-| "Data warehouse con joins complejos" | Redshift |
-| "ETL serverless" | Glue |
+| Exam Question | Answer |
+|---------------|--------|
+| "Analyze data in S3 with SQL" | Athena |
+| "Data warehouse with complex joins" | Redshift |
+| "Serverless ETL" | Glue |
 | "Hadoop, Spark, Hive, HBase" | EMR |
-| "BI, dashboards, visualización" | QuickSight |
-| "Elasticsearch, Kibana, búsqueda" | OpenSearch |
-| "Kafka en AWS" | MSK |
-| "Seguridad por columna en data lake" | Lake Formation |
-| "Descubrir schema en S3" | Glue Crawler |
-| "Catálogo de datos" | Glue Data Catalog |
-| "Streaming a S3 near real-time" | Kinesis Firehose |
+| "BI, dashboards, visualization" | QuickSight |
+| "Elasticsearch, Kibana, search" | OpenSearch |
+| "Kafka on AWS" | MSK |
+| "Column-level security in data lake" | Lake Formation |
+| "Discover schema in S3" | Glue Crawler |
+| "Data catalog" | Glue Data Catalog |
+| "Streaming to S3 near real-time" | Kinesis Firehose |
 | "SPICE" | QuickSight |
-| "Reducir coste de Athena" | Parquet + particionado + compresión |
-| "Spot Instances para big data" | EMR Task Nodes |
-| "Row-level security en dashboards" | QuickSight Enterprise |
+| "Reduce Athena cost" | Parquet + partitioning + compression |
+| "Spot Instances for big data" | EMR Task Nodes |
+| "Row-level security in dashboards" | QuickSight Enterprise |
 
-## Pipeline típico de data lake
+## Typical Data Lake Pipeline
 
 ```
-Ingesta → Almacenamiento → Catálogo → Procesamiento → Consumo
+Ingestion → Storage → Catalog → Processing → Consumption
 
 Kinesis/MSK → S3 (raw) → Glue Crawler → Glue ETL → S3 (Parquet)
                           (Data Catalog)              ↓
-                                                Lake Formation (seguridad)
+                                                Lake Formation (security)
                                                       ↓
                                           Athena / Redshift / QuickSight
 ```
 
-## Costes
+## Costs
 
-| Servicio | Modelo de precio |
-|----------|-----------------|
-| **Athena** | $5/TB escaneado (reducir con Parquet/particionado) |
-| **Glue** | DPU-hora (Data Processing Unit). Crawlers: por tiempo de ejecución |
-| **EMR** | Instancias EC2 del cluster + fee de EMR (~15-25% sobre EC2) |
-| **QuickSight** | Por usuario/mes (Standard ~$9, Enterprise ~$18) o por sesión |
-| **OpenSearch** | Instancias del cluster + almacenamiento |
-| **MSK** | Por broker-hora + almacenamiento |
-| **Lake Formation** | Gratis (pagas por los servicios subyacentes: S3, Glue, etc.) |
-| **Redshift** | Por nodo-hora (o Redshift Serverless: por RPU) |
+| Service | Pricing Model |
+|---------|---------------|
+| **Athena** | $5/TB scanned (reduce with Parquet/partitioning) |
+| **Glue** | DPU-hour (Data Processing Unit). Crawlers: by execution time |
+| **EMR** | EC2 instances in the cluster + EMR fee (~15-25% on top of EC2) |
+| **QuickSight** | Per user/month (Standard ~$9, Enterprise ~$18) or per session |
+| **OpenSearch** | Cluster instances + storage |
+| **MSK** | Per broker-hour + storage |
+| **Lake Formation** | Free (you pay for underlying services: S3, Glue, etc.) |
+| **Redshift** | Per node-hour (or Redshift Serverless: per RPU) |

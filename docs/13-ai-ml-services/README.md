@@ -1,309 +1,309 @@
-# Servicios AI/ML Managed de AWS
+# AWS Managed AI/ML Services
 
-## Tabla de Contenidos
+## Table of Contents
 
-- [Concepto clave](#concepto-clave)
-- [Servicios por categoría](#servicios-por-categoría)
-- [Pipeline típico: call center analytics](#pipeline-típico-call-center-analytics)
-- [Pipeline típico: procesamiento de documentos](#pipeline-típico-procesamiento-de-documentos)
-- [Cheat sheet para el examen](#cheat-sheet-para-el-examen)
-- [Servicios que se confunden frecuentemente](#servicios-que-se-confunden-frecuentemente)
-- [Tips para el examen](#tips-para-el-examen)
-
----
-
-## Concepto clave
-
-AWS ofrece servicios de AI/ML **fully managed** que no requieren entrenar ni mantener modelos. Solo llamas a una API y obtienes el resultado. Esto es lo que pregunta el examen — no necesitas saber ML, necesitas saber **qué servicio usar para cada caso**.
-
-```
-"Without maintaining any ML model" → usa servicios managed de esta sección
-"Custom ML model" → SageMaker (sección aparte)
-```
+- [Key Concept](#key-concept)
+- [Services by Category](#services-by-category)
+- [Typical Pipeline: Call Center Analytics](#typical-pipeline-call-center-analytics)
+- [Typical Pipeline: Document Processing](#typical-pipeline-document-processing)
+- [Exam Cheat Sheet](#exam-cheat-sheet)
+- [Frequently Confused Services](#frequently-confused-services)
+- [Exam Tips](#exam-tips)
 
 ---
 
-## Servicios por categoría
+## Key Concept
 
-### Audio / Voz
+AWS offers **fully managed** AI/ML services that don't require training or maintaining models. You just call an API and get the result. This is what the exam asks — you don't need to know ML, you need to know **which service to use for each case**.
+
+```
+"Without maintaining any ML model" → use managed services from this section
+"Custom ML model" → SageMaker (separate section)
+```
+
+---
+
+## Services by Category
+
+### Audio / Voice
 
 #### Amazon Transcribe
-**Audio → Texto** (Speech-to-Text)
+**Audio → Text** (Speech-to-Text)
 
-- Convierte grabaciones de audio/vídeo en texto
-- Soporta múltiples idiomas (inglés, español, japonés, hindi, etc.)
-- Identificación automática de hablantes (speaker diarization)
-- Vocabulario custom (términos médicos, técnicos, etc.)
-- Filtrado de contenido (redactar PII automáticamente)
+- Converts audio/video recordings to text
+- Supports multiple languages (English, Spanish, Japanese, Hindi, etc.)
+- Automatic speaker identification (speaker diarization)
+- Custom vocabulary (medical terms, technical terms, etc.)
+- Content filtering (automatically redact PII)
 
-Variantes:
-- **Transcribe**: general (call centers, subtítulos, transcripción de reuniones)
-- **Transcribe Medical**: optimizado para terminología médica
+Variants:
+- **Transcribe**: general (call centers, subtitles, meeting transcription)
+- **Transcribe Medical**: optimized for medical terminology
 
 ```
-Casos de uso:
-  - Transcribir llamadas de call center
-  - Subtítulos automáticos para vídeos
-  - Documentación médica por voz
-  - Actas de reuniones automáticas
+Use cases:
+  - Transcribe call center calls
+  - Automatic subtitles for videos
+  - Medical documentation by voice
+  - Automatic meeting minutes
 ```
 
 #### Amazon Polly
-**Texto → Audio** (Text-to-Speech)
+**Text → Audio** (Text-to-Speech)
 
-- Convierte texto en voz natural
-- Múltiples voces e idiomas
-- SSML (Speech Synthesis Markup Language) para controlar pronunciación, pausas, énfasis
-- Neural TTS: voces más naturales
-- Genera archivos de audio (MP3, OGG, PCM)
+- Converts text to natural speech
+- Multiple voices and languages
+- SSML (Speech Synthesis Markup Language) to control pronunciation, pauses, emphasis
+- Neural TTS: more natural voices
+- Generates audio files (MP3, OGG, PCM)
 
 ```
-Casos de uso:
-  - Leer artículos/noticias en voz alta
-  - Asistentes de voz
-  - E-learning con narración automática
-  - Accesibilidad (leer contenido para personas con discapacidad visual)
+Use cases:
+  - Read articles/news aloud
+  - Voice assistants
+  - E-learning with automatic narration
+  - Accessibility (read content for visually impaired people)
 ```
 
-**Truco para el examen**: Polly y Transcribe son opuestos. Si confundes cuál es cuál:
+**Exam trick**: Polly and Transcribe are opposites. If you confuse which is which:
 ```
-Polly = Polly quiere una galleta (un loro que HABLA) → texto a audio
-Transcribe = transcribir = escribir lo que se dice → audio a texto
+Polly = Polly wants a cracker (a parrot that TALKS) → text to audio
+Transcribe = transcribe = write down what is said → audio to text
 ```
 
 ---
 
-### Texto / NLP (Natural Language Processing)
+### Text / NLP (Natural Language Processing)
 
 #### Amazon Comprehend
-**Análisis de texto**
+**Text Analysis**
 
-- Sentiment analysis (positivo, negativo, neutro, mixto)
-- Detección de entidades (personas, lugares, fechas, organizaciones)
-- Detección de idioma
-- Extracción de frases clave (key phrases)
-- Detección de PII (información personal)
-- Topic modeling (agrupar documentos por tema)
+- Sentiment analysis (positive, negative, neutral, mixed)
+- Entity detection (people, places, dates, organizations)
+- Language detection
+- Key phrase extraction
+- PII detection (personal information)
+- Topic modeling (group documents by topic)
 
-Variantes:
+Variants:
 - **Comprehend**: general
-- **Comprehend Medical**: extrae información médica (diagnósticos, medicamentos, dosis)
+- **Comprehend Medical**: extracts medical information (diagnoses, medications, doses)
 
 ```
-Casos de uso:
-  - Analizar sentimiento de reseñas de clientes
-  - Clasificar tickets de soporte por tema
-  - Extraer entidades de documentos legales
-  - Detectar PII en documentos para compliance
+Use cases:
+  - Analyze sentiment of customer reviews
+  - Classify support tickets by topic
+  - Extract entities from legal documents
+  - Detect PII in documents for compliance
 ```
 
 #### Amazon Translate
-**Traducción de texto entre idiomas**
+**Text Translation Between Languages**
 
-- Traducción en tiempo real
-- 75+ idiomas soportados
-- Custom Terminology: definir traducciones específicas para tu dominio
-- Integración nativa con otros servicios (Transcribe → Translate → Comprehend)
+- Real-time translation
+- 75+ supported languages
+- Custom Terminology: define specific translations for your domain
+- Native integration with other services (Transcribe → Translate → Comprehend)
 
 ```
-Casos de uso:
-  - Traducir contenido web automáticamente
-  - Chat multilingüe en tiempo real
-  - Localización de aplicaciones
-  - Pipeline: Transcribe (audio→texto) → Translate (hindi→inglés) → Comprehend (sentimiento)
+Use cases:
+  - Automatically translate web content
+  - Multilingual real-time chat
+  - Application localization
+  - Pipeline: Transcribe (audio→text) → Translate (Hindi→English) → Comprehend (sentiment)
 ```
 
 ---
 
-### Imágenes / Vídeo
+### Images / Video
 
 #### Amazon Rekognition
-**Análisis de imágenes y vídeo**
+**Image and Video Analysis**
 
-- Detección de objetos y escenas
-- Reconocimiento facial (comparación, búsqueda)
-- Detección de texto en imágenes (OCR básico)
-- Detección de contenido inapropiado (moderación)
-- Detección de celebridades
-- Análisis de vídeo (personas, actividades, objetos en movimiento)
-- PPE Detection (detectar si llevan casco, gafas, etc.)
+- Object and scene detection
+- Facial recognition (comparison, search)
+- Text detection in images (basic OCR)
+- Inappropriate content detection (moderation)
+- Celebrity detection
+- Video analysis (people, activities, moving objects)
+- PPE Detection (detect if wearing helmets, goggles, etc.)
 
 ```
-Casos de uso:
-  - Moderación de contenido (detectar imágenes inapropiadas)
-  - Verificación de identidad (comparar selfie con foto de DNI)
-  - Seguridad: detectar personas en cámaras de vigilancia
-  - Detección de PPE en fábricas
-  - Contar personas en un espacio
+Use cases:
+  - Content moderation (detect inappropriate images)
+  - Identity verification (compare selfie with ID photo)
+  - Security: detect people in surveillance cameras
+  - PPE detection in factories
+  - Count people in a space
 ```
 
-**No confundir con Textract**: Rekognition detecta texto básico en imágenes. Textract extrae datos estructurados de documentos.
+**Don't confuse with Textract**: Rekognition detects basic text in images. Textract extracts structured data from documents.
 
 ---
 
-### Documentos
+### Documents
 
 #### Amazon Textract
-**Extracción de texto y datos de documentos**
+**Text and Data Extraction from Documents**
 
-- OCR avanzado (más allá de solo leer texto)
-- Extrae datos de formularios (key-value pairs)
-- Extrae datos de tablas
-- Procesa facturas y recibos automáticamente
-- Procesa documentos de identidad (pasaportes, DNI)
+- Advanced OCR (beyond just reading text)
+- Extracts data from forms (key-value pairs)
+- Extracts data from tables
+- Processes invoices and receipts automatically
+- Processes identity documents (passports, IDs)
 
 ```
-Ejemplo:
+Example:
 
-  Factura PDF:
+  Invoice PDF:
     ┌─────────────────────┐
-    │ Factura #12345      │
-    │ Cliente: Ana López  │
+    │ Invoice #12345      │
+    │ Client: Ana Lopez   │
     │ Total: $1,500       │
-    │ Fecha: 2026-02-17   │
+    │ Date: 2026-02-17    │
     └─────────────────────┘
 
-  Textract extrae:
+  Textract extracts:
     {
       "invoice_number": "12345",
-      "client": "Ana López",
+      "client": "Ana Lopez",
       "total": "$1,500",
       "date": "2026-02-17"
     }
 ```
 
 ```
-Casos de uso:
-  - Procesar facturas automáticamente
-  - Digitalizar formularios en papel
-  - Extraer datos de contratos
-  - Automatizar entrada de datos de documentos
+Use cases:
+  - Process invoices automatically
+  - Digitize paper forms
+  - Extract data from contracts
+  - Automate data entry from documents
 ```
 
 **Textract vs Rekognition**:
 ```
-Rekognition: "hay texto en esta foto" (detección básica)
-Textract:    "este formulario tiene estos campos con estos valores" (extracción estructurada)
+Rekognition: "there is text in this photo" (basic detection)
+Textract:    "this form has these fields with these values" (structured extraction)
 ```
 
 ---
 
-### Chatbots / Conversación
+### Chatbots / Conversation
 
 #### Amazon Lex
-**Motor de chatbots** (misma tecnología que Alexa)
+**Chatbot Engine** (same technology as Alexa)
 
-- Reconocimiento de intención (intent)
-- Extracción de slots (parámetros de la conversación)
-- Integración con Lambda para lógica de negocio
-- Soporta voz y texto
-- Multi-idioma
+- Intent recognition
+- Slot extraction (conversation parameters)
+- Integration with Lambda for business logic
+- Supports voice and text
+- Multi-language
 
 ```
-Ejemplo:
+Example:
 
-  Usuario: "Quiero reservar un hotel en Tokyo para 3 noches"
+  User: "I want to book a hotel in Tokyo for 3 nights"
 
-  Lex identifica:
-    Intent: ReservarHotel
+  Lex identifies:
+    Intent: BookHotel
     Slots:
-      - ciudad: Tokyo
-      - noches: 3
+      - city: Tokyo
+      - nights: 3
 
-  → Llama a Lambda → busca hoteles → responde
+  → Calls Lambda → searches hotels → responds
 ```
 
 ```
-Casos de uso:
-  - Chatbot de atención al cliente
-  - Asistente de reservas
-  - FAQ automático
-  - IVR (menú telefónico inteligente) para call centers
+Use cases:
+  - Customer service chatbot
+  - Booking assistant
+  - Automated FAQ
+  - IVR (intelligent phone menu) for call centers
 ```
 
-**Para el examen**: si dice "chatbot" → Lex. Si dice "transcribir audio" → Transcribe (NO Lex).
+**For the exam**: if it says "chatbot" → Lex. If it says "transcribe audio" → Transcribe (NOT Lex).
 
 ---
 
-### Búsqueda
+### Search
 
 #### Amazon Kendra
-**Búsqueda inteligente con ML**
+**Intelligent Search with ML**
 
-- Búsqueda semántica (entiende la pregunta, no solo keywords)
-- Conecta a múltiples fuentes de datos (S3, SharePoint, Salesforce, RDS, etc.)
-- Responde preguntas directamente (no solo da links)
-- FAQ automático desde documentos
-
-```
-Ejemplo:
-
-  Búsqueda tradicional: "política vacaciones"
-    → Te da 50 documentos que contienen esas palabras
-
-  Kendra: "¿Cuántos días de vacaciones tengo?"
-    → "Según la política de RRHH, tienes 20 días laborables al año"
-    → Respuesta directa extraída del documento correcto
-```
+- Semantic search (understands the question, not just keywords)
+- Connects to multiple data sources (S3, SharePoint, Salesforce, RDS, etc.)
+- Answers questions directly (not just provides links)
+- Automatic FAQ from documents
 
 ```
-Casos de uso:
-  - Buscador interno de la empresa (documentos, wikis, políticas)
-  - Portal de soporte (buscar en toda la documentación)
-  - Compliance (buscar en regulaciones)
+Example:
+
+  Traditional search: "vacation policy"
+    → Gives you 50 documents containing those words
+
+  Kendra: "How many vacation days do I have?"
+    → "According to the HR policy, you have 20 business days per year"
+    → Direct answer extracted from the correct document
+```
+
+```
+Use cases:
+  - Internal company search engine (documents, wikis, policies)
+  - Support portal (search across all documentation)
+  - Compliance (search through regulations)
 ```
 
 ---
 
-### Recomendaciones / Personalización
+### Recommendations / Personalization
 
 #### Amazon Personalize
-**Motor de recomendaciones** (misma tecnología que Amazon.com)
+**Recommendation Engine** (same technology as Amazon.com)
 
-- Recomendaciones personalizadas en tiempo real
-- No necesitas experiencia en ML
-- Alimentas con datos de interacciones (clicks, compras, views)
-- Genera recomendaciones automáticamente
+- Real-time personalized recommendations
+- No ML experience needed
+- Feed with interaction data (clicks, purchases, views)
+- Generates recommendations automatically
 
 ```
-Casos de uso:
-  - "Clientes que compraron esto también compraron..."
-  - Recomendaciones de películas/series
-  - Personalización de homepage por usuario
-  - Ranking personalizado de productos
+Use cases:
+  - "Customers who bought this also bought..."
+  - Movie/series recommendations
+  - Homepage personalization per user
+  - Personalized product ranking
 ```
 
 #### Amazon Forecast
-**Predicción de series temporales**
+**Time Series Prediction**
 
-- Predicción de demanda, inventario, recursos
-- No necesitas saber ML
-- Alimentas con datos históricos → genera predicción
+- Demand, inventory, resource prediction
+- No ML knowledge needed
+- Feed with historical data → generates prediction
 
 ```
-Casos de uso:
-  - Predecir demanda de productos (cuánto stock necesito)
-  - Predecir tráfico web (cuántos servidores necesitaré)
-  - Predecir ingresos futuros
-  - Planificación de capacidad
+Use cases:
+  - Predict product demand (how much stock do I need)
+  - Predict web traffic (how many servers will I need)
+  - Predict future revenue
+  - Capacity planning
 ```
 
 ---
 
-### Detección de fraude / anomalías
+### Fraud / Anomaly Detection
 
 #### Amazon Fraud Detector
-**Detección de fraude online**
+**Online Fraud Detection**
 
-- Detecta registros falsos, pagos fraudulentos, cuentas robadas
-- Modelos preentrenados + tus datos
-- API en tiempo real (evaluar transacción antes de procesarla)
+- Detects fake registrations, fraudulent payments, stolen accounts
+- Pre-trained models + your data
+- Real-time API (evaluate transaction before processing it)
 
 ```
-Casos de uso:
-  - Evaluar si un pago con tarjeta es fraudulento
-  - Detectar cuentas falsas en registro
-  - Prevenir abuso de promociones
+Use cases:
+  - Evaluate if a credit card payment is fraudulent
+  - Detect fake accounts during registration
+  - Prevent promotion abuse
 ```
 
 ---
@@ -311,152 +311,152 @@ Casos de uso:
 ### GenAI / LLMs
 
 #### Amazon Bedrock
-**Acceso a LLMs managed** (Claude, Titan, Llama, etc.)
+**Managed LLM Access** (Claude, Titan, Llama, etc.)
 
-- Múltiples modelos fundacionales (Foundation Models)
-- API unificada para todos los modelos
-- Knowledge Bases: RAG sobre tus documentos
-- Agents: agentes que ejecutan acciones
-- Fine-tuning sin gestionar infra
-- Guardrails: filtros de contenido
+- Multiple foundation models
+- Unified API for all models
+- Knowledge Bases: RAG on your documents
+- Agents: agents that execute actions
+- Fine-tuning without managing infra
+- Guardrails: content filters
 
 ```
-Casos de uso:
-  - Chatbot inteligente sobre tu documentación
-  - Generación de contenido (emails, resúmenes, reportes)
-  - Análisis de documentos con IA
-  - Agentes que automatizan tareas
+Use cases:
+  - Intelligent chatbot on your documentation
+  - Content generation (emails, summaries, reports)
+  - Document analysis with AI
+  - Agents that automate tasks
 ```
 
 #### Amazon SageMaker
-**Plataforma completa de ML** (entrenar, desplegar, gestionar modelos custom)
+**Complete ML Platform** (train, deploy, manage custom models)
 
-- Para cuando necesitas entrenar TU PROPIO modelo
+- For when you need to train YOUR OWN model
 - Built-in algorithms (XGBoost, Linear Learner, etc.)
-- Jupyter notebooks managed
-- Training jobs con GPU
-- Endpoints para inference
-- SageMaker Canvas: ML sin código (visual)
+- Managed Jupyter notebooks
+- Training jobs with GPU
+- Endpoints for inference
+- SageMaker Canvas: no-code ML (visual)
 
 ```
-Para el examen:
-  "Entrenar modelo custom" → SageMaker
-  "Usar ML sin entrenar nada" → servicios managed (Comprehend, Transcribe, etc.)
-  "LLMs managed" → Bedrock
+For the exam:
+  "Train custom model" → SageMaker
+  "Use ML without training anything" → managed services (Comprehend, Transcribe, etc.)
+  "Managed LLMs" → Bedrock
 ```
 
 ---
 
-## Pipeline típico: call center analytics
+## Typical Pipeline: Call Center Analytics
 
 ```
-Llamada de cliente
+Customer call
     │
     ▼
-Amazon Transcribe (audio → texto)
+Amazon Transcribe (audio → text)
     │
     ▼
-Amazon Translate (hindi → inglés, si hace falta)
+Amazon Translate (Hindi → English, if needed)
     │
     ▼
 Amazon Comprehend (sentiment analysis)
     │
     ▼
-Resultado: "Cliente insatisfecho. Temas: facturación, espera"
+Result: "Dissatisfied customer. Topics: billing, wait time"
     │
     ▼
-S3 (guardar) → QuickSight (dashboard)
+S3 (store) → QuickSight (dashboard)
 ```
 
-## Pipeline típico: procesamiento de documentos
+## Typical Pipeline: Document Processing
 
 ```
-Documento escaneado (PDF/imagen)
+Scanned document (PDF/image)
     │
     ▼
-Amazon Textract (extraer datos estructurados)
+Amazon Textract (extract structured data)
     │
     ▼
-Amazon Comprehend (detectar PII, clasificar)
+Amazon Comprehend (detect PII, classify)
     │
     ▼
-Amazon Translate (traducir si es necesario)
+Amazon Translate (translate if needed)
     │
     ▼
-Base de datos (RDS/DynamoDB)
+Database (RDS/DynamoDB)
 ```
 
 ---
 
-## Cheat sheet para el examen
+## Exam Cheat Sheet
 
-| Si la pregunta dice... | Respuesta |
+| If the question says... | Answer |
 |---|---|
-| "Audio a texto", "transcribir", "speech-to-text" | **Transcribe** |
-| "Texto a audio", "text-to-speech", "leer en voz alta" | **Polly** |
-| "Sentimiento", "sentiment", "análisis de texto" | **Comprehend** |
-| "Traducir idiomas" | **Translate** |
-| "Imágenes", "faces", "objetos en foto", "moderación" | **Rekognition** |
-| "Extraer datos de documentos", "OCR", "facturas" | **Textract** |
-| "Chatbot", "conversacional" | **Lex** |
-| "Búsqueda inteligente en documentos internos" | **Kendra** |
-| "Recomendaciones personalizadas" | **Personalize** |
-| "Predecir demanda", "forecast" | **Forecast** |
-| "Fraude", "transacciones fraudulentas" | **Fraud Detector** |
+| "Audio to text", "transcribe", "speech-to-text" | **Transcribe** |
+| "Text to audio", "text-to-speech", "read aloud" | **Polly** |
+| "Sentiment", "text analysis" | **Comprehend** |
+| "Translate languages" | **Translate** |
+| "Images", "faces", "objects in photo", "moderation" | **Rekognition** |
+| "Extract data from documents", "OCR", "invoices" | **Textract** |
+| "Chatbot", "conversational" | **Lex** |
+| "Intelligent search in internal documents" | **Kendra** |
+| "Personalized recommendations" | **Personalize** |
+| "Predict demand", "forecast" | **Forecast** |
+| "Fraud", "fraudulent transactions" | **Fraud Detector** |
 | "LLMs", "GenAI", "foundation models" | **Bedrock** |
-| "Entrenar modelo custom" | **SageMaker** |
-| "Sin mantener modelo ML" | Servicios managed (NO SageMaker) |
-| "Texto en imagen" (básico) | **Rekognition** |
-| "Datos de formularios/tablas en documento" | **Textract** |
-| "Términos médicos" | **Comprehend Medical** o **Transcribe Medical** |
+| "Train custom model" | **SageMaker** |
+| "Without maintaining ML model" | Managed services (NOT SageMaker) |
+| "Text in image" (basic) | **Rekognition** |
+| "Data from forms/tables in document" | **Textract** |
+| "Medical terms" | **Comprehend Medical** or **Transcribe Medical** |
 
-## Servicios que se confunden frecuentemente
+## Frequently Confused Services
 
 ### Transcribe vs Polly
 ```
-Transcribe: 🎤→📝 (escucha audio, escribe texto)
-Polly:      📝→🔊 (lee texto, genera audio)
-Son opuestos.
+Transcribe: listens to audio, writes text (audio → text)
+Polly:      reads text, generates audio (text → audio)
+They are opposites.
 ```
 
 ### Rekognition vs Textract
 ```
-Rekognition: "Hay un gato y texto 'STOP' en esta foto"  (qué hay en la imagen)
-Textract:    "Este formulario dice Nombre: Ana, DNI: 12345" (extrae datos estructurados)
+Rekognition: "There is a cat and text 'STOP' in this photo"  (what's in the image)
+Textract:    "This form says Name: Ana, ID: 12345" (extracts structured data)
 ```
 
 ### Comprehend vs Kendra
 ```
-Comprehend: analiza UN texto (sentimiento, entidades, idioma)
-Kendra:     busca EN MUCHOS textos (buscador inteligente sobre documentación)
+Comprehend: analyzes ONE text (sentiment, entities, language)
+Kendra:     searches ACROSS MANY texts (intelligent search engine over documentation)
 ```
 
 ### Lex vs Transcribe
 ```
-Lex:        chatbot que entiende intención y responde
-Transcribe: convierte audio a texto, no entiende ni responde nada
+Lex:        chatbot that understands intent and responds
+Transcribe: converts audio to text, doesn't understand or respond to anything
 ```
 
 ### Bedrock vs SageMaker
 ```
-Bedrock:    usa modelos ya entrenados (Claude, Titan) → sin ML knowledge
-SageMaker:  entrena tus propios modelos → necesitas saber ML
+Bedrock:    uses already-trained models (Claude, Titan) → no ML knowledge needed
+SageMaker:  trains your own models → need to know ML
 ```
 
 ---
 
-## Tips para el examen
+## Exam Tips
 
-1. **"Without maintaining any ML model"** → nunca SageMaker. Siempre servicios managed (Transcribe, Comprehend, Translate, etc.)
+1. **"Without maintaining any ML model"** → never SageMaker. Always managed services (Transcribe, Comprehend, Translate, etc.)
 
-2. **Pipeline de audio multilingüe** = Transcribe → Translate → Comprehend. Esta combinación aparece frecuentemente.
+2. **Multilingual audio pipeline** = Transcribe → Translate → Comprehend. This combination appears frequently.
 
-3. **Moderación de contenido** (imágenes inapropiadas) = Rekognition. No Comprehend (que es para texto).
+3. **Content moderation** (inappropriate images) = Rekognition. Not Comprehend (which is for text).
 
-4. **Documentos escaneados** = Textract. No Rekognition (que solo detecta texto, no extrae estructura).
+4. **Scanned documents** = Textract. Not Rekognition (which only detects text, doesn't extract structure).
 
-5. **Medical** variants: Transcribe Medical (voz médica), Comprehend Medical (texto médico). Si la pregunta menciona healthcare, busca la variante Medical.
+5. **Medical** variants: Transcribe Medical (medical voice), Comprehend Medical (medical text). If the question mentions healthcare, look for the Medical variant.
 
-6. **Kendra** aparece cuando hay "búsqueda inteligente en documentación interna de la empresa". No es traducción ni análisis de sentimiento.
+6. **Kendra** appears when there is "intelligent search in internal company documentation". It's not translation or sentiment analysis.
 
-7. **Las opciones incorrectas** suelen mezclar servicios de forma absurda (Polly para transcribir, Rekognition para traducir, Detective para sentimiento). Si un servicio está fuera de su dominio, descártalo.
+7. **Incorrect options** often mix services absurdly (Polly for transcription, Rekognition for translation, Detective for sentiment). If a service is outside its domain, discard it.

@@ -1,18 +1,18 @@
-# Lab 00: Setup Inicial
+# Lab 00: Initial Setup
 
-## Descripcion
+## Description
 
-Este laboratorio te guia a traves de la configuracion inicial necesaria para trabajar con AWS y Terraform. Configuraras las herramientas base y crearas la infraestructura necesaria para gestionar el estado de Terraform de forma remota.
+This lab guides you through the initial configuration needed to work with AWS and Terraform. You will configure the base tools and create the infrastructure needed to manage Terraform state remotely.
 
-## Requisitos Previos
+## Prerequisites
 
-- Cuenta de AWS (Free Tier es suficiente para empezar)
+- AWS account (Free Tier is sufficient to start)
 - Terminal (bash/zsh)
-- Editor de texto (VS Code recomendado)
+- Text editor (VS Code recommended)
 
 ---
 
-## Paso 1: Instalar AWS CLI v2
+## Step 1: Install AWS CLI v2
 
 ### macOS
 
@@ -29,7 +29,7 @@ unzip awscliv2.zip
 sudo ./aws/install
 ```
 
-### Verificar instalacion
+### Verify installation
 
 ```bash
 aws --version
@@ -37,38 +37,38 @@ aws --version
 
 ---
 
-## Paso 2: Configurar Credenciales de AWS
+## Step 2: Configure AWS Credentials
 
-### Opcion A: Configuracion basica
+### Option A: Basic configuration
 
 ```bash
 aws configure
-# AWS Access Key ID: <tu-access-key>
-# AWS Secret Access Key: <tu-secret-key>
+# AWS Access Key ID: <your-access-key>
+# AWS Secret Access Key: <your-secret-key>
 # Default region name: eu-west-1
 # Default output format: json
 ```
 
-### Opcion B: Usar profiles (recomendado)
+### Option B: Use profiles (recommended)
 
 ```bash
 aws configure --profile aws-lab
-# Introduce tus credenciales
+# Enter your credentials
 
-# Para usar el profile:
+# To use the profile:
 export AWS_PROFILE=aws-lab
 
-# Verificar que funciona:
+# Verify it works:
 aws sts get-caller-identity --profile aws-lab
 ```
 
-> **Buena practica:** Nunca uses las credenciales del usuario root. Crea un usuario IAM con permisos de administrador para los laboratorios.
+> **Best practice:** Never use root user credentials. Create an IAM user with administrator permissions for the labs.
 
 ---
 
-## Paso 3: Instalar Terraform
+## Step 3: Install Terraform
 
-### macOS (con Homebrew)
+### macOS (with Homebrew)
 
 ```bash
 brew tap hashicorp/tap
@@ -83,7 +83,7 @@ echo "deb [signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] https://
 sudo apt update && sudo apt install terraform
 ```
 
-### Verificar instalacion
+### Verify installation
 
 ```bash
 terraform version
@@ -91,48 +91,48 @@ terraform version
 
 ---
 
-## Paso 4: Crear Backend Remoto para Terraform State
+## Step 4: Create Remote Backend for Terraform State
 
-### Por que un backend remoto?
+### Why a remote backend?
 
-Por defecto, Terraform guarda el estado (`terraform.tfstate`) en un fichero local. Esto tiene varios problemas:
+By default, Terraform saves state (`terraform.tfstate`) in a local file. This has several problems:
 
-1. **State locking:** Sin locking, si dos personas ejecutan `terraform apply` a la vez, pueden corromper el estado. DynamoDB proporciona locking distribuido.
-2. **Colaboracion:** Con el estado en local, cada miembro del equipo tiene su propia version. S3 centraliza el estado para todo el equipo.
-3. **Seguridad:** El fichero de estado contiene informacion sensible (IPs, ARNs, a veces passwords). S3 permite cifrado y control de acceso con IAM.
-4. **Durabilidad:** S3 ofrece 99.999999999% de durabilidad. Un disco local puede fallar.
-5. **Versionado:** Con versioning en S3, puedes recuperar estados anteriores si algo sale mal.
+1. **State locking:** Without locking, if two people run `terraform apply` at the same time, they can corrupt the state. DynamoDB provides distributed locking.
+2. **Collaboration:** With local state, each team member has their own version. S3 centralizes the state for the entire team.
+3. **Security:** The state file contains sensitive information (IPs, ARNs, sometimes passwords). S3 allows encryption and access control with IAM.
+4. **Durability:** S3 offers 99.999999999% durability. A local disk can fail.
+5. **Versioning:** With versioning on S3, you can recover previous states if something goes wrong.
 
-### Deploy del backend
+### Deploy the backend
 
 ```bash
 cd labs/00-setup
 
-# Inicializar Terraform (backend local para este primer paso)
+# Initialize Terraform (local backend for this first step)
 terraform init
 
-# Revisar el plan
+# Review the plan
 terraform plan -var="project_name=aws-lab" -var="environment=dev"
 
-# Aplicar
+# Apply
 terraform apply -var="project_name=aws-lab" -var="environment=dev"
 ```
 
-### Verificar
+### Verify
 
 ```bash
-# Verificar que el bucket existe
+# Verify the bucket exists
 aws s3 ls | grep aws-lab
 
-# Verificar la tabla DynamoDB
+# Verify the DynamoDB table
 aws dynamodb list-tables
 ```
 
 ---
 
-## Paso 5: Configurar el Backend en los Siguientes Labs
+## Step 5: Configure the Backend in Subsequent Labs
 
-Una vez creado el bucket y la tabla, los siguientes laboratorios usaran este backend. Veras un fichero `backend.tf` en cada lab con la configuracion correspondiente.
+Once the bucket and table are created, the subsequent labs will use this backend. You will see a `backend.tf` file in each lab with the corresponding configuration.
 
 ```hcl
 terraform {
@@ -148,9 +148,9 @@ terraform {
 
 ---
 
-## Limpieza
+## Cleanup
 
-> **Importante:** NO destruyas este lab hasta que hayas terminado todos los demas, ya que el backend remoto es necesario para el resto de laboratorios.
+> **Important:** Do NOT destroy this lab until you have finished all the others, since the remote backend is needed for the rest of the labs.
 
 ```bash
 terraform destroy -var="project_name=aws-lab" -var="environment=dev"
@@ -158,12 +158,12 @@ terraform destroy -var="project_name=aws-lab" -var="environment=dev"
 
 ---
 
-## Estructura de Ficheros
+## File Structure
 
 ```
 00-setup/
-  main.tf          # Recursos principales (S3 bucket, DynamoDB table)
-  variables.tf     # Variables de entrada
-  outputs.tf       # Valores de salida
-  README.md        # Este fichero
+  main.tf          # Main resources (S3 bucket, DynamoDB table)
+  variables.tf     # Input variables
+  outputs.tf       # Output values
+  README.md        # This file
 ```

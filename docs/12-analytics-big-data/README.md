@@ -1,6 +1,6 @@
-# Analytics y Big Data en AWS
+# Analytics and Big Data in AWS
 
-## Tabla de Contenidos
+## Table of Contents
 
 - [Amazon Athena](#amazon-athena)
 - [AWS Glue](#aws-glue)
@@ -9,39 +9,39 @@
 - [Amazon OpenSearch Service](#amazon-opensearch-service)
 - [Amazon MSK (Managed Streaming for Apache Kafka)](#amazon-msk)
 - [AWS Lake Formation](#aws-lake-formation)
-- [Arquitectura de referencia: Data Lake en AWS](#arquitectura-de-referencia-data-lake-en-aws)
-- [Decision Tree: elegir el servicio de analytics correcto](#decision-tree-elegir-el-servicio-de-analytics-correcto)
+- [Reference Architecture: Data Lake on AWS](#reference-architecture-data-lake-on-aws)
+- [Decision Tree: Choosing the Right Analytics Service](#decision-tree-choosing-the-right-analytics-service)
 - [Analytics Exam Tips](#analytics-exam-tips)
 
 ---
 
 ## Amazon Athena
 
-Servicio **serverless** de queries interactivas que permite ejecutar SQL directamente sobre datos almacenados en **S3**.
+**Serverless** interactive query service that lets you run SQL directly on data stored in **S3**.
 
-### Características principales
+### Key Features
 
-| Característica | Detalle |
-|---------------|---------|
-| **Modelo** | Serverless (sin infraestructura que gestionar) |
-| **Lenguaje** | SQL estándar (basado en Presto/Trino) |
-| **Fuente de datos** | S3 (principal), también connectors a otras fuentes via Federated Query |
-| **Formatos soportados** | CSV, JSON, Parquet, ORC, Avro, TSV |
-| **Precio** | $5 por TB escaneado |
-| **Integración** | Glue Data Catalog como metastore, QuickSight para visualización |
+| Feature | Detail |
+|---------|--------|
+| **Model** | Serverless (no infrastructure to manage) |
+| **Language** | Standard SQL (based on Presto/Trino) |
+| **Data source** | S3 (primary), also connectors to other sources via Federated Query |
+| **Supported formats** | CSV, JSON, Parquet, ORC, Avro, TSV |
+| **Pricing** | $5 per TB scanned |
+| **Integration** | Glue Data Catalog as metastore, QuickSight for visualization |
 
-### Optimización de costes y rendimiento
+### Cost and Performance Optimization
 
-El precio de Athena se basa en los **datos escaneados**, así que reducir el escaneo = reducir coste:
+Athena pricing is based on **data scanned**, so reducing scans = reducing cost:
 
-| Técnica | Ahorro | Cómo |
-|---------|--------|------|
-| **Formatos columnares (Parquet/ORC)** | Hasta 90% | Solo lee las columnas que necesitas, no toda la fila |
-| **Compresión (gzip, snappy, zstd)** | 50-80% | Menos bytes que leer |
-| **Particionado** | Variable (enorme) | Divide datos por fecha/región/etc. Athena solo lee las particiones relevantes |
-| **Bucketing** | Variable | Agrupa datos dentro de una partición para queries más eficientes |
+| Technique | Savings | How |
+|-----------|---------|-----|
+| **Columnar formats (Parquet/ORC)** | Up to 90% | Only reads the columns you need, not the entire row |
+| **Compression (gzip, snappy, zstd)** | 50-80% | Fewer bytes to read |
+| **Partitioning** | Variable (huge) | Splits data by date/region/etc. Athena only reads relevant partitions |
+| **Bucketing** | Variable | Groups data within a partition for more efficient queries |
 
-**Ejemplo de particionado en S3:**
+**Partitioning example in S3:**
 
 ```
 s3://mi-datalake/ventas/
@@ -51,396 +51,396 @@ s3://mi-datalake/ventas/
 ```
 
 ```sql
--- Solo escanea la partición de enero 2025, no todo el bucket
+-- Only scans the January 2025 partition, not the entire bucket
 SELECT * FROM ventas WHERE year = 2025 AND month = 1;
 ```
 
 ### Athena Federated Query
 
-- Permite ejecutar SQL sobre fuentes de datos **más allá de S3**: DynamoDB, RDS, Redshift, CloudWatch Logs, on-premises (via JDBC).
-- Usa **Lambda connectors** para conectarse a cada fuente.
-- Caso de uso: queries que cruzan datos de S3 con datos en DynamoDB o RDS sin moverlos.
+- Allows running SQL on data sources **beyond S3**: DynamoDB, RDS, Redshift, CloudWatch Logs, on-premises (via JDBC).
+- Uses **Lambda connectors** to connect to each source.
+- Use case: queries that join data from S3 with data in DynamoDB or RDS without moving it.
 
-### Casos de uso principales
+### Main Use Cases
 
-- Análisis ad-hoc de logs en S3 (VPC Flow Logs, ALB logs, CloudTrail logs).
-- Queries de negocio sobre data lake en S3.
-- Reporting que no justifica un data warehouse permanente (Redshift).
-- Complemento de QuickSight para dashboards.
+- Ad-hoc analysis of logs in S3 (VPC Flow Logs, ALB logs, CloudTrail logs).
+- Business queries on a data lake in S3.
+- Reporting that doesn't justify a permanent data warehouse (Redshift).
+- Complement to QuickSight for dashboards.
 
-> **Tip para el examen:** Si la pregunta dice "analizar datos en S3 con SQL", "serverless query", "sin infraestructura", "pago por query" → **Athena**. Si dice "data warehouse con queries complejas, joins masivos, datos estructurados a gran escala" → **Redshift**.
+> **Exam tip:** If the question says "analyze data in S3 with SQL", "serverless query", "no infrastructure", "pay per query" → **Athena**. If it says "data warehouse with complex queries, massive joins, structured data at large scale" → **Redshift**.
 
 ---
 
 ## AWS Glue
 
-Servicio **serverless** de ETL (Extract, Transform, Load) y catálogo de datos.
+**Serverless** ETL (Extract, Transform, Load) service and data catalog.
 
-### Componentes
+### Components
 
-| Componente | Descripción |
+| Component | Description |
 |-----------|-------------|
-| **Glue Data Catalog** | Metastore centralizado. Almacena definiciones de tablas, schemas, ubicación de datos. Lo usan Athena, Redshift Spectrum, EMR |
-| **Glue Crawlers** | Escanean fuentes de datos (S3, RDS, DynamoDB) y descubren automáticamente el schema, creando tablas en el Data Catalog |
-| **Glue ETL Jobs** | Scripts (Python/Scala con Apache Spark) que transforman datos entre fuentes |
-| **Glue DataBrew** | Herramienta visual (sin código) para limpiar y normalizar datos |
-| **Glue Studio** | Interfaz visual para crear ETL jobs sin escribir código |
+| **Glue Data Catalog** | Centralized metastore. Stores table definitions, schemas, data locations. Used by Athena, Redshift Spectrum, EMR |
+| **Glue Crawlers** | Scan data sources (S3, RDS, DynamoDB) and automatically discover the schema, creating tables in the Data Catalog |
+| **Glue ETL Jobs** | Scripts (Python/Scala with Apache Spark) that transform data between sources |
+| **Glue DataBrew** | Visual (no-code) tool for cleaning and normalizing data |
+| **Glue Studio** | Visual interface for creating ETL jobs without writing code |
 
 ### Glue Data Catalog
 
 ```
-Fuentes de datos (S3, RDS, DynamoDB)
+Data sources (S3, RDS, DynamoDB)
     │
     ▼
-Glue Crawler (escanea y descubre schema)
+Glue Crawler (scans and discovers schema)
     │
     ▼
-Glue Data Catalog (metastore centralizado)
+Glue Data Catalog (centralized metastore)
     │
-    ├── Athena usa el catálogo para saber qué tablas hay en S3
-    ├── Redshift Spectrum usa el catálogo para queries externas
-    └── EMR usa el catálogo como Hive metastore
+    ├── Athena uses the catalog to know what tables exist in S3
+    ├── Redshift Spectrum uses the catalog for external queries
+    └── EMR uses the catalog as Hive metastore
 ```
 
-- El Data Catalog es el **pegamento** que conecta los servicios de analytics.
-- Es compatible con Apache Hive Metastore.
-- Almacena: databases, tables, partitions, column definitions, locations.
+- The Data Catalog is the **glue** that connects analytics services.
+- It is compatible with Apache Hive Metastore.
+- Stores: databases, tables, partitions, column definitions, locations.
 
 ### Glue ETL Jobs
 
-- Se ejecutan sobre Apache Spark (serverless, AWS gestiona el cluster).
-- Fuentes: S3, RDS, Redshift, DynamoDB, JDBC.
-- Destinos: S3 (Parquet, ORC, JSON, CSV), Redshift, RDS, Glue Data Catalog.
-- Soporta **job bookmarks** para procesar solo datos nuevos (incremental ETL).
-- Transformaciones: mapear columnas, filtrar, join, agregar, cambiar formatos.
+- Run on Apache Spark (serverless, AWS manages the cluster).
+- Sources: S3, RDS, Redshift, DynamoDB, JDBC.
+- Destinations: S3 (Parquet, ORC, JSON, CSV), Redshift, RDS, Glue Data Catalog.
+- Supports **job bookmarks** to process only new data (incremental ETL).
+- Transformations: map columns, filter, join, aggregate, change formats.
 
-### Glue vs otros servicios de ETL
+### Glue vs Other ETL Services
 
-| Servicio | Cuándo usarlo |
-|----------|--------------|
-| **Glue ETL** | ETL serverless, transformaciones Spark, integrado con Data Catalog |
-| **EMR** | ETL con control total del cluster, workloads Spark/Hadoop complejos |
-| **Lambda** | Transformaciones simples y ligeras (< 15 min, < 10 GB) |
-| **Kinesis Data Firehose** | Transformaciones ligeras en streaming (near real-time) |
-| **DMS** | Migración de base de datos a base de datos (no transformación compleja) |
+| Service | When to use |
+|---------|-------------|
+| **Glue ETL** | Serverless ETL, Spark transformations, integrated with Data Catalog |
+| **EMR** | ETL with full cluster control, complex Spark/Hadoop workloads |
+| **Lambda** | Simple and lightweight transformations (< 15 min, < 10 GB) |
+| **Kinesis Data Firehose** | Lightweight transformations in streaming (near real-time) |
+| **DMS** | Database-to-database migration (not complex transformation) |
 
-> **Tip para el examen:** Si la pregunta menciona "descubrir schema automáticamente", "catálogo de datos", "ETL serverless" → **Glue**. Si dice "ETL con Spark/Hadoop y control del cluster" → **EMR**. El Glue Data Catalog aparece frecuentemente como respuesta cuando se necesita un metastore centralizado.
+> **Exam tip:** If the question mentions "automatically discover schema", "data catalog", "serverless ETL" → **Glue**. If it says "ETL with Spark/Hadoop and cluster control" → **EMR**. The Glue Data Catalog frequently appears as an answer when a centralized metastore is needed.
 
 ---
 
 ## Amazon EMR
 
-Amazon EMR (Elastic MapReduce) es un servicio gestionado para ejecutar frameworks de **Big Data** como Apache Hadoop, Spark, Hive, HBase, Presto, Flink.
+Amazon EMR (Elastic MapReduce) is a managed service for running **Big Data** frameworks like Apache Hadoop, Spark, Hive, HBase, Presto, Flink.
 
-### Modos de despliegue
+### Deployment Modes
 
-| Modo | Descripción | Caso de uso |
-|------|-------------|-------------|
-| **EMR on EC2** | Cluster de instancias EC2 gestionado por EMR | Control total, workloads complejos, GPU |
-| **EMR on EKS** | Jobs de Spark sobre un cluster EKS existente | Equipos que ya usan Kubernetes |
-| **EMR Serverless** | Sin cluster que gestionar, pago por uso | Jobs ad-hoc, equipos que no quieren gestionar infra |
+| Mode | Description | Use Case |
+|------|-------------|----------|
+| **EMR on EC2** | Cluster of EC2 instances managed by EMR | Full control, complex workloads, GPU |
+| **EMR on EKS** | Spark jobs on an existing EKS cluster | Teams already using Kubernetes |
+| **EMR Serverless** | No cluster to manage, pay per use | Ad-hoc jobs, teams that don't want to manage infra |
 
-### Arquitectura del cluster EMR on EC2
+### EMR on EC2 Cluster Architecture
 
 ```
 EMR Cluster
-├── Master Node (1)      → Coordina el cluster, ejecuta YARN ResourceManager
-├── Core Nodes (N)       → Almacenan datos en HDFS + ejecutan tareas
-└── Task Nodes (N)       → Solo ejecutan tareas (sin HDFS). Ideal para Spot Instances
+├── Master Node (1)      → Coordinates the cluster, runs YARN ResourceManager
+├── Core Nodes (N)       → Store data in HDFS + execute tasks
+└── Task Nodes (N)       → Only execute tasks (no HDFS). Ideal for Spot Instances
 ```
 
-- **Master Node**: Siempre On-Demand (si falla, pierdes el cluster).
-- **Core Nodes**: On-Demand o Reserved (almacenan datos HDFS).
-- **Task Nodes**: **Spot Instances** (solo cómputo, no almacenan datos, tolerantes a interrupción).
+- **Master Node**: Always On-Demand (if it fails, you lose the cluster).
+- **Core Nodes**: On-Demand or Reserved (store HDFS data).
+- **Task Nodes**: **Spot Instances** (compute only, don't store data, tolerant to interruption).
 
-### Almacenamiento en EMR
+### Storage in EMR
 
-| Opción | Descripción | Persistencia |
+| Option | Description | Persistence |
 |--------|-------------|-------------|
-| **HDFS** | En los core nodes del cluster | Se pierde al terminar el cluster |
-| **EMRFS (S3)** | Usa S3 como sistema de archivos | Persistente. Recomendado para data lakes |
-| **EBS** | Volúmenes adjuntos a los nodos | Se pierde al terminar el cluster |
+| **HDFS** | On the cluster's core nodes | Lost when the cluster terminates |
+| **EMRFS (S3)** | Uses S3 as the file system | Persistent. Recommended for data lakes |
+| **EBS** | Volumes attached to nodes | Lost when the cluster terminates |
 
-> **Recomendación:** Usar EMRFS (S3) para datos persistentes y HDFS solo para datos temporales intermedios que necesitan baja latencia.
+> **Recommendation:** Use EMRFS (S3) for persistent data and HDFS only for temporary intermediate data that needs low latency.
 
-### Casos de uso
+### Use Cases
 
-- Machine learning a gran escala (Spark MLlib).
-- Procesamiento de logs y ETL masivo.
-- Análisis de datos genómicos.
-- Análisis de datos financieros.
-- Procesamiento de datos geoespaciales.
+- Large-scale machine learning (Spark MLlib).
+- Log processing and massive ETL.
+- Genomic data analysis.
+- Financial data analysis.
+- Geospatial data processing.
 
 ### EMR vs Glue vs Athena
 
-| Pregunta | Servicio |
+| Question | Service |
 |----------|---------|
-| "Quiero ejecutar SQL sobre datos en S3 sin infra" | **Athena** |
-| "Necesito ETL serverless integrado con Data Catalog" | **Glue** |
-| "Necesito Spark/Hadoop con control del cluster y librerías custom" | **EMR on EC2** |
-| "Necesito Spark serverless sin gestionar cluster" | **EMR Serverless** o **Glue** |
+| "I want to run SQL on data in S3 without infra" | **Athena** |
+| "I need serverless ETL integrated with Data Catalog" | **Glue** |
+| "I need Spark/Hadoop with cluster control and custom libraries" | **EMR on EC2** |
+| "I need serverless Spark without managing a cluster" | **EMR Serverless** or **Glue** |
 
-> **Tip para el examen:** Si la pregunta menciona "Hadoop", "Spark", "Hive", "HBase", "Presto", "big data processing", "machine learning con Spark" → **EMR**. Si menciona "Spot Instances para big data" → Task Nodes de EMR con Spot.
+> **Exam tip:** If the question mentions "Hadoop", "Spark", "Hive", "HBase", "Presto", "big data processing", "machine learning with Spark" → **EMR**. If it mentions "Spot Instances for big data" → EMR Task Nodes with Spot.
 
 ---
 
 ## Amazon QuickSight
 
-Servicio de **Business Intelligence (BI)** serverless para crear dashboards y visualizaciones interactivas.
+**Serverless Business Intelligence (BI)** service for creating interactive dashboards and visualizations.
 
-### Características principales
+### Key Features
 
-| Característica | Detalle |
-|---------------|---------|
-| **Modelo** | Serverless, pago por sesión o por usuario |
-| **SPICE** | Motor in-memory (Super-fast, Parallel, In-memory Calculation Engine). Importa datos para queries rápidas |
-| **Fuentes de datos** | Athena, S3, RDS, Aurora, Redshift, DynamoDB, OpenSearch, Salesforce, JDBC/ODBC |
-| **Funcionalidades** | Dashboards, análisis ad-hoc, ML Insights (anomalías, forecasting), alertas |
-| **Seguridad** | Integración con IAM, row-level security (RLS), column-level security (CLS) |
+| Feature | Detail |
+|---------|--------|
+| **Model** | Serverless, pay per session or per user |
+| **SPICE** | In-memory engine (Super-fast, Parallel, In-memory Calculation Engine). Imports data for fast queries |
+| **Data sources** | Athena, S3, RDS, Aurora, Redshift, DynamoDB, OpenSearch, Salesforce, JDBC/ODBC |
+| **Capabilities** | Dashboards, ad-hoc analysis, ML Insights (anomalies, forecasting), alerts |
+| **Security** | Integration with IAM, row-level security (RLS), column-level security (CLS) |
 
-### Arquitectura típica
+### Typical Architecture
 
 ```
-Datos (S3, RDS, Redshift, Athena)
+Data (S3, RDS, Redshift, Athena)
     │
     ▼
-QuickSight (importa a SPICE o direct query)
+QuickSight (imports to SPICE or direct query)
     │
     ▼
-Dashboards interactivos (compartidos con usuarios)
+Interactive dashboards (shared with users)
 ```
 
-### Ediciones
+### Editions
 
-| Característica | Standard | Enterprise |
-|---------------|----------|------------|
-| **Autenticación** | IAM, email | IAM, email, Active Directory, SAML |
-| **Row-level security** | No | Sí |
-| **Column-level security** | No | Sí |
-| **Private VPC access** | No | Sí |
-| **Embedded dashboards** | No | Sí |
-| **ML Insights** | Limitado | Completo |
+| Feature | Standard | Enterprise |
+|---------|----------|------------|
+| **Authentication** | IAM, email | IAM, email, Active Directory, SAML |
+| **Row-level security** | No | Yes |
+| **Column-level security** | No | Yes |
+| **Private VPC access** | No | Yes |
+| **Embedded dashboards** | No | Yes |
+| **ML Insights** | Limited | Full |
 
-> **Tip para el examen:** Si la pregunta dice "BI", "dashboards", "visualización de datos", "business users" → **QuickSight**. Si dice "SPICE" → QuickSight. Si necesita row-level security → QuickSight Enterprise.
+> **Exam tip:** If the question says "BI", "dashboards", "data visualization", "business users" → **QuickSight**. If it says "SPICE" → QuickSight. If it needs row-level security → QuickSight Enterprise.
 
 ---
 
 ## Amazon OpenSearch Service
 
-Servicio gestionado de **OpenSearch** (fork de Elasticsearch) para búsqueda, análisis de logs y observabilidad.
+Managed **OpenSearch** service (Elasticsearch fork) for search, log analytics, and observability.
 
-### Características principales
+### Key Features
 
-| Característica | Detalle |
-|---------------|---------|
-| **Modelo** | Cluster gestionado (no serverless, aunque existe OpenSearch Serverless) |
-| **Funcionalidades** | Búsqueda full-text, análisis de logs, dashboards (OpenSearch Dashboards / Kibana) |
-| **Ingesta** | Kinesis Data Firehose, CloudWatch Logs, Lambda, Logstash, FluentBit |
-| **Despliegue** | Multi-AZ (hasta 3 AZs), cifrado en reposo y en tránsito |
+| Feature | Detail |
+|---------|--------|
+| **Model** | Managed cluster (not serverless, although OpenSearch Serverless exists) |
+| **Capabilities** | Full-text search, log analytics, dashboards (OpenSearch Dashboards / Kibana) |
+| **Ingestion** | Kinesis Data Firehose, CloudWatch Logs, Lambda, Logstash, FluentBit |
+| **Deployment** | Multi-AZ (up to 3 AZs), encryption at rest and in transit |
 
-### Patrones comunes
+### Common Patterns
 
-**Análisis de logs en tiempo real:**
+**Real-time log analytics:**
 
 ```
 CloudWatch Logs / Kinesis Data Firehose / IoT
     │
     ▼
-OpenSearch cluster (indexa y permite búsqueda)
+OpenSearch cluster (indexes and enables search)
     │
     ▼
-OpenSearch Dashboards (visualización en tiempo real)
+OpenSearch Dashboards (real-time visualization)
 ```
 
-**Búsqueda full-text en aplicación:**
+**Full-text search in an application:**
 
 ```
-DynamoDB (fuente de verdad)
+DynamoDB (source of truth)
     │
     ▼ (DynamoDB Streams → Lambda)
-OpenSearch (índice de búsqueda)
+OpenSearch (search index)
     │
     ▼
-Aplicación busca en OpenSearch, lee detalle de DynamoDB
+Application searches in OpenSearch, reads details from DynamoDB
 ```
 
 ### OpenSearch vs CloudWatch Logs Insights vs Athena
 
-| Pregunta | Servicio |
+| Question | Service |
 |----------|---------|
-| "Búsqueda full-text sobre logs/documentos" | **OpenSearch** |
-| "Análisis de logs ad-hoc rápido, sin infra" | **CloudWatch Logs Insights** |
-| "SQL sobre logs en S3, pago por query" | **Athena** |
-| "Dashboards de logs en tiempo real con KQL" | **OpenSearch Dashboards** |
+| "Full-text search on logs/documents" | **OpenSearch** |
+| "Quick ad-hoc log analysis, no infra" | **CloudWatch Logs Insights** |
+| "SQL on logs in S3, pay per query" | **Athena** |
+| "Real-time log dashboards with KQL" | **OpenSearch Dashboards** |
 
 ### OpenSearch Serverless
 
-- Versión serverless de OpenSearch (sin gestionar clusters).
-- Auto-escala según la carga.
-- Dos modos: **Time Series** (logs, métricas) y **Search** (búsqueda full-text).
-- Más simple pero con menos control que el cluster gestionado.
+- Serverless version of OpenSearch (no clusters to manage).
+- Auto-scales based on load.
+- Two modes: **Time Series** (logs, metrics) and **Search** (full-text search).
+- Simpler but with less control than the managed cluster.
 
-> **Tip para el examen:** Si la pregunta menciona "búsqueda full-text", "Elasticsearch", "Kibana", "análisis de logs en tiempo real con dashboards" → **OpenSearch**. Si dice "search" en el contexto de una aplicación → probablemente OpenSearch como índice de búsqueda.
+> **Exam tip:** If the question mentions "full-text search", "Elasticsearch", "Kibana", "real-time log analytics with dashboards" → **OpenSearch**. If it says "search" in the context of an application → probably OpenSearch as a search index.
 
 ---
 
 ## Amazon MSK
 
-Amazon MSK (Managed Streaming for Apache Kafka) es un servicio gestionado de **Apache Kafka** para streaming de datos.
+Amazon MSK (Managed Streaming for Apache Kafka) is a managed **Apache Kafka** service for data streaming.
 
-### Kafka en 30 segundos
+### Kafka in 30 Seconds
 
 ```
-Producers (envían datos) → Kafka Topics (organizados en particiones) → Consumers (leen datos)
+Producers (send data) → Kafka Topics (organized in partitions) → Consumers (read data)
 ```
 
-- **Topic**: Canal de datos con nombre (ej: "orders", "clickstream").
-- **Partition**: Subdivisión de un topic para paralelismo.
-- **Broker**: Servidor Kafka que almacena y sirve datos.
-- **Consumer Group**: Grupo de consumers que se reparten las particiones.
+- **Topic**: Named data channel (e.g.: "orders", "clickstream").
+- **Partition**: Subdivision of a topic for parallelism.
+- **Broker**: Kafka server that stores and serves data.
+- **Consumer Group**: Group of consumers that share partitions.
 
 ### MSK vs Kinesis Data Streams
 
-| Característica | Amazon MSK | Kinesis Data Streams |
-|---------------|-----------|---------------------|
-| **Protocolo** | Apache Kafka (open source) | API propietaria de AWS |
-| **Modelo** | Cluster gestionado (brokers) | Serverless (shards) |
-| **Retención** | Ilimitada (disco) | 1-365 días |
-| **Mensaje máximo** | 1 MB (default), configurable hasta mayor | 1 MB |
+| Feature | Amazon MSK | Kinesis Data Streams |
+|---------|-----------|---------------------|
+| **Protocol** | Apache Kafka (open source) | AWS proprietary API |
+| **Model** | Managed cluster (brokers) | Serverless (shards) |
+| **Retention** | Unlimited (disk) | 1-365 days |
+| **Max message** | 1 MB (default), configurable higher | 1 MB |
 | **Consumers** | Kafka Consumer API, Connect | Kinesis Client Library, Lambda |
-| **Ecosistema** | Kafka Connect, Kafka Streams, KSQL | Integración nativa AWS |
-| **Portabilidad** | Alto (Kafka es open source, funciona en cualquier cloud) | AWS lock-in |
-| **Coste** | Pagas por broker (instancia) | Pagas por shard/hora + datos |
-| **Cuándo usar** | Ya usas Kafka, necesitas ecosistema Kafka, portabilidad | Solución AWS-native, integración simple con Lambda/S3 |
+| **Ecosystem** | Kafka Connect, Kafka Streams, KSQL | Native AWS integration |
+| **Portability** | High (Kafka is open source, works on any cloud) | AWS lock-in |
+| **Cost** | Pay per broker (instance) | Pay per shard/hour + data |
+| **When to use** | Already using Kafka, need Kafka ecosystem, portability | AWS-native solution, simple integration with Lambda/S3 |
 
 ### MSK Serverless
 
-- Versión serverless de MSK (sin gestionar brokers).
-- Auto-escala según la carga.
-- Pagas por datos y particiones, no por instancias.
-- Ideal para cargas variables o equipos que no quieren gestionar Kafka.
+- Serverless version of MSK (no brokers to manage).
+- Auto-scales based on load.
+- Pay per data and partitions, not per instances.
+- Ideal for variable loads or teams that don't want to manage Kafka.
 
 ### MSK Connect
 
-- Servicio gestionado de **Kafka Connect** para mover datos entre Kafka y otros sistemas.
-- Conectores prebuilds: S3 Sink, Elasticsearch Sink, Debezium (CDC), JDBC.
-- Ejemplo: MSK → S3 automáticamente sin código.
+- Managed **Kafka Connect** service for moving data between Kafka and other systems.
+- Pre-built connectors: S3 Sink, Elasticsearch Sink, Debezium (CDC), JDBC.
+- Example: MSK → S3 automatically without code.
 
-> **Tip para el examen:** Si la pregunta menciona "Kafka", "ecosistema Kafka", "migrar Kafka a AWS", "portabilidad" → **MSK**. Si dice "streaming de datos nativo AWS" sin mencionar Kafka → **Kinesis**. Si dice "streaming serverless de Kafka" → **MSK Serverless**.
+> **Exam tip:** If the question mentions "Kafka", "Kafka ecosystem", "migrate Kafka to AWS", "portability" → **MSK**. If it says "AWS-native data streaming" without mentioning Kafka → **Kinesis**. If it says "serverless Kafka streaming" → **MSK Serverless**.
 
 ---
 
 ## AWS Lake Formation
 
-Servicio para crear, gestionar y asegurar **data lakes** en S3.
+Service for creating, managing, and securing **data lakes** in S3.
 
-### Qué problema resuelve
+### What Problem It Solves
 
-Sin Lake Formation, montar un data lake requiere:
-- Configurar permisos de S3 por bucket/prefix manualmente.
-- Gestionar políticas IAM complejas para cada equipo/usuario.
-- Implementar seguridad a nivel de columna o fila manualmente.
+Without Lake Formation, setting up a data lake requires:
+- Configuring S3 permissions per bucket/prefix manually.
+- Managing complex IAM policies for each team/user.
+- Implementing column-level or row-level security manually.
 
-Lake Formation **centraliza todo esto**.
+Lake Formation **centralizes all of this**.
 
-### Componentes
+### Components
 
-| Componente | Descripción |
+| Component | Description |
 |-----------|-------------|
-| **Data Catalog** | Usa el Glue Data Catalog como base |
-| **Security** | Permisos centralizados a nivel de base de datos, tabla, columna y fila |
-| **Blueprints** | Workflows predefinidos para ingestar datos de RDS, CloudTrail, etc. a S3 |
-| **Data Filters** | Row-level y column-level security sobre tablas del catálogo |
-| **Governed Tables** | Tablas con soporte ACID (transacciones sobre S3) |
+| **Data Catalog** | Uses the Glue Data Catalog as its base |
+| **Security** | Centralized permissions at the database, table, column, and row level |
+| **Blueprints** | Predefined workflows for ingesting data from RDS, CloudTrail, etc. to S3 |
+| **Data Filters** | Row-level and column-level security on catalog tables |
+| **Governed Tables** | Tables with ACID support (transactions on S3) |
 
-### Modelo de seguridad
-
-```
-Sin Lake Formation:
-    IAM Policies + S3 Bucket Policies + KMS Policies = complejo, descentralizado
-
-Con Lake Formation:
-    Lake Formation Permissions (GRANT/REVOKE tipo SQL)
-        → "Usuario X puede ver columnas A,B,C de la tabla Y"
-        → "Equipo Z solo puede ver filas donde region='EU'"
-```
-
-- Centraliza permisos en un solo lugar (en vez de IAM + S3 + Glue policies).
-- Soporta **column-level** y **row-level security**.
-- Se integra con: Athena, Redshift Spectrum, EMR, Glue.
-
-### Arquitectura típica
+### Security Model
 
 ```
-Fuentes (RDS, S3, on-premises)
+Without Lake Formation:
+    IAM Policies + S3 Bucket Policies + KMS Policies = complex, decentralized
+
+With Lake Formation:
+    Lake Formation Permissions (SQL-like GRANT/REVOKE)
+        → "User X can see columns A,B,C of table Y"
+        → "Team Z can only see rows where region='EU'"
+```
+
+- Centralizes permissions in a single place (instead of IAM + S3 + Glue policies).
+- Supports **column-level** and **row-level security**.
+- Integrates with: Athena, Redshift Spectrum, EMR, Glue.
+
+### Typical Architecture
+
+```
+Sources (RDS, S3, on-premises)
     │
     ▼
-Lake Formation (ingesta via Blueprints, seguridad centralizada)
+Lake Formation (ingestion via Blueprints, centralized security)
     │
     ▼
-Data Lake en S3 (Parquet, catalogado en Glue Data Catalog)
+Data Lake in S3 (Parquet, cataloged in Glue Data Catalog)
     │
-    ├── Athena (queries ad-hoc)
+    ├── Athena (ad-hoc queries)
     ├── Redshift Spectrum (analytics)
     ├── EMR (big data processing)
     └── QuickSight (dashboards)
 ```
 
-> **Tip para el examen:** Si la pregunta menciona "seguridad centralizada de data lake", "permisos a nivel de columna/fila en S3", "governanza de datos" → **Lake Formation**. Si solo necesitas un metastore → **Glue Data Catalog** (sin Lake Formation).
+> **Exam tip:** If the question mentions "centralized data lake security", "column/row-level permissions on S3", "data governance" → **Lake Formation**. If you only need a metastore → **Glue Data Catalog** (without Lake Formation).
 
 ---
 
-## Arquitectura de referencia: Data Lake en AWS
+## Reference Architecture: Data Lake on AWS
 
-Cómo encajan todos los servicios juntos:
+How all the services fit together:
 
 ```
-INGESTA                    ALMACENAMIENTO          PROCESAMIENTO            CONSUMO
-─────────                  ──────────────          ─────────────            ───────
+INGESTION                  STORAGE                 PROCESSING               CONSUMPTION
+─────────                  ───────                 ──────────               ───────────
 Kinesis Data Streams  ─┐
 Kinesis Firehose      ─┤
-MSK (Kafka)           ─┤                                                   Athena (SQL ad-hoc)
+MSK (Kafka)           ─┤                                                   Athena (ad-hoc SQL)
 IoT Core              ─┤                                                      │
-DMS (bases de datos)  ─┼──► S3 (Data Lake) ──► Glue ETL / EMR ──────────► QuickSight (BI)
+DMS (databases)       ─┼──► S3 (Data Lake) ──► Glue ETL / EMR ──────────► QuickSight (BI)
 API Gateway + Lambda  ─┤       │                                              │
 Glue Crawlers         ─┤       │                                           Redshift (DW)
 DataSync (on-prem)    ─┘       │                                              │
-                               ▼                                           OpenSearch (búsqueda)
+                               ▼                                           OpenSearch (search)
                         Glue Data Catalog                                     │
                         Lake Formation                                     SageMaker (ML)
-                        (seguridad centralizada)
+                        (centralized security)
 ```
 
 ---
 
-## Decision Tree: elegir el servicio de analytics correcto
+## Decision Tree: Choosing the Right Analytics Service
 
 ```
-¿Qué necesitas hacer?
+What do you need to do?
 │
-├── Ejecutar SQL sobre datos en S3
-│   ├── Queries ad-hoc, pago por query → Athena
-│   └── Data warehouse con datos estructurados, queries complejos, joins masivos → Redshift
+├── Run SQL on data in S3
+│   ├── Ad-hoc queries, pay per query → Athena
+│   └── Data warehouse with structured data, complex queries, massive joins → Redshift
 │
-├── Transformar datos (ETL)
-│   ├── Serverless, integrado con Data Catalog → Glue
-│   ├── Spark/Hadoop con control total del cluster → EMR
-│   └── Transformación simple y ligera → Lambda o Kinesis Firehose
+├── Transform data (ETL)
+│   ├── Serverless, integrated with Data Catalog → Glue
+│   ├── Spark/Hadoop with full cluster control → EMR
+│   └── Simple and lightweight transformation → Lambda or Kinesis Firehose
 │
-├── Streaming de datos
-│   ├── AWS-native, integración con Lambda → Kinesis
-│   └── Ecosistema Kafka, portabilidad → MSK
+├── Data streaming
+│   ├── AWS-native, integration with Lambda → Kinesis
+│   └── Kafka ecosystem, portability → MSK
 │
-├── Visualizar datos (dashboards)
+├── Visualize data (dashboards)
 │   └── QuickSight
 │
-├── Búsqueda full-text / análisis de logs en tiempo real
+├── Full-text search / real-time log analytics
 │   └── OpenSearch
 │
-├── Catálogo de datos centralizado
+├── Centralized data catalog
 │   └── Glue Data Catalog
 │
-└── Gobernanza y seguridad de data lake (permisos por columna/fila)
+└── Data lake governance and security (column/row-level permissions)
     └── Lake Formation
 ```
 
@@ -450,57 +450,57 @@ DataSync (on-prem)    ─┘       │                                          
 
 ### Athena
 
-1. **"SQL sobre S3 sin infraestructura"** → Athena.
-2. **"Reducir costes de Athena"** → Formato columnar (Parquet/ORC) + particionado + compresión.
-3. **"Analizar CloudTrail logs / VPC Flow Logs / ALB logs con SQL"** → Athena sobre los logs en S3.
-4. **"Query que cruza datos de S3 con RDS"** → Athena Federated Query.
+1. **"SQL on S3 without infrastructure"** → Athena.
+2. **"Reduce Athena costs"** → Columnar format (Parquet/ORC) + partitioning + compression.
+3. **"Analyze CloudTrail logs / VPC Flow Logs / ALB logs with SQL"** → Athena on logs in S3.
+4. **"Query that joins data from S3 with RDS"** → Athena Federated Query.
 
 ### Glue
 
-5. **"Descubrir schema de datos en S3 automáticamente"** → Glue Crawler.
-6. **"Catálogo de datos centralizado"** → Glue Data Catalog.
-7. **"ETL serverless"** → Glue ETL Jobs.
-8. **"Transformar datos sin código"** → Glue DataBrew.
-9. **"Convertir CSV a Parquet"** → Glue ETL Job.
+5. **"Automatically discover schema of data in S3"** → Glue Crawler.
+6. **"Centralized data catalog"** → Glue Data Catalog.
+7. **"Serverless ETL"** → Glue ETL Jobs.
+8. **"Transform data without code"** → Glue DataBrew.
+9. **"Convert CSV to Parquet"** → Glue ETL Job.
 
 ### EMR
 
 10. **"Hadoop, Spark, Hive, HBase, Presto"** → EMR.
-11. **"Big data con Spot Instances"** → EMR Task Nodes con Spot.
-12. **"Machine learning con Spark MLlib"** → EMR.
-13. **"Spark sin gestionar cluster"** → EMR Serverless o Glue.
+11. **"Big data with Spot Instances"** → EMR Task Nodes with Spot.
+12. **"Machine learning with Spark MLlib"** → EMR.
+13. **"Spark without managing a cluster"** → EMR Serverless or Glue.
 
 ### QuickSight
 
-14. **"Dashboards", "BI", "visualización"** → QuickSight.
-15. **"SPICE"** → QuickSight (motor in-memory).
-16. **"Row-level security en dashboards"** → QuickSight Enterprise.
-17. **"Embedded analytics en app web"** → QuickSight Enterprise (embedded dashboards).
+14. **"Dashboards", "BI", "visualization"** → QuickSight.
+15. **"SPICE"** → QuickSight (in-memory engine).
+16. **"Row-level security in dashboards"** → QuickSight Enterprise.
+17. **"Embedded analytics in web app"** → QuickSight Enterprise (embedded dashboards).
 
 ### OpenSearch
 
-18. **"Búsqueda full-text"** → OpenSearch.
+18. **"Full-text search"** → OpenSearch.
 19. **"Elasticsearch", "Kibana", "ELK stack"** → OpenSearch.
-20. **"Análisis de logs en tiempo real con dashboards"** → OpenSearch + OpenSearch Dashboards.
-21. **"Índice de búsqueda complementario a DynamoDB"** → DynamoDB Streams → Lambda → OpenSearch.
+20. **"Real-time log analytics with dashboards"** → OpenSearch + OpenSearch Dashboards.
+21. **"Search index complementing DynamoDB"** → DynamoDB Streams → Lambda → OpenSearch.
 
 ### MSK
 
-22. **"Kafka", "migrar Kafka a AWS"** → MSK.
-23. **"Streaming con portabilidad multi-cloud"** → MSK (Kafka es open source).
-24. **"Kafka sin gestionar brokers"** → MSK Serverless.
+22. **"Kafka", "migrate Kafka to AWS"** → MSK.
+23. **"Streaming with multi-cloud portability"** → MSK (Kafka is open source).
+24. **"Kafka without managing brokers"** → MSK Serverless.
 25. **"Kinesis vs MSK"** → Kinesis = AWS-native, simple. MSK = Kafka ecosystem, portable.
 
 ### Lake Formation
 
-26. **"Seguridad centralizada de data lake"** → Lake Formation.
-27. **"Permisos a nivel de columna en S3"** → Lake Formation.
-28. **"Row-level security sobre data lake"** → Lake Formation Data Filters.
-29. **"Simplificar permisos de IAM + S3 para datos"** → Lake Formation.
+26. **"Centralized data lake security"** → Lake Formation.
+27. **"Column-level permissions on S3"** → Lake Formation.
+28. **"Row-level security on data lake"** → Lake Formation Data Filters.
+29. **"Simplify IAM + S3 permissions for data"** → Lake Formation.
 
-### Patrones recurrentes
+### Recurring Patterns
 
-30. **Pipeline de analytics típico:** S3 → Glue Crawler (cataloga) → Athena (query) → QuickSight (visualiza).
-31. **Streaming a analytics:** Kinesis/MSK → Firehose → S3 → Athena / Redshift.
-32. **ETL + Data Lake:** Glue ETL (transforma) → S3 (Parquet) → Lake Formation (seguridad) → Athena/Redshift (query).
-33. **Logs en tiempo real:** CloudWatch Logs → Subscription Filter → OpenSearch → Dashboards.
+30. **Typical analytics pipeline:** S3 → Glue Crawler (catalogs) → Athena (query) → QuickSight (visualize).
+31. **Streaming to analytics:** Kinesis/MSK → Firehose → S3 → Athena / Redshift.
+32. **ETL + Data Lake:** Glue ETL (transforms) → S3 (Parquet) → Lake Formation (security) → Athena/Redshift (query).
+33. **Real-time logs:** CloudWatch Logs → Subscription Filter → OpenSearch → Dashboards.

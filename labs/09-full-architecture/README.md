@@ -1,176 +1,176 @@
-# Lab 09: Arquitectura Completa - Plataforma E-Commerce (Proyecto Final)
+# Lab 09: Complete Architecture - E-Commerce Platform (Final Project)
 
-## Objetivo
+## Objective
 
-Proyecto final que combina todos los conceptos aprendidos en los labs anteriores. Despliega una plataforma de e-commerce serverless completa con autenticacion, API, base de datos, cache, procesamiento asincrono, notificaciones, monitorizacion y seguridad.
+Final project that combines all the concepts learned in the previous labs. Deploy a complete serverless e-commerce platform with authentication, API, database, cache, asynchronous processing, notifications, monitoring and security.
 
-## Arquitectura
+## Architecture
 
 ```
-                                    ┌─────────────┐
-                                    │   WAF       │
-                                    │  (rules)    │
-                                    └──────┬──────┘
-                                           │
-┌──────────┐    ┌──────────────┐    ┌──────▼──────┐    ┌─────────────┐
-│ Usuarios │───▶│  CloudFront  │───▶│ S3 Frontend │    │  Cognito    │
-│          │    │  (CDN)       │    │ (React/Vue) │    │ (Auth)      │
-└────┬─────┘    └──────────────┘    └─────────────┘    └──────┬──────┘
-     │                                                         │
-     │          ┌──────────────┐    ┌─────────────┐    ┌──────▼──────┐
-     └─────────▶│  API Gateway │◄──▶│  Cognito    │───▶│  Lambda     │
-                │  (REST API)  │    │  Authorizer │    │  Functions  │
-                └──────┬───────┘    └─────────────┘    └──┬───┬───┬──┘
-                       │                                   │   │   │
-              ┌────────┴────────┐                         │   │   │
-              │                 │                          │   │   │
-       ┌──────▼──────┐  ┌──────▼──────┐           ┌──────▼┐  │  ┌▼────────┐
-       │ get_products │  │create_order │           │Aurora  │  │  │ElastiCa-│
-       │ (Lambda)     │  │(Lambda)     │           │Server- │  │  │che Redis│
-       └──────┬───────┘  └──────┬──────┘           │less v2 │  │  │(cache+  │
-              │                 │                   └────────┘  │  │sessions)│
-              │                 ▼                               │  └─────────┘
-              │          ┌─────────────┐                       │
-              │          │  SQS Queue  │                       │
-              │          │ (orders)    │                       │
-              │          └──────┬──────┘                       │
-              │                 │              ┌───────────────┘
-              │          ┌──────▼──────┐       │
-              │          │process_pay- │       │
-              │          │ment (Lambda)│       │
-              │          └──────┬──────┘       │
-              │                 │        ┌─────▼──────┐
-              │          ┌──────▼──────┐ │S3 Uploads  │
-              │          │  SNS Topic  │ │(presigned  │
-              │          │(notificatio-│ │ URLs)      │
-              │          │nes)         │ └────────────┘
-              │          └─────────────┘
-              │
-       ┌──────▼───────────────────────┐
-       │  CloudWatch                  │
-       │  - Alarms (5xx, DLQ, CPU)    │
-       │  - Dashboards                │
-       │  - Logs                      │
-       └──────────────────────────────┘
+                                    +-------------+
+                                    |   WAF       |
+                                    |  (rules)    |
+                                    +------+------+
+                                           |
++----------+    +--------------+    +------v------+    +-------------+
+| Users    |--->|  CloudFront  |--->| S3 Frontend |    |  Cognito    |
+|          |    |  (CDN)       |    | (React/Vue) |    | (Auth)      |
++----+-----+    +--------------+    +-------------+    +------+------+
+     |                                                         |
+     |          +--------------+    +-------------+    +------v------+
+     +--------->|  API Gateway |<-->|  Cognito    |--->|  Lambda     |
+                |  (REST API)  |    |  Authorizer |    |  Functions  |
+                +------+-------+    +-------------+    +--+---+---+-+
+                       |                                   |   |   |
+              +--------+--------+                          |   |   |
+              |                 |                           |   |   |
+       +------v------+  +------v------+           +--------+   |  +v--------+
+       | get_products |  |create_order |           |Aurora   |  |  |ElastiCa-|
+       | (Lambda)     |  |(Lambda)     |           |Server-  |  |  |che Redis|
+       +------+-------+  +------+------+           |less v2  |  |  |(cache+  |
+              |                 |                   +--------+   |  |sessions)|
+              |                 v                                |  +---------+
+              |          +-------------+                        |
+              |          |  SQS Queue  |                        |
+              |          | (orders)    |                        |
+              |          +------+------+                        |
+              |                 |              +-----------------+
+              |          +------v------+       |
+              |          |process_pay- |       |
+              |          |ment (Lambda)|       |
+              |          +------+------+       |
+              |                 |        +-----v------+
+              |          +------v------+ |S3 Uploads  |
+              |          |  SNS Topic  | |(presigned  |
+              |          |(notifica-   | | URLs)      |
+              |          | tions)      | +------------+
+              |          +-------------+
+              |
+       +------v----------------------------+
+       |  CloudWatch                       |
+       |  - Alarms (5xx, DLQ, CPU)         |
+       |  - Dashboards                     |
+       |  - Logs                           |
+       +-----------------------------------+
 ```
 
-## Mapeo a los 4 dominios del examen SA Associate
+## Mapping to the 4 SA Associate Exam Domains
 
-### Dominio 1: Diseno de Arquitecturas Seguras (30%)
-- **Cognito**: autenticacion y autorizacion de usuarios
-- **WAF**: proteccion contra ataques web comunes (SQL injection, XSS)
-- **IAM Roles**: principio de minimo privilegio para cada Lambda
-- **S3 Presigned URLs**: acceso temporal seguro a archivos
-- **Encryption**: datos cifrados en reposo y en transito
+### Domain 1: Design Secure Architectures (30%)
+- **Cognito**: user authentication and authorization
+- **WAF**: protection against common web attacks (SQL injection, XSS)
+- **IAM Roles**: principle of least privilege for each Lambda
+- **S3 Presigned URLs**: secure temporary access to files
+- **Encryption**: data encrypted at rest and in transit
 
-### Dominio 2: Diseno de Arquitecturas Resilientes (26%)
-- **SQS + DLQ**: procesamiento asincrono con manejo de fallos
-- **Aurora Serverless**: escalado automatico de base de datos
-- **ElastiCache**: cache para reducir carga en la base de datos
-- **CloudFront**: distribucion global con alta disponibilidad
-- **Multi-AZ**: Aurora y ElastiCache con replicacion
+### Domain 2: Design Resilient Architectures (26%)
+- **SQS + DLQ**: asynchronous processing with failure handling
+- **Aurora Serverless**: automatic database scaling
+- **ElastiCache**: cache to reduce database load
+- **CloudFront**: global distribution with high availability
+- **Multi-AZ**: Aurora and ElastiCache with replication
 
-### Dominio 3: Diseno de Arquitecturas de Alto Rendimiento (24%)
-- **CloudFront CDN**: contenido estatico cerca del usuario
-- **ElastiCache Redis**: cache de sesiones y datos frecuentes
-- **API Gateway**: throttling y caching de respuestas
-- **Aurora Serverless v2**: escalado rapido segun demanda
-- **Lambda**: escalado automatico por funcion
+### Domain 3: Design High-Performing Architectures (24%)
+- **CloudFront CDN**: static content close to the user
+- **ElastiCache Redis**: session and frequent data cache
+- **API Gateway**: throttling and response caching
+- **Aurora Serverless v2**: rapid scaling based on demand
+- **Lambda**: automatic scaling per function
 
-### Dominio 4: Diseno de Arquitecturas Optimizadas en Costes (20%)
-- **Serverless**: pago por uso (Lambda, API Gateway, Aurora Serverless)
-- **S3 + CloudFront**: hosting estatico sin servidores
-- **SQS**: desacoplamiento para optimizar recursos
-- **Aurora Serverless v2**: escala a 0.5 ACU cuando no hay trafico
+### Domain 4: Design Cost-Optimized Architectures (20%)
+- **Serverless**: pay-per-use (Lambda, API Gateway, Aurora Serverless)
+- **S3 + CloudFront**: static hosting without servers
+- **SQS**: decoupling to optimize resources
+- **Aurora Serverless v2**: scales down to 0.5 ACU when there is no traffic
 
-## Componentes desplegados
+## Deployed Components
 
-| Servicio | Recurso | Funcion |
+| Service | Resource | Function |
 |----------|---------|---------|
-| Cognito | User Pool + App Client | Autenticacion de usuarios |
-| S3 | Bucket frontend | Hosting del frontend |
-| CloudFront | Distribucion | CDN global |
-| API Gateway | REST API | Punto de entrada del API |
-| Lambda | get_products | Consulta productos |
-| Lambda | create_order | Crea pedidos |
-| Lambda | process_payment | Procesa pagos |
-| Aurora | Serverless v2 PostgreSQL | Base de datos |
-| ElastiCache | Redis cluster | Cache y sesiones |
-| SQS | Cola + DLQ | Procesamiento de pedidos |
-| SNS | Topic | Notificaciones de pedidos |
-| S3 | Bucket uploads | Subida de archivos |
-| WAF | WebACL | Proteccion web |
-| CloudWatch | Alarms | Monitorizacion |
+| Cognito | User Pool + App Client | User authentication |
+| S3 | Frontend bucket | Frontend hosting |
+| CloudFront | Distribution | Global CDN |
+| API Gateway | REST API | API entry point |
+| Lambda | get_products | Query products |
+| Lambda | create_order | Create orders |
+| Lambda | process_payment | Process payments |
+| Aurora | Serverless v2 PostgreSQL | Database |
+| ElastiCache | Redis cluster | Cache and sessions |
+| SQS | Queue + DLQ | Order processing |
+| SNS | Topic | Order notifications |
+| S3 | Uploads bucket | File uploads |
+| WAF | WebACL | Web protection |
+| CloudWatch | Alarms | Monitoring |
 
-## Coste estimado
+## Estimated Cost
 
-**~$5-8/dia** (principalmente Aurora Serverless y ElastiCache)
+**~$5-8/day** (mainly Aurora Serverless and ElastiCache)
 
-> **Nota**: Aurora Serverless v2 tiene un minimo de 0.5 ACU (~$0.12/hora). ElastiCache tiene coste por nodo. Destruye cuando no lo uses.
+> **Note**: Aurora Serverless v2 has a minimum of 0.5 ACU (~$0.12/hour). ElastiCache has a per-node cost. Destroy when not in use.
 
-## Este lab es el mas complejo - tomatelo con calma
+## This lab is the most complex - take your time
 
-1. **No intentes entenderlo todo de golpe**. Revisa seccion por seccion.
-2. **Despliega y experimenta**. Haz cambios, rompe cosas, aprende.
-3. **Relaciona cada componente con el examen**. Preguntate: si me preguntan sobre este servicio en el examen, que responderia?
-4. **Dibuja la arquitectura a mano**. Esto ayuda mucho a consolidar el conocimiento.
+1. **Do not try to understand everything at once**. Review section by section.
+2. **Deploy and experiment**. Make changes, break things, learn.
+3. **Relate each component to the exam**. Ask yourself: if they ask me about this service on the exam, what would I answer?
+4. **Draw the architecture by hand**. This helps a lot to consolidate knowledge.
 
-## Como desplegar
+## How to Deploy
 
 ```bash
-# Inicializar Terraform
+# Initialize Terraform
 terraform init
 
-# Ver el plan (sera largo - muchos recursos)
+# View the plan (it will be long - many resources)
 terraform plan
 
-# Desplegar
+# Deploy
 terraform apply
 
-# Destruir cuando termines
+# Destroy when finished
 terraform destroy
 ```
 
-## Pruebas basicas
+## Basic Testing
 
-### 1. Probar autenticacion con Cognito
+### 1. Test authentication with Cognito
 ```bash
-# Crear usuario de prueba
+# Create a test user
 aws cognito-idp sign-up \
   --client-id <app_client_id> \
   --username testuser@example.com \
   --password "Test1234!"
 
-# Confirmar usuario (admin)
+# Confirm user (admin)
 aws cognito-idp admin-confirm-sign-up \
   --user-pool-id <user_pool_id> \
   --username testuser@example.com
 ```
 
-### 2. Probar el API
+### 2. Test the API
 ```bash
-# Obtener token
+# Get token
 TOKEN=$(aws cognito-idp initiate-auth \
   --client-id <app_client_id> \
   --auth-flow USER_PASSWORD_AUTH \
   --auth-parameters USERNAME=testuser@example.com,PASSWORD="Test1234!" \
   --query 'AuthenticationResult.IdToken' --output text)
 
-# Llamar al API
+# Call the API
 curl -H "Authorization: $TOKEN" https://<api_id>.execute-api.eu-west-1.amazonaws.com/prod/products
 ```
 
-### 3. Verificar CloudWatch
+### 3. Verify CloudWatch
 ```bash
-# Ver alarmas activas
+# View active alarms
 aws cloudwatch describe-alarms --state-value ALARM
 ```
 
-## Limpieza
+## Cleanup
 
 ```bash
-# IMPORTANTE: Destruir todo al terminar
+# IMPORTANT: Destroy everything when finished
 terraform destroy
 ```
 
-> Verifica en la consola que no quedan recursos activos. Presta especial atencion a Aurora, ElastiCache y los buckets S3.
+> Verify in the console that no active resources remain. Pay special attention to Aurora, ElastiCache and S3 buckets.

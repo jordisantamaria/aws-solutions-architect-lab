@@ -1,135 +1,135 @@
-# Storage - Cheat Sheet Rápido
+# Storage - Quick Cheat Sheet
 
-## Clases de Almacenamiento S3
+## S3 Storage Classes
 
-| Clase | Durabilidad | Disponibilidad | AZs | Tiempo de recuperación | Caso de uso |
-|-------|------------|----------------|-----|----------------------|-------------|
-| **S3 Standard** | 99.999999999% (11 nueves) | 99.99% | ≥ 3 | Milisegundos | Datos de acceso frecuente, contenido web, analytics |
-| **S3 Intelligent-Tiering** | 99.999999999% | 99.9% | ≥ 3 | Milisegundos | Patrones de acceso impredecibles o cambiantes |
-| **S3 Standard-IA** | 99.999999999% | 99.9% | ≥ 3 | Milisegundos | Datos accedidos con poca frecuencia, backups activos |
-| **S3 One Zone-IA** | 99.999999999% | 99.5% | **1** | Milisegundos | Datos recreables, copias secundarias, thumbnails |
-| **S3 Glacier Instant Retrieval** | 99.999999999% | 99.9% | ≥ 3 | Milisegundos | Archivos accedidos 1 vez/trimestre, acceso instantáneo |
-| **S3 Glacier Flexible Retrieval** | 99.999999999% | 99.99% (tras restaurar) | ≥ 3 | 1-5 min (Expedited), 3-5 hrs (Standard), 5-12 hrs (Bulk) | Archivos, compliance, backups a largo plazo |
-| **S3 Glacier Deep Archive** | 99.999999999% | 99.99% (tras restaurar) | ≥ 3 | 12 hrs (Standard), 48 hrs (Bulk) | Retención a largo plazo (7-10+ años), regulatorio |
+| Class | Durability | Availability | AZs | Retrieval Time | Use Case |
+|-------|-----------|--------------|-----|----------------|----------|
+| **S3 Standard** | 99.999999999% (11 nines) | 99.99% | >= 3 | Milliseconds | Frequently accessed data, web content, analytics |
+| **S3 Intelligent-Tiering** | 99.999999999% | 99.9% | >= 3 | Milliseconds | Unpredictable or changing access patterns |
+| **S3 Standard-IA** | 99.999999999% | 99.9% | >= 3 | Milliseconds | Infrequently accessed data, active backups |
+| **S3 One Zone-IA** | 99.999999999% | 99.5% | **1** | Milliseconds | Recreatable data, secondary copies, thumbnails |
+| **S3 Glacier Instant Retrieval** | 99.999999999% | 99.9% | >= 3 | Milliseconds | Archives accessed once per quarter, instant access |
+| **S3 Glacier Flexible Retrieval** | 99.999999999% | 99.99% (after restore) | >= 3 | 1-5 min (Expedited), 3-5 hrs (Standard), 5-12 hrs (Bulk) | Archives, compliance, long-term backups |
+| **S3 Glacier Deep Archive** | 99.999999999% | 99.99% (after restore) | >= 3 | 12 hrs (Standard), 48 hrs (Bulk) | Long-term retention (7-10+ years), regulatory |
 
-> **Clave examen:** Todas las clases tienen **11 nueves de durabilidad** excepto que la disponibilidad varía. **One Zone-IA** es la única en 1 AZ.
+> **Exam key:** All classes have **11 nines of durability** except availability varies. **One Zone-IA** is the only one in 1 AZ.
 
-### Datos importantes S3
-- **Tamaño máximo de objeto:** 5 TB
-- **Multipart upload:** Recomendado > 100 MB, obligatorio > 5 GB
-- **Máximo PUT en una sola operación:** 5 GB
+### Important S3 Data
+- **Maximum object size:** 5 TB
+- **Multipart upload:** Recommended > 100 MB, mandatory > 5 GB
+- **Maximum PUT in a single operation:** 5 GB
 
 ---
 
-## Tipos de Volumen EBS
+## EBS Volume Types
 
-| Tipo | Nombre | IOPS máx | Throughput máx | Tamaño | Boot | Caso de uso |
-|------|--------|----------|---------------|--------|------|-------------|
-| **gp3** | General Purpose SSD | 16,000 | 1,000 MB/s | 1 GB - 16 TB | Sí | Cargas generales, desarrollo, bases de datos pequeñas |
-| **gp2** | General Purpose SSD | 16,000 (burst) | 250 MB/s | 1 GB - 16 TB | Sí | Similar a gp3 (generación anterior) |
-| **io2 Block Express** | Provisioned IOPS SSD | **256,000** | 4,000 MB/s | 4 GB - 64 TB | Sí | Bases de datos críticas, alta IOPS sostenida |
-| **io2/io1** | Provisioned IOPS SSD | 64,000 | 1,000 MB/s | 4 GB - 16 TB | Sí | Bases de datos intensivas, SAP HANA |
-| **st1** | Throughput Optimized HDD | 500 | **500 MB/s** | 125 GB - 16 TB | **No** | Big data, data warehouses, logs (secuencial) |
-| **sc1** | Cold HDD | 250 | 250 MB/s | 125 GB - 16 TB | **No** | Datos fríos, acceso infrecuente, menor costo |
+| Type | Name | Max IOPS | Max Throughput | Size | Boot | Use Case |
+|------|------|----------|---------------|------|------|----------|
+| **gp3** | General Purpose SSD | 16,000 | 1,000 MB/s | 1 GB - 16 TB | Yes | General workloads, development, small databases |
+| **gp2** | General Purpose SSD | 16,000 (burst) | 250 MB/s | 1 GB - 16 TB | Yes | Similar to gp3 (previous generation) |
+| **io2 Block Express** | Provisioned IOPS SSD | **256,000** | 4,000 MB/s | 4 GB - 64 TB | Yes | Critical databases, high sustained IOPS |
+| **io2/io1** | Provisioned IOPS SSD | 64,000 | 1,000 MB/s | 4 GB - 16 TB | Yes | Intensive databases, SAP HANA |
+| **st1** | Throughput Optimized HDD | 500 | **500 MB/s** | 125 GB - 16 TB | **No** | Big data, data warehouses, logs (sequential) |
+| **sc1** | Cold HDD | 250 | 250 MB/s | 125 GB - 16 TB | **No** | Cold data, infrequent access, lowest cost |
 
-> **Claves examen:**
-> - **HDD (st1/sc1) NO puede ser boot volume** — solo SSD (gp/io).
-> - Si piden "IOPS garantizadas" o "más de 16,000 IOPS" → **io2/io1**.
-> - **gp3** es más barato que gp2 y permite configurar IOPS y throughput independientemente.
-> - Si piden "mayor throughput secuencial" → **st1**.
+> **Exam keys:**
+> - **HDD (st1/sc1) CANNOT be boot volume** — only SSD (gp/io).
+> - If they ask for "guaranteed IOPS" or "more than 16,000 IOPS" → **io2/io1**.
+> - **gp3** is cheaper than gp2 and allows configuring IOPS and throughput independently.
+> - If they ask for "highest sequential throughput" → **st1**.
 
 ---
 
 ## EFS vs EBS vs S3
 
-| Característica | EBS | EFS | S3 |
-|---------------|-----|-----|-----|
-| **Tipo** | Block storage | File storage (NFS) | Object storage |
-| **Acceso** | Una instancia EC2 (excepto io multi-attach) | **Múltiples instancias** simultáneamente | Acceso vía HTTP/API |
-| **Protocolo** | Dispositivo de bloque | NFSv4.1 | REST API / HTTP |
-| **Scope** | **Una AZ** | Multi-AZ (Regional) | Multi-AZ (Regional) |
-| **Escalado** | Tamaño fijo (manual resize) | **Automático** (crece/decrece) | **Ilimitado** |
-| **Performance** | Muy alta (IOPS provisioned) | Buena (modos burst/provisioned) | Alta (paralelizable) |
-| **Precio** | Más económico por GB | Más caro por GB | Más económico para objetos |
-| **Snapshots** | Sí (a S3) | Backup con AWS Backup | Versionado nativo |
-| **Caso de uso** | Base de datos, boot volume, app con disco local | CMS compartido, home dirs, contenedores, WordPress | Archivos estáticos, backups, data lake |
+| Feature | EBS | EFS | S3 |
+|---------|-----|-----|-----|
+| **Type** | Block storage | File storage (NFS) | Object storage |
+| **Access** | One EC2 instance (except io multi-attach) | **Multiple instances** simultaneously | Access via HTTP/API |
+| **Protocol** | Block device | NFSv4.1 | REST API / HTTP |
+| **Scope** | **One AZ** | Multi-AZ (Regional) | Multi-AZ (Regional) |
+| **Scaling** | Fixed size (manual resize) | **Automatic** (grows/shrinks) | **Unlimited** |
+| **Performance** | Very high (provisioned IOPS) | Good (burst/provisioned modes) | High (parallelizable) |
+| **Price** | Most economical per GB | More expensive per GB | Most economical for objects |
+| **Snapshots** | Yes (to S3) | Backup with AWS Backup | Native versioning |
+| **Use case** | Database, boot volume, app with local disk | Shared CMS, home dirs, containers, WordPress | Static files, backups, data lake |
 
-> **Truco examen:**
-> - "Almacenamiento **compartido** entre múltiples EC2" → **EFS**
-> - "Almacenamiento de **objetos** / archivos estáticos" → **S3**
-> - "Disco de **alto rendimiento** para una instancia" → **EBS**
-> - "Sistema de archivos Windows compartido" → **FSx for Windows**
-> - "HPC con sistema de archivos de alto rendimiento" → **FSx for Lustre**
-
----
-
-## Opciones de Cifrado S3
-
-| Método | Tipo | Gestión de claves | Descripción |
-|--------|------|-------------------|-------------|
-| **SSE-S3** | Server-side | AWS gestiona todo | Default. Cifrado AES-256 gestionado por S3 automáticamente |
-| **SSE-KMS** | Server-side | AWS KMS (tú controlas) | Usa claves KMS. Audit trail con CloudTrail. Tiene límite de API quota |
-| **SSE-C** | Server-side | **Cliente provee la clave** | Tú envías la clave en cada request. AWS la usa y la descarta. Solo HTTPS |
-| **CSE (Client-Side)** | Client-side | **Cliente cifra antes** | Tú cifras antes de subir a S3. S3 almacena datos ya cifrados |
-
-> **Claves examen:**
-> - **SSE-S3** es el default desde enero 2023 (todos los objetos nuevos se cifran automáticamente).
-> - **SSE-KMS** cuando necesitas **auditoría** de quién usa las claves o **separación de responsabilidades**.
-> - **SSE-C** cuando necesitas control total de las claves y no quieres almacenarlas en AWS.
-> - **Bucket policy** puede forzar un tipo de cifrado específico (`s3:x-amz-server-side-encryption`).
+> **Exam trick:**
+> - "**Shared** storage between multiple EC2" → **EFS**
+> - "**Object** storage / static files" → **S3**
+> - "**High-performance** disk for a single instance" → **EBS**
+> - "Shared Windows file system" → **FSx for Windows**
+> - "HPC with high-performance file system" → **FSx for Lustre**
 
 ---
 
-## Tipos de Storage Gateway
+## S3 Encryption Options
 
-| Tipo | Descripción |
+| Method | Type | Key Management | Description |
+|--------|------|----------------|-------------|
+| **SSE-S3** | Server-side | AWS manages everything | Default. AES-256 encryption managed by S3 automatically |
+| **SSE-KMS** | Server-side | AWS KMS (you control) | Uses KMS keys. Audit trail with CloudTrail. Has API quota limit |
+| **SSE-C** | Server-side | **Client provides the key** | You send the key with each request. AWS uses it and discards it. HTTPS only |
+| **CSE (Client-Side)** | Client-side | **Client encrypts before** | You encrypt before uploading to S3. S3 stores already-encrypted data |
+
+> **Exam keys:**
+> - **SSE-S3** is the default since January 2023 (all new objects are automatically encrypted).
+> - **SSE-KMS** when you need **auditing** of who uses the keys or **separation of responsibilities**.
+> - **SSE-C** when you need full control of the keys and don't want to store them in AWS.
+> - **Bucket policy** can force a specific encryption type (`s3:x-amz-server-side-encryption`).
+
+---
+
+## Storage Gateway Types
+
+| Type | Description |
 |------|-------------|
-| **S3 File Gateway** | Interfaz NFS/SMB que almacena archivos como objetos en S3 — acceso local con backend en la nube |
-| **FSx File Gateway** | Cache local para acceder a FSx for Windows File Server — optimiza latencia para oficinas remotas |
-| **Volume Gateway (Stored)** | Volúmenes iSCSI con datos primarios on-prem y snapshots asíncronas a S3 (como EBS Snapshots) |
-| **Volume Gateway (Cached)** | Volúmenes iSCSI con datos primarios en S3 y cache local de datos frecuentes — expande capacidad |
-| **Tape Gateway** | Emula librería de cintas (VTL) para software de backup existente, almacena en S3 y Glacier |
+| **S3 File Gateway** | NFS/SMB interface that stores files as objects in S3 — local access with cloud backend |
+| **FSx File Gateway** | Local cache for accessing FSx for Windows File Server — optimizes latency for remote offices |
+| **Volume Gateway (Stored)** | iSCSI volumes with primary data on-prem and async snapshots to S3 (as EBS Snapshots) |
+| **Volume Gateway (Cached)** | iSCSI volumes with primary data in S3 and local cache of frequent data — expands capacity |
+| **Tape Gateway** | Emulates a tape library (VTL) for existing backup software, stores in S3 and Glacier |
 
-> **Truco examen:**
-> - "Migrar backups de cinta a la nube" → **Tape Gateway**
-> - "Acceso NFS a S3 desde on-prem" → **S3 File Gateway**
-> - "Datos principales en la nube, cache local" → **Volume Gateway (Cached)**
-> - "Datos principales on-prem, backup en la nube" → **Volume Gateway (Stored)**
+> **Exam trick:**
+> - "Migrate tape backups to the cloud" → **Tape Gateway**
+> - "NFS access to S3 from on-prem" → **S3 File Gateway**
+> - "Primary data in the cloud, local cache" → **Volume Gateway (Cached)**
+> - "Primary data on-prem, backup in the cloud" → **Volume Gateway (Stored)**
 
 ---
 
 ## Snow Family
 
-| Dispositivo | Capacidad de almacenamiento | Compute | Caso de uso |
-|-------------|---------------------------|---------|-------------|
-| **Snowcone** | 8 TB HDD / 14 TB SSD | 2 vCPUs, 4 GB RAM | Edge computing ligero, entornos remotos, transferencias pequeñas |
-| **Snowball Edge Storage Optimized** | 80 TB usable | 40 vCPUs, 80 GB RAM | Migración de datos a gran escala, edge computing con almacenamiento |
-| **Snowball Edge Compute Optimized** | 28 TB usable (+ 42 TB NVMe) | 104 vCPUs, 416 GB RAM, GPU opt. | ML en edge, procesamiento intensivo en campo |
-| **Snowmobile** | **100 PB** | N/A | Migración de exabytes (centro de datos completo) |
+| Device | Storage Capacity | Compute | Use Case |
+|--------|-----------------|---------|----------|
+| **Snowcone** | 8 TB HDD / 14 TB SSD | 2 vCPUs, 4 GB RAM | Lightweight edge computing, remote environments, small transfers |
+| **Snowball Edge Storage Optimized** | 80 TB usable | 40 vCPUs, 80 GB RAM | Large-scale data migration, edge computing with storage |
+| **Snowball Edge Compute Optimized** | 28 TB usable (+ 42 TB NVMe) | 104 vCPUs, 416 GB RAM, GPU opt. | ML at the edge, intensive field processing |
+| **Snowmobile** | **100 PB** | N/A | Exabyte-scale migration (entire data center) |
 
-> **Regla general examen:**
-> - Transferir **hasta ~10 TB** → usar internet (Direct Connect, VPN, S3 Transfer Acceleration)
-> - Transferir **10 TB - 10 PB** → **Snowball Edge**
-> - Transferir **más de 10 PB** → **Snowmobile**
-> - **Edge computing remoto** → Snowcone (pequeño) o Snowball Edge Compute (potente)
+> **General exam rule:**
+> - Transfer **up to ~10 TB** → use internet (Direct Connect, VPN, S3 Transfer Acceleration)
+> - Transfer **10 TB - 10 PB** → **Snowball Edge**
+> - Transfer **more than 10 PB** → **Snowmobile**
+> - **Remote edge computing** → Snowcone (small) or Snowball Edge Compute (powerful)
 
 ---
 
-## Resumen de Decisiones Rápidas - Storage
+## Quick Decision Summary - Storage
 
 ```
-PREGUNTA DEL EXAMEN                                → RESPUESTA
+EXAM QUESTION                                  → ANSWER
 ──────────────────────────────────────────────────────────────
-"Almacenar objetos con acceso HTTP"                 → S3
-"Disco de alto rendimiento para EC2"                → EBS (gp3 o io2)
-"Sistema de archivos compartido Linux"              → EFS
-"Sistema de archivos compartido Windows"            → FSx for Windows
-"HPC filesystem de alto rendimiento"                → FSx for Lustre
-"Archival a largo plazo, menor costo"               → S3 Glacier Deep Archive
-"Patrón de acceso impredecible"                     → S3 Intelligent-Tiering
-"Migrar TBs de datos de on-prem"                    → Snowball Edge
-"Acceso NFS a S3 desde on-prem"                     → S3 File Gateway
-"Backup de cintas a la nube"                        → Tape Gateway
-"IOPS garantizadas > 16,000"                        → EBS io2/io1
-"Throughput secuencial alto, big data"              → EBS st1
+"Store objects with HTTP access"                → S3
+"High-performance disk for EC2"                 → EBS (gp3 or io2)
+"Shared Linux file system"                      → EFS
+"Shared Windows file system"                    → FSx for Windows
+"HPC high-performance filesystem"               → FSx for Lustre
+"Long-term archival, lowest cost"               → S3 Glacier Deep Archive
+"Unpredictable access pattern"                  → S3 Intelligent-Tiering
+"Migrate TBs of data from on-prem"              → Snowball Edge
+"NFS access to S3 from on-prem"                 → S3 File Gateway
+"Tape backups to the cloud"                     → Tape Gateway
+"Guaranteed IOPS > 16,000"                      → EBS io2/io1
+"High sequential throughput, big data"          → EBS st1
 ```

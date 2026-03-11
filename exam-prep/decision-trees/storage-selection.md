@@ -1,105 +1,105 @@
-# Arbol de Decisión: Selección de Almacenamiento
+# Decision Tree: Storage Selection
 
-## Pregunta Principal: ¿Qué tipo de almacenamiento necesitas?
+## Main Question: What type of storage do you need?
 
 ```
-¿Qué tipo de datos necesitas almacenar?
+What type of data do you need to store?
 │
-├── OBJETOS / ARCHIVOS (acceso HTTP, sin sistema de archivos)
+├── OBJECTS / FILES (HTTP access, no file system)
 │   │
 │   └──→ Amazon S3
 │        │
-│        ├── ¿Con qué frecuencia accedes a los datos?
+│        ├── How frequently do you access the data?
 │        │   │
-│        │   ├── Frecuentemente ──→ S3 Standard
+│        │   ├── Frequently ──→ S3 Standard
 │        │   │
-│        │   ├── Patrón impredecible ──→ S3 Intelligent-Tiering
+│        │   ├── Unpredictable pattern ──→ S3 Intelligent-Tiering
 │        │   │
-│        │   ├── Poco frecuente
-│        │   │   ├── ¿Datos recreables? ──→ S3 One Zone-IA (más barato, 1 AZ)
-│        │   │   └── ¿Datos críticos?   ──→ S3 Standard-IA (multi-AZ)
+│        │   ├── Infrequently
+│        │   │   ├── Recreatable data? ──→ S3 One Zone-IA (cheaper, 1 AZ)
+│        │   │   └── Critical data?   ──→ S3 Standard-IA (multi-AZ)
 │        │   │
-│        │   └── Archival / largo plazo
-│        │       ├── ¿Acceso instantáneo ocasional? ──→ Glacier Instant Retrieval
-│        │       ├── ¿Acceso en horas, flexible?     ──→ Glacier Flexible Retrieval
-│        │       └── ¿Retención 7-10+ años, rara vez? ──→ Glacier Deep Archive
+│        │   └── Archival / long-term
+│        │       ├── Occasional instant access? ──→ Glacier Instant Retrieval
+│        │       ├── Access in hours, flexible?     ──→ Glacier Flexible Retrieval
+│        │       └── 7-10+ year retention, rarely? ──→ Glacier Deep Archive
 │        │
-│        └── Funcionalidades adicionales:
-│            ├── Versionado de objetos ──→ S3 Versioning
-│            ├── Mover datos automáticamente ──→ S3 Lifecycle Policies
-│            ├── Replicación cross-region ──→ S3 CRR
-│            └── Consultar datos sin extraer ──→ S3 Select / Athena
+│        └── Additional features:
+│            ├── Object versioning ──→ S3 Versioning
+│            ├── Automatically move data ──→ S3 Lifecycle Policies
+│            ├── Cross-region replication ──→ S3 CRR
+│            └── Query data without extracting ──→ S3 Select / Athena
 │
-├── BLOCK STORAGE (disco para instancia EC2)
+├── BLOCK STORAGE (disk for EC2 instance)
 │   │
 │   └──→ Amazon EBS
 │        │
-│        ├── ¿Qué tipo de carga?
+│        ├── What type of workload?
 │        │   │
-│        │   ├── General (boot, dev, apps normales)
-│        │   │   └──→ gp3 (más flexible y económico que gp2)
+│        │   ├── General (boot, dev, normal apps)
+│        │   │   └──→ gp3 (more flexible and economical than gp2)
 │        │   │
-│        │   ├── Alto IOPS (> 16,000) / BD críticas
-│        │   │   ├── ¿Hasta 64,000 IOPS? ──→ io2
-│        │   │   └── ¿Hasta 256,000 IOPS? ──→ io2 Block Express
+│        │   ├── High IOPS (> 16,000) / critical databases
+│        │   │   ├── Up to 64,000 IOPS? ──→ io2
+│        │   │   └── Up to 256,000 IOPS? ──→ io2 Block Express
 │        │   │
-│        │   ├── Alto throughput secuencial (big data, logs)
+│        │   ├── High sequential throughput (big data, logs)
 │        │   │   └──→ st1 (Throughput Optimized HDD)
 │        │   │
-│        │   └── Datos fríos, acceso mínimo, menor costo
+│        │   └── Cold data, minimal access, lowest cost
 │        │       └──→ sc1 (Cold HDD)
 │        │
-│        └── Notas:
-│            ├── ¿Boot volume? ──→ Solo SSD (gp2/gp3/io1/io2)
-│            ├── ¿Multi-attach (varias instancias)? ──→ Solo io1/io2
-│            └── ¿Snapshot? ──→ Sí, a S3 (incremental)
+│        └── Notes:
+│            ├── Boot volume? ──→ SSD only (gp2/gp3/io1/io2)
+│            ├── Multi-attach (multiple instances)? ──→ io1/io2 only
+│            └── Snapshot? ──→ Yes, to S3 (incremental)
 │
-├── SISTEMA DE ARCHIVOS COMPARTIDO (múltiples instancias)
+├── SHARED FILE SYSTEM (multiple instances)
 │   │
-│   ├── ¿Qué sistema operativo?
+│   ├── What operating system?
 │   │   │
 │   │   ├── Linux (NFS)
 │   │   │   └──→ Amazon EFS
-│   │   │       ├── Acceso frecuente ──→ EFS Standard
-│   │   │       ├── Acceso infrecuente ──→ EFS-IA (más barato)
-│   │   │       └── Ambos automáticamente ──→ EFS Lifecycle Management
+│   │   │       ├── Frequent access ──→ EFS Standard
+│   │   │       ├── Infrequent access ──→ EFS-IA (cheaper)
+│   │   │       └── Both automatically ──→ EFS Lifecycle Management
 │   │   │
 │   │   └── Windows (SMB)
 │   │       └──→ Amazon FSx for Windows File Server
 │   │           (Active Directory, DFS, quotas)
 │   │
-│   └── ¿HPC / alto rendimiento paralelo?
+│   └── HPC / high-performance parallel?
 │       └──→ Amazon FSx for Lustre
-│           ├── Se integra con S3 como data lake
-│           └── Ideal para ML, simulaciones, genomics
+│           ├── Integrates with S3 as data lake
+│           └── Ideal for ML, simulations, genomics
 │
-├── ARCHIVAL / RETENCIÓN REGULATORIA
+├── ARCHIVAL / REGULATORY RETENTION
 │   │
-│   ├── ¿Acceso inmediato necesario? ──→ S3 Glacier Instant Retrieval
-│   ├── ¿Acceso en minutos/horas?    ──→ S3 Glacier Flexible Retrieval
-│   └── ¿Mínimo costo, acceso raro?  ──→ S3 Glacier Deep Archive
-│       └── S3 Object Lock para compliance WORM (Write Once Read Many)
+│   ├── Immediate access needed? ──→ S3 Glacier Instant Retrieval
+│   ├── Access in minutes/hours?    ──→ S3 Glacier Flexible Retrieval
+│   └── Minimum cost, rare access?  ──→ S3 Glacier Deep Archive
+│       └── S3 Object Lock for WORM compliance (Write Once Read Many)
 │
-└── ALMACENAMIENTO HÍBRIDO (on-premises + nube)
+└── HYBRID STORAGE (on-premises + cloud)
     │
     └──→ AWS Storage Gateway
          │
-         ├── ¿Qué necesitas?
+         ├── What do you need?
          │   │
-         │   ├── Acceso NFS/SMB a S3 desde on-prem
+         │   ├── NFS/SMB access to S3 from on-prem
          │   │   └──→ S3 File Gateway
          │   │
-         │   ├── Cache local para FSx Windows
+         │   ├── Local cache for FSx Windows
          │   │   └──→ FSx File Gateway
          │   │
-         │   ├── Volúmenes iSCSI
-         │   │   ├── Datos principales on-prem ──→ Volume Gateway (Stored)
-         │   │   └── Datos principales en S3   ──→ Volume Gateway (Cached)
+         │   ├── iSCSI volumes
+         │   │   ├── Primary data on-prem ──→ Volume Gateway (Stored)
+         │   │   └── Primary data in S3   ──→ Volume Gateway (Cached)
          │   │
-         │   └── Migrar backups de cinta
+         │   └── Migrate tape backups
          │       └──→ Tape Gateway (Virtual Tape Library)
          │
-         └── ¿Migración masiva de datos?
+         └── Massive data migration?
              ├── < 10 TB ──→ Internet / DataSync / Direct Connect
              ├── 10 TB - 10 PB ──→ Snowball Edge
              └── > 10 PB ──→ Snowmobile
@@ -107,22 +107,22 @@
 
 ---
 
-## Tabla Resumen de Decisión
+## Decision Summary Table
 
-| Si necesitas... | Usa... | Porque... |
+| If you need... | Use... | Because... |
 |----------------|--------|-----------|
-| Almacenar archivos/objetos | S3 | Almacenamiento de objetos ilimitado, 11 nueves de durabilidad |
-| Disco de alto rendimiento | EBS gp3/io2 | Block storage adjunto a EC2, IOPS configurables |
-| Compartir archivos entre EC2 (Linux) | EFS | NFS gestionado, auto-scaling, multi-AZ |
-| Compartir archivos entre EC2 (Windows) | FSx for Windows | SMB nativo, Active Directory |
-| HPC / ML filesystem | FSx for Lustre | Rendimiento paralelo masivo, integración S3 |
-| Archival barato | Glacier Deep Archive | Menor costo por GB en AWS |
-| Conectar on-prem a S3 | S3 File Gateway | Interfaz familiar (NFS/SMB) con backend S3 |
-| Migrar datos masivamente | Snow Family | Transferencia física cuando internet es lento |
+| Store files/objects | S3 | Unlimited object storage, 11 nines of durability |
+| High-performance disk | EBS gp3/io2 | Block storage attached to EC2, configurable IOPS |
+| Share files between EC2 (Linux) | EFS | Managed NFS, auto-scaling, multi-AZ |
+| Share files between EC2 (Windows) | FSx for Windows | Native SMB, Active Directory |
+| HPC / ML filesystem | FSx for Lustre | Massive parallel performance, S3 integration |
+| Cheap archival | Glacier Deep Archive | Lowest cost per GB in AWS |
+| Connect on-prem to S3 | S3 File Gateway | Familiar interface (NFS/SMB) with S3 backend |
+| Migrate data massively | Snow Family | Physical transfer when internet is slow |
 
 ---
 
-## Keywords del Examen → Servicio
+## Exam Keywords → Service
 
 ```
 "Object storage"                     → S3

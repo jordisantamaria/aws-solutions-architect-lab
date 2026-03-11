@@ -1,182 +1,182 @@
-# Arbol de Decisión: Selección de Base de Datos
+# Decision Tree: Database Selection
 
-## Pregunta Principal: ¿Qué tipo de base de datos necesitas?
+## Main Question: What type of database do you need?
 
 ```
-¿Qué tipo de datos y consultas necesitas?
+What type of data and queries do you need?
 │
-├── RELACIONAL (SQL, joins, transacciones ACID, schema fijo)
+├── RELATIONAL (SQL, joins, ACID transactions, fixed schema)
 │   │
-│   ├── ¿Necesitas auto-scaling, alta disponibilidad superior y rendimiento?
+│   ├── Do you need auto-scaling, superior high availability and performance?
 │   │   │
-│   │   ├── SÍ ──→ Amazon Aurora
+│   │   ├── YES ──→ Amazon Aurora
 │   │   │   │
-│   │   │   ├── ¿MySQL compatible? ──→ Aurora MySQL
-│   │   │   ├── ¿PostgreSQL compatible? ──→ Aurora PostgreSQL
+│   │   │   ├── MySQL compatible? ──→ Aurora MySQL
+│   │   │   ├── PostgreSQL compatible? ──→ Aurora PostgreSQL
 │   │   │   │
-│   │   │   ├── ¿Carga variable/impredecible? ──→ Aurora Serverless v2
-│   │   │   ├── ¿Multi-region replication? ──→ Aurora Global Database
-│   │   │   └── ¿Múltiples escritores? ──→ Aurora Multi-Master
+│   │   │   ├── Variable/unpredictable workload? ──→ Aurora Serverless v2
+│   │   │   ├── Multi-region replication? ──→ Aurora Global Database
+│   │   │   └── Multiple writers? ──→ Aurora Multi-Master
 │   │   │
-│   │   └── NO (o necesito motor específico)
+│   │   └── NO (or I need a specific engine)
 │   │       │
 │   │       └──→ Amazon RDS
 │   │           │
-│   │           ├── ¿MySQL? ──→ RDS MySQL
-│   │           ├── ¿PostgreSQL? ──→ RDS PostgreSQL
-│   │           ├── ¿MariaDB? ──→ RDS MariaDB
-│   │           ├── ¿Oracle? ──→ RDS Oracle (BYOL o License Included)
-│   │           ├── ¿SQL Server? ──→ RDS SQL Server
-│   │           └── ¿Db2? ──→ RDS Db2
+│   │           ├── MySQL? ──→ RDS MySQL
+│   │           ├── PostgreSQL? ──→ RDS PostgreSQL
+│   │           ├── MariaDB? ──→ RDS MariaDB
+│   │           ├── Oracle? ──→ RDS Oracle (BYOL or License Included)
+│   │           ├── SQL Server? ──→ RDS SQL Server
+│   │           └── Db2? ──→ RDS Db2
 │   │
-│   └── ¿Necesitas más rendimiento de lectura?
-│       ├── Read Replicas (hasta 5 RDS / 15 Aurora)
-│       └── ElastiCache delante de la BD
+│   └── Do you need more read performance?
+│       ├── Read Replicas (up to 5 RDS / 15 Aurora)
+│       └── ElastiCache in front of the DB
 │
-├── KEY-VALUE / DOCUMENT (NoSQL, schema flexible, escala masiva)
+├── KEY-VALUE / DOCUMENT (NoSQL, flexible schema, massive scale)
 │   │
 │   └──→ Amazon DynamoDB
 │        │
-│        ├── ¿Carga predecible? ──→ Provisioned Capacity (más económico)
-│        ├── ¿Carga variable?   ──→ On-Demand Capacity
+│        ├── Predictable workload? ──→ Provisioned Capacity (more economical)
+│        ├── Variable workload?   ──→ On-Demand Capacity
 │        │
-│        ├── ¿Necesitas latencia de microsegundos? ──→ DynamoDB + DAX
-│        ├── ¿Multi-region activo-activo? ──→ DynamoDB Global Tables
-│        └── ¿Event-driven (reaccionar a cambios)? ──→ DynamoDB Streams + Lambda
+│        ├── Need microsecond latency? ──→ DynamoDB + DAX
+│        ├── Multi-region active-active? ──→ DynamoDB Global Tables
+│        └── Event-driven (react to changes)? ──→ DynamoDB Streams + Lambda
 │
-├── CACHE IN-MEMORY (microsegundos de latencia, datos temporales)
+├── IN-MEMORY CACHE (microsecond latency, temporary data)
 │   │
 │   └──→ Amazon ElastiCache
 │        │
-│        ├── ¿Necesitas persistencia, replicación, tipos de datos complejos?
+│        ├── Need persistence, replication, complex data types?
 │        │   └──→ Redis
-│        │       ├── Sesiones de usuario
+│        │       ├── User sessions
 │        │       ├── Leaderboards (sorted sets)
 │        │       ├── Rate limiting
-│        │       └── Pub/Sub en tiempo real
+│        │       └── Real-time Pub/Sub
 │        │
-│        └── ¿Solo cache simple, multi-threaded?
+│        └── Just simple cache, multi-threaded?
 │            └──→ Memcached
-│                └── Cache de objetos grandes, pool de threads
+│                └── Large object cache, thread pool
 │
-├── GRAFOS (relaciones complejas entre entidades)
+├── GRAPH (complex relationships between entities)
 │   │
 │   └──→ Amazon Neptune
-│        ├── Redes sociales (amigos de amigos)
-│        ├── Detección de fraude (patrones de transacciones)
+│        ├── Social networks (friends of friends)
+│        ├── Fraud detection (transaction patterns)
 │        ├── Knowledge graphs
-│        └── Motor de recomendaciones basado en relaciones
+│        └── Relationship-based recommendation engines
 │
-├── DOCUMENTOS (JSON, compatible MongoDB)
+├── DOCUMENT (JSON, MongoDB compatible)
 │   │
 │   └──→ Amazon DocumentDB
-│        ├── Compatible con API de MongoDB
-│        ├── Migración desde MongoDB on-prem
-│        └── Escalable y gestionado
+│        ├── Compatible with MongoDB API
+│        ├── Migration from on-prem MongoDB
+│        └── Scalable and managed
 │
-├── SERIES TEMPORALES (datos con timestamp, IoT, métricas)
+├── TIME SERIES (data with timestamps, IoT, metrics)
 │   │
 │   └──→ Amazon Timestream
-│        ├── Datos de sensores IoT
-│        ├── Métricas de aplicación
-│        ├── Logs con timestamp
-│        └── Retención automática por tiers (memory → magnetic)
+│        ├── IoT sensor data
+│        ├── Application metrics
+│        ├── Timestamped logs
+│        └── Automatic retention by tiers (memory → magnetic)
 │
-├── LEDGER / INMUTABLE (historial verificable, auditoría)
+├── LEDGER / IMMUTABLE (verifiable history, auditing)
 │   │
 │   └──→ Amazon QLDB (Quantum Ledger Database)
-│        ├── Historial de transacciones financieras
+│        ├── Financial transaction history
 │        ├── Supply chain tracking
-│        ├── Registro regulatorio inmutable
-│        └── Hash criptográfico verificable (journal)
+│        ├── Immutable regulatory records
+│        └── Verifiable cryptographic hash (journal)
 │
-├── WIDE-COLUMN (compatible Cassandra)
+├── WIDE-COLUMN (Cassandra compatible)
 │   │
 │   └──→ Amazon Keyspaces
-│        ├── Migración desde Apache Cassandra
-│        ├── Cargas de trabajo IoT a gran escala
-│        └── Time-series con modelo Cassandra
+│        ├── Migration from Apache Cassandra
+│        ├── Large-scale IoT workloads
+│        └── Time-series with Cassandra model
 │
-└── DATA WAREHOUSE / ANALYTICS (OLAP, queries analíticas masivas)
+└── DATA WAREHOUSE / ANALYTICS (OLAP, massive analytical queries)
     │
     └──→ Amazon Redshift
-         ├── Queries SQL sobre petabytes
+         ├── SQL queries over petabytes
          ├── BI dashboards (QuickSight, Tableau)
-         ├── ¿Datos en S3? ──→ Redshift Spectrum (query sin cargar datos)
-         ├── ¿Carga variable? ──→ Redshift Serverless
-         └── ¿Machine Learning? ──→ Redshift ML
+         ├── Data in S3? ──→ Redshift Spectrum (query without loading data)
+         ├── Variable workload? ──→ Redshift Serverless
+         └── Machine Learning? ──→ Redshift ML
 ```
 
 ---
 
-## Tabla de Decisión Rápida
+## Quick Decision Table
 
-| Requisito | Servicio | Razón principal |
-|-----------|----------|----------------|
-| SQL + máxima HA + auto-scaling | **Aurora** | 6 copias, 3 AZs, failover < 30s, storage auto-scaling |
-| SQL + Oracle o SQL Server | **RDS** | Único servicio gestionado para estos engines |
-| NoSQL key-value a cualquier escala | **DynamoDB** | Latencia ms, ilimitado, serverless disponible |
-| Cache para reducir latencia de BD | **ElastiCache Redis** | Microsegundos, persistencia, replicación |
-| Relaciones complejas (grafos) | **Neptune** | Optimizado para traversals de grafos |
-| Compatible MongoDB | **DocumentDB** | API MongoDB, gestionado por AWS |
-| Datos con timestamp / IoT | **Timestream** | Optimizado para ingest y query de series temporales |
-| Registro inmutable auditable | **QLDB** | Ledger con hash criptográfico, no modificable |
-| Analytics sobre petabytes | **Redshift** | Columnar, MPP, SQL estándar sobre datos masivos |
-| Compatible Cassandra | **Keyspaces** | Misma API, serverless, gestionado |
+| Requirement | Service | Main Reason |
+|-------------|---------|-------------|
+| SQL + maximum HA + auto-scaling | **Aurora** | 6 copies, 3 AZs, failover < 30s, storage auto-scaling |
+| SQL + Oracle or SQL Server | **RDS** | Only managed service for these engines |
+| NoSQL key-value at any scale | **DynamoDB** | ms latency, unlimited, serverless available |
+| Cache to reduce DB latency | **ElastiCache Redis** | Microseconds, persistence, replication |
+| Complex relationships (graphs) | **Neptune** | Optimized for graph traversals |
+| MongoDB compatible | **DocumentDB** | MongoDB API, managed by AWS |
+| Data with timestamps / IoT | **Timestream** | Optimized for time series ingest and query |
+| Immutable auditable record | **QLDB** | Ledger with cryptographic hash, non-modifiable |
+| Analytics over petabytes | **Redshift** | Columnar, MPP, standard SQL over massive data |
+| Cassandra compatible | **Keyspaces** | Same API, serverless, managed |
 
 ---
 
-## Patrones Comunes en el Examen
+## Common Exam Patterns
 
-### Patrón 1: Aplicación web con lectura intensiva
+### Pattern 1: Read-intensive web application
 ```
-Usuarios ──→ CloudFront ──→ ALB ──→ EC2/ECS ──→ ElastiCache (Redis)
-                                                      │ (cache miss)
-                                                      ▼
-                                                 Aurora (Read Replicas)
+Users ──→ CloudFront ──→ ALB ──→ EC2/ECS ──→ ElastiCache (Redis)
+                                                    │ (cache miss)
+                                                    ▼
+                                               Aurora (Read Replicas)
 ```
 
-### Patrón 2: Aplicación serverless con DynamoDB
+### Pattern 2: Serverless application with DynamoDB
 ```
 API Gateway ──→ Lambda ──→ DynamoDB
                               │
-                              ├── DAX (cache microsegundos)
-                              └── DynamoDB Streams ──→ Lambda (procesamiento)
+                              ├── DAX (microsecond cache)
+                              └── DynamoDB Streams ──→ Lambda (processing)
 ```
 
-### Patrón 3: Analytics y reporting
+### Pattern 3: Analytics and reporting
 ```
-Fuentes de datos ──→ S3 (data lake) ──→ Redshift (warehouse)
-                                              │
-                                              ├── Athena (queries ad-hoc sobre S3)
-                                              └── QuickSight (dashboards)
+Data sources ──→ S3 (data lake) ──→ Redshift (warehouse)
+                                          │
+                                          ├── Athena (ad-hoc queries on S3)
+                                          └── QuickSight (dashboards)
 ```
 
-### Patrón 4: Migración de base de datos
+### Pattern 4: Database migration
 ```
 On-prem DB ──→ DMS (Database Migration Service) ──→ RDS / Aurora / DynamoDB
                     │
-                    └── SCT (Schema Conversion Tool) si cambias de motor
+                    └── SCT (Schema Conversion Tool) if changing engines
 ```
 
 ---
 
-## Keywords del Examen → Servicio
+## Exam Keywords → Service
 
 ```
 "Relational + high availability"              → Aurora
 "Relational + Oracle/SQL Server"              → RDS
 "Key-value + millisecond latency"             → DynamoDB
 "Key-value + microsecond latency"             → DynamoDB + DAX
-"In-memory cache"                             → ElastiCache (casi siempre Redis)
-"Session store"                               → ElastiCache Redis o DynamoDB
+"In-memory cache"                             → ElastiCache (almost always Redis)
+"Session store"                               → ElastiCache Redis or DynamoDB
 "Social network / relationships"              → Neptune
 "Fraud detection / graph"                     → Neptune
 "MongoDB compatible"                          → DocumentDB
 "IoT sensor data / time series"               → Timestream
 "Immutable / ledger / auditable"              → QLDB
 "Data warehouse / OLAP / BI"                  → Redshift
-"Query S3 data with SQL"                      → Athena (serverless) o Redshift Spectrum
+"Query S3 data with SQL"                      → Athena (serverless) or Redshift Spectrum
 "Multi-region active-active NoSQL"            → DynamoDB Global Tables
 "Multi-region relational"                     → Aurora Global Database
 "Database migration"                          → DMS + SCT

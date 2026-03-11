@@ -1,173 +1,173 @@
-# Arbol de Decisión: Selección de Compute
+# Decision Tree: Compute Selection
 
-## Pregunta Principal: ¿Qué tipo de cómputo necesitas?
+## Main Question: What type of compute do you need?
 
 ```
-¿Qué necesitas ejecutar?
+What do you need to run?
 │
-├── CONTROL TOTAL del SO / AMI personalizada / GPU / Licencias especiales
+├── FULL OS CONTROL / Custom AMI / GPU / Special Licenses
 │   │
 │   └──→ Amazon EC2
 │        │
-│        ├── ¿Qué modelo de precio?
+│        ├── What pricing model?
 │        │   │
-│        │   ├── Carga impredecible / pruebas / corto plazo
+│        │   ├── Unpredictable workload / testing / short term
 │        │   │   └──→ On-Demand ($$$)
 │        │   │
-│        │   ├── Carga estable / producción / 1-3 años
-│        │   │   ├──→ Reserved Instances (hasta 72% descuento)
-│        │   │   └──→ Savings Plans (más flexibilidad entre familias)
+│        │   ├── Stable workload / production / 1-3 years
+│        │   │   ├──→ Reserved Instances (up to 72% discount)
+│        │   │   └──→ Savings Plans (more flexibility across families)
 │        │   │
-│        │   ├── Tolerante a interrupciones / batch / CI/CD
-│        │   │   └──→ Spot Instances (hasta 90% descuento)
-│        │   │       └── Combinar con On-Demand en ASG (mixed instances)
+│        │   ├── Tolerates interruptions / batch / CI/CD
+│        │   │   └──→ Spot Instances (up to 90% discount)
+│        │   │       └── Combine with On-Demand in ASG (mixed instances)
 │        │   │
-│        │   ├── Compliance / licencias por socket
+│        │   ├── Compliance / per-socket licensing
 │        │   │   └──→ Dedicated Hosts
 │        │   │
-│        │   └── Hardware dedicado sin gestionar host
+│        │   └── Dedicated hardware without managing host
 │        │       └──→ Dedicated Instances
 │        │
-│        ├── ¿Tipo de instancia?
+│        ├── Instance type?
 │        │   ├── General purpose ──→ t3/m5/m6i
-│        │   ├── CPU intensivo ──→ c5/c6i
-│        │   ├── Memoria intensivo ──→ r5/r6i/x1
+│        │   ├── CPU intensive ──→ c5/c6i
+│        │   ├── Memory intensive ──→ r5/r6i/x1
 │        │   ├── Storage I/O ──→ i3/d2
 │        │   └── GPU (ML/render) ──→ p4/g5/inf1
 │        │
-│        └── ¿Auto Scaling?
-│            ├── Target Tracking (lo más simple)
-│            ├── Step/Simple Scaling (acciones por alarma)
-│            ├── Scheduled Scaling (eventos conocidos)
-│            └── Predictive Scaling (patrones ML)
+│        └── Auto Scaling?
+│            ├── Target Tracking (simplest)
+│            ├── Step/Simple Scaling (alarm-based actions)
+│            ├── Scheduled Scaling (known events)
+│            └── Predictive Scaling (ML patterns)
 │
-├── CÓDIGO DE CORTA DURACIÓN (< 15 minutos, event-driven)
+├── SHORT-DURATION CODE (< 15 minutes, event-driven)
 │   │
 │   └──→ AWS Lambda
 │        │
 │        ├── Triggers:
 │        │   ├── API Gateway (HTTP requests)
 │        │   ├── S3 Events (object created/deleted)
-│        │   ├── DynamoDB Streams (cambios en tabla)
-│        │   ├── SQS (mensajes en cola)
-│        │   ├── SNS (notificaciones)
-│        │   ├── EventBridge (eventos programados/custom)
+│        │   ├── DynamoDB Streams (table changes)
+│        │   ├── SQS (queue messages)
+│        │   ├── SNS (notifications)
+│        │   ├── EventBridge (scheduled/custom events)
 │        │   ├── Kinesis (streaming data)
 │        │   └── CloudWatch Events/Alarms
 │        │
-│        ├── Precio: Por invocación + duración (ms) + memoria
-│        │   └── Gratis: 1M invocaciones + 400,000 GB-s/mes
+│        ├── Pricing: Per invocation + duration (ms) + memory
+│        │   └── Free: 1M invocations + 400,000 GB-s/month
 │        │
-│        └── Limitaciones:
-│            ├── Máximo 15 minutos por ejecución
-│            ├── Máximo 10 GB de memoria
-│            ├── 1,000 concurrencia por defecto
-│            └── Cold start (mitigar con Provisioned Concurrency)
+│        └── Limitations:
+│            ├── Maximum 15 minutes per execution
+│            ├── Maximum 10 GB of memory
+│            ├── 1,000 concurrency by default
+│            └── Cold start (mitigate with Provisioned Concurrency)
 │
-├── CONTENEDORES
+├── CONTAINERS
 │   │
-│   ├── ¿Necesitas Kubernetes específicamente?
+│   ├── Do you specifically need Kubernetes?
 │   │   │
-│   │   ├── SÍ ──→ Amazon EKS (Elastic Kubernetes Service)
-│   │   │   ├── Portabilidad multi-cloud
-│   │   │   ├── Ecosistema K8s existente
+│   │   ├── YES ──→ Amazon EKS (Elastic Kubernetes Service)
+│   │   │   ├── Multi-cloud portability
+│   │   │   ├── Existing K8s ecosystem
 │   │   │   ├── Helm charts, operators, etc.
-│   │   │   └── Precio: $0.10/hr por cluster + compute
+│   │   │   └── Price: $0.10/hr per cluster + compute
 │   │   │
-│   │   └── NO (quiero algo más simple)
+│   │   └── NO (I want something simpler)
 │   │       └──→ Amazon ECS (Elastic Container Service)
-│   │           ├── Integración nativa AWS más profunda
+│   │           ├── Deeper native AWS integration
 │   │           ├── Task definitions, services
-│   │           ├── Más simple que K8s
-│   │           └── Sin costo del control plane
+│   │           ├── Simpler than K8s
+│   │           └── No control plane cost
 │   │
-│   └── ¿Quieres gestionar la infraestructura EC2 subyacente?
+│   └── Do you want to manage the underlying EC2 infrastructure?
 │       │
-│       ├── SÍ ──→ EC2 Launch Type
-│       │   ├── Control total de instancias
-│       │   ├── Puedes usar Spot/Reserved
-│       │   └── Tú gestionas el capacity
+│       ├── YES ──→ EC2 Launch Type
+│       │   ├── Full control of instances
+│       │   ├── You can use Spot/Reserved
+│       │   └── You manage the capacity
 │       │
 │       └── NO (serverless) ──→ AWS Fargate
-│           ├── Sin gestión de servidores
-│           ├── Pago por vCPU + memoria usada
-│           ├── Funciona con ECS y EKS
-│           └── Más caro que EC2 Launch Type pero sin gestión
+│           ├── No server management
+│           ├── Pay per vCPU + memory used
+│           ├── Works with ECS and EKS
+│           └── More expensive than EC2 Launch Type but no management
 │
-├── BATCH PROCESSING (jobs en cola, procesamiento masivo)
+├── BATCH PROCESSING (queued jobs, massive processing)
 │   │
 │   └──→ AWS Batch
-│        ├── Planifica y ejecuta jobs en EC2 o Fargate
-│        ├── Gestión automática de cola y compute
-│        ├── Ideal con Spot Instances para ahorro
-│        ├── Procesamiento de imágenes, simulaciones, rendering
-│        └── Sin límite de tiempo (a diferencia de Lambda)
+│        ├── Schedules and runs jobs on EC2 or Fargate
+│        ├── Automatic queue and compute management
+│        ├── Ideal with Spot Instances for savings
+│        ├── Image processing, simulations, rendering
+│        └── No time limit (unlike Lambda)
 │
-├── PaaS (solo quiero desplegar mi código, sin gestionar infra)
+├── PaaS (I just want to deploy my code, without managing infra)
 │   │
 │   └──→ AWS Elastic Beanstalk
-│        ├── Soporta: Java, .NET, PHP, Node.js, Python, Ruby, Go, Docker
-│        ├── Gestiona automáticamente: EC2, ASG, ELB, RDS
-│        ├── Tú controlas los recursos subyacentes
-│        ├── Sin costo adicional (pagas por los recursos)
-│        └── Despliegues: All at once, Rolling, Immutable, Blue/Green
+│        ├── Supports: Java, .NET, PHP, Node.js, Python, Ruby, Go, Docker
+│        ├── Automatically manages: EC2, ASG, ELB, RDS
+│        ├── You control the underlying resources
+│        ├── No additional cost (you pay for the resources)
+│        └── Deployments: All at once, Rolling, Immutable, Blue/Green
 │
-├── EDGE COMPUTING (procesamiento cerca del usuario)
+├── EDGE COMPUTING (processing close to the user)
 │   │
-│   ├── Código ligero en CloudFront edge
+│   ├── Lightweight code at CloudFront edge
 │   │   ├── CloudFront Functions (< 1 ms, JS, header manipulation)
-│   │   └── Lambda@Edge (hasta 30s, más features, viewer/origin)
+│   │   └── Lambda@Edge (up to 30s, more features, viewer/origin)
 │   │
-│   ├── Outposts (AWS en tu datacenter)
-│   │   └── Latencia ultra-baja, residencia de datos
+│   ├── Outposts (AWS in your datacenter)
+│   │   └── Ultra-low latency, data residency
 │   │
-│   └── Wavelength (dentro de redes 5G)
-│       └── Aplicaciones móviles ultra-baja latencia
+│   └── Wavelength (within 5G networks)
+│       └── Ultra-low latency mobile applications
 │
-└── COMPUTACIÓN HÍBRIDA
+└── HYBRID COMPUTING
     │
-    ├── AWS en tu datacenter ──→ Outposts
-    ├── VMware en AWS ──→ VMware Cloud on AWS
-    └── Gestionar servers on-prem ──→ Systems Manager
+    ├── AWS in your datacenter ──→ Outposts
+    ├── VMware on AWS ──→ VMware Cloud on AWS
+    └── Manage on-prem servers ──→ Systems Manager
 ```
 
 ---
 
-## Tabla de Decisión Rápida con Precios
+## Quick Decision Table with Pricing
 
-| Servicio | Modelo de precio | Costo relativo | Cuándo usarlo |
-|----------|-----------------|---------------|---------------|
-| **EC2 On-Demand** | Por hora/segundo | $$$ | Desarrollo, pruebas, cargas impredecibles |
-| **EC2 Reserved** | 1-3 años compromiso | $ | Producción estable (hasta 72% descuento) |
-| **EC2 Spot** | Bid por capacidad sobrante | ¢ | Batch, CI/CD, tolerante a fallos (hasta 90% descuento) |
-| **Lambda** | Por invocación + duración | ¢-$$ | Event-driven, < 15 min, tráfico variable |
-| **Fargate** | Por vCPU + memoria por segundo | $$ | Contenedores sin gestión de servidores |
-| **ECS (EC2)** | Instancias EC2 subyacentes | $-$$ | Contenedores con control de infra |
-| **EKS** | $0.10/hr cluster + compute | $$-$$$ | Kubernetes, portabilidad, ecosistema K8s |
-| **Batch** | EC2/Fargate subyacente | $-$$ | Jobs en cola, procesamiento masivo |
-| **Beanstalk** | Recursos subyacentes | $-$$$ | PaaS rápido, sin overhead de operaciones |
-
----
-
-## Comparación: Lambda vs Fargate vs EC2
-
-| Criterio | Lambda | Fargate | EC2 |
-|----------|--------|---------|-----|
-| **Gestión de servidor** | Ninguna | Ninguna | Tú gestionas |
-| **Duración máxima** | 15 minutos | Ilimitado | Ilimitado |
-| **Escalado** | Automático (concurrencia) | Automático (tasks) | Auto Scaling Groups |
-| **Cold start** | Sí (mitigable) | Sí (~30s) | No (instancia running) |
-| **Pago** | Por ms de ejecución | Por segundo (vCPU+mem) | Por hora/segundo |
-| **Costo en reposo** | $0 | $0 (si 0 tasks) | Pagas la instancia |
-| **Container support** | Container images | Docker nativo | Docker en EC2 |
-| **Networking** | VPC opcional | VPC (ENI por task) | VPC completo |
-| **Ideal para** | Eventos, APIs, procesamiento corto | Microservicios, apps long-running sin gestión | Control total, GPU, compliance |
+| Service | Pricing Model | Relative Cost | When to Use |
+|---------|--------------|---------------|-------------|
+| **EC2 On-Demand** | Per hour/second | $$$ | Development, testing, unpredictable workloads |
+| **EC2 Reserved** | 1-3 year commitment | $ | Stable production (up to 72% discount) |
+| **EC2 Spot** | Bid for spare capacity | ¢ | Batch, CI/CD, fault-tolerant (up to 90% discount) |
+| **Lambda** | Per invocation + duration | ¢-$$ | Event-driven, < 15 min, variable traffic |
+| **Fargate** | Per vCPU + memory per second | $$ | Containers without server management |
+| **ECS (EC2)** | Underlying EC2 instances | $-$$ | Containers with infra control |
+| **EKS** | $0.10/hr cluster + compute | $$-$$$ | Kubernetes, portability, K8s ecosystem |
+| **Batch** | Underlying EC2/Fargate | $-$$ | Queued jobs, massive processing |
+| **Beanstalk** | Underlying resources | $-$$$ | Quick PaaS, no operations overhead |
 
 ---
 
-## Patrones Comunes en el Examen
+## Comparison: Lambda vs Fargate vs EC2
 
-### Patrón 1: Web Application escalable
+| Criterion | Lambda | Fargate | EC2 |
+|-----------|--------|---------|-----|
+| **Server management** | None | None | You manage |
+| **Maximum duration** | 15 minutes | Unlimited | Unlimited |
+| **Scaling** | Automatic (concurrency) | Automatic (tasks) | Auto Scaling Groups |
+| **Cold start** | Yes (mitigable) | Yes (~30s) | No (instance running) |
+| **Billing** | Per ms of execution | Per second (vCPU+mem) | Per hour/second |
+| **Idle cost** | $0 | $0 (if 0 tasks) | You pay for the instance |
+| **Container support** | Container images | Native Docker | Docker on EC2 |
+| **Networking** | VPC optional | VPC (ENI per task) | Full VPC |
+| **Ideal for** | Events, APIs, short processing | Microservices, long-running apps without management | Full control, GPU, compliance |
+
+---
+
+## Common Exam Patterns
+
+### Pattern 1: Scalable Web Application
 ```
 Route 53 ──→ CloudFront ──→ ALB ──→ EC2 Auto Scaling Group
                                          │
@@ -176,34 +176,34 @@ Route 53 ──→ CloudFront ──→ ALB ──→ EC2 Auto Scaling Group
                                     └─────────┘
 ```
 
-### Patrón 2: Microservicios serverless
+### Pattern 2: Serverless Microservices
 ```
 API Gateway ──→ Lambda ──→ DynamoDB
                   │
                   └──→ SQS ──→ Lambda (async processing)
 ```
 
-### Patrón 3: Contenedores con alta disponibilidad
+### Pattern 3: Containers with High Availability
 ```
 ALB ──→ ECS/EKS Fargate ──→ Aurora
              │
-        Auto Scaling (target tracking por CPU)
+        Auto Scaling (target tracking by CPU)
 ```
 
-### Patrón 4: Batch processing económico
+### Pattern 4: Cost-Effective Batch Processing
 ```
 S3 (input) ──→ EventBridge ──→ AWS Batch (Spot Instances) ──→ S3 (output)
 ```
 
 ---
 
-## Keywords del Examen → Servicio
+## Exam Keywords → Service
 
 ```
 "Full OS control / custom AMI"               → EC2
-"GPU / ML training"                           → EC2 (P/G instances) o SageMaker
+"GPU / ML training"                           → EC2 (P/G instances) or SageMaker
 "Event-driven, short duration"                → Lambda
-"Serverless containers"                       → Fargate (ECS o EKS)
+"Serverless containers"                       → Fargate (ECS or EKS)
 "Kubernetes"                                  → EKS
 "Simple container orchestration"              → ECS
 "Deploy code without managing infra"          → Elastic Beanstalk

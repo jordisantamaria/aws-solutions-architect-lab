@@ -1,216 +1,216 @@
-# Security - Cheat Sheet Rápido
+# Security - Quick Cheat Sheet
 
-## Lógica de Evaluación de Políticas IAM
+## IAM Policy Evaluation Logic
 
 ```
                          ┌───────────────────────┐
-                         │  ¿Hay un DENY         │
-                         │  explícito?            │
+                         │  Is there an explicit  │
+                         │  DENY?                 │
                          └───────┬───────────────┘
                                  │
                     ┌────────────┼────────────┐
-                    │ SÍ                      │ NO
+                    │ YES                     │ NO
                     ▼                         ▼
             ┌──────────────┐      ┌─────────────────────┐
-            │  DENEGADO    │      │ ¿Hay un ALLOW       │
-            │  (siempre)   │      │  explícito?          │
+            │  DENIED      │      │ Is there an explicit │
+            │  (always)    │      │  ALLOW?              │
             └──────────────┘      └───────┬─────────────┘
                                           │
                              ┌────────────┼────────────┐
-                             │ SÍ                      │ NO
+                             │ YES                     │ NO
                              ▼                         ▼
                      ┌──────────────┐         ┌──────────────┐
-                     │  PERMITIDO   │         │  DENEGADO    │
-                     │              │         │  (implícito) │
+                     │  ALLOWED     │         │  DENIED      │
+                     │              │         │  (implicit)  │
                      └──────────────┘         └──────────────┘
 ```
 
-### Orden de evaluación completo
+### Full Evaluation Order
 
 ```
-1. Deny explícito en cualquier política       → DENY (fin)
-2. SCP de Organizations (si aplica)           → Si no hay ALLOW → DENY
-3. Resource-based policy                      → ALLOW? (puede permitir cross-account)
+1. Explicit deny in any policy                → DENY (end)
+2. Organizations SCP (if applicable)          → If no ALLOW → DENY
+3. Resource-based policy                      → ALLOW? (can permit cross-account)
 4. Identity-based policy                      → ALLOW?
-5. Permissions boundary (si aplica)           → Limita el máximo
-6. Session policy (si aplica)                 → Limita la sesión
-7. Si nada permite explícitamente             → DENY implícito
+5. Permissions boundary (if applicable)       → Limits the maximum
+6. Session policy (if applicable)             → Limits the session
+7. If nothing explicitly allows               → Implicit DENY
 ```
 
-> **Reglas clave examen:**
-> - **Deny explícito SIEMPRE gana** sobre cualquier Allow.
-> - **Todo está denegado por defecto** (implicit deny) hasta que se permita explícitamente.
-> - **SCP** no otorga permisos, solo limita el máximo (guarda de seguridad).
-> - **Permissions Boundary** limita los permisos máximos que puede tener un usuario/rol.
-> - **Cross-account:** Necesita permiso en AMBOS lados (resource policy + identity policy).
+> **Exam key rules:**
+> - **Explicit Deny ALWAYS wins** over any Allow.
+> - **Everything is denied by default** (implicit deny) until explicitly allowed.
+> - **SCP** does not grant permissions, it only limits the maximum (security guardrail).
+> - **Permissions Boundary** limits the maximum permissions a user/role can have.
+> - **Cross-account:** Needs permission on BOTH sides (resource policy + identity policy).
 
 ---
 
-## Cifrado At Rest vs In Transit
+## Encryption At Rest vs In Transit
 
-### Cifrado en Reposo (At Rest)
+### Encryption at Rest
 
-| Servicio | Cifrado por defecto | Opciones |
-|----------|-------------------|----------|
-| **S3** | **Sí** (SSE-S3 desde 2023) | SSE-S3, SSE-KMS, SSE-C, Client-Side |
-| **EBS** | Opcional (se puede forzar por cuenta) | AES-256 con KMS (aws/ebs o CMK) |
-| **RDS** | Opcional (al crear) | KMS. **No se puede activar después de crear** — crear snapshot, copiar cifrada, restaurar |
-| **Aurora** | Opcional (al crear) | KMS. Misma restricción que RDS |
-| **DynamoDB** | **Sí** (siempre cifrado) | AWS owned key, AWS managed key (aws/dynamodb), o CMK |
-| **EFS** | Opcional (al crear) | KMS |
-| **Redshift** | Opcional | KMS o CloudHSM |
-| **ElastiCache** | Opcional | At-rest encryption con KMS |
-| **Lambda** | **Sí** (variables de entorno) | KMS para variables de entorno |
-| **SQS** | Opcional | SSE con KMS |
-| **Kinesis** | Opcional | KMS server-side encryption |
+| Service | Encrypted by Default | Options |
+|---------|---------------------|---------|
+| **S3** | **Yes** (SSE-S3 since 2023) | SSE-S3, SSE-KMS, SSE-C, Client-Side |
+| **EBS** | Optional (can be enforced per account) | AES-256 with KMS (aws/ebs or CMK) |
+| **RDS** | Optional (at creation) | KMS. **Cannot be enabled after creation** — create snapshot, copy encrypted, restore |
+| **Aurora** | Optional (at creation) | KMS. Same restriction as RDS |
+| **DynamoDB** | **Yes** (always encrypted) | AWS owned key, AWS managed key (aws/dynamodb), or CMK |
+| **EFS** | Optional (at creation) | KMS |
+| **Redshift** | Optional | KMS or CloudHSM |
+| **ElastiCache** | Optional | At-rest encryption with KMS |
+| **Lambda** | **Yes** (environment variables) | KMS for environment variables |
+| **SQS** | Optional | SSE with KMS |
+| **Kinesis** | Optional | KMS server-side encryption |
 
-### Cifrado en Tránsito (In Transit)
+### Encryption in Transit
 
-| Método | Servicio/Uso |
+| Method | Service/Use |
 |--------|-------------|
-| **TLS/SSL (HTTPS)** | Todos los endpoints de API de AWS. ALB/NLB terminan SSL. ACM para certificados |
-| **VPN IPSec** | Site-to-Site VPN — cifrado automático en los túneles |
-| **VPN sobre Direct Connect** | DX no cifra por defecto; añadir VPN IPSec encima para cifrado |
-| **SSL en base de datos** | Forzar SSL en RDS con `rds.force_ssl = 1` (PostgreSQL) o parámetros similares |
+| **TLS/SSL (HTTPS)** | All AWS API endpoints. ALB/NLB terminate SSL. ACM for certificates |
+| **VPN IPSec** | Site-to-Site VPN — automatic encryption in tunnels |
+| **VPN over Direct Connect** | DX does not encrypt by default; add IPSec VPN on top for encryption |
+| **SSL on database** | Force SSL on RDS with `rds.force_ssl = 1` (PostgreSQL) or similar parameters |
 | **Redis AUTH + TLS** | ElastiCache in-transit encryption |
 
-> **Clave examen:** "Cifrar datos en tránsito sobre Direct Connect" → **VPN sobre DX** (DX por sí solo NO cifra).
+> **Exam key:** "Encrypt data in transit over Direct Connect" → **VPN over DX** (DX alone does NOT encrypt).
 
 ---
 
 ## KMS vs CloudHSM vs Secrets Manager vs Parameter Store
 
-| Característica | KMS | CloudHSM | Secrets Manager | Parameter Store |
-|---------------|-----|----------|-----------------|----------------|
-| **Tipo** | Gestión de claves | Hardware Security Module | Gestión de secretos | Almacén de configuración |
-| **Gestión** | AWS gestiona hardware | **Tú gestionas** el HSM | AWS gestionado | AWS gestionado |
-| **Modelo** | Shared tenancy | **Single-tenant** dedicado | N/A | N/A |
-| **Claves** | Simétricas y asimétricas | Simétricas y asimétricas | N/A | N/A |
-| **FIPS 140-2** | Level 2 | **Level 3** | Usa KMS internamente | Usa KMS internamente |
-| **Integración AWS** | Nativa (S3, EBS, RDS, etc.) | Vía KMS custom key store | Rotación automática nativa | Manual / Lambda para rotación |
-| **Rotación** | Automática (anual) para CMKs | Manual | **Automática** (configurable: días) | Lambda custom (no nativo) |
-| **Costo** | $1/clave/mes + API calls | ~$1.50/hora/HSM | $0.40/secreto/mes + API | Gratis (standard) / $0.05 avanzado |
-| **Caso de uso** | Cifrado general de servicios AWS | Compliance estricto, control total del HSM | Credenciales BD, API keys con rotación | Config de apps, parámetros, valores simples |
+| Feature | KMS | CloudHSM | Secrets Manager | Parameter Store |
+|---------|-----|----------|-----------------|----------------|
+| **Type** | Key management | Hardware Security Module | Secret management | Configuration store |
+| **Management** | AWS manages hardware | **You manage** the HSM | AWS managed | AWS managed |
+| **Model** | Shared tenancy | **Single-tenant** dedicated | N/A | N/A |
+| **Keys** | Symmetric and asymmetric | Symmetric and asymmetric | N/A | N/A |
+| **FIPS 140-2** | Level 2 | **Level 3** | Uses KMS internally | Uses KMS internally |
+| **AWS Integration** | Native (S3, EBS, RDS, etc.) | Via KMS custom key store | Native automatic rotation | Manual / Lambda for rotation |
+| **Rotation** | Automatic (annual) for CMKs | Manual | **Automatic** (configurable: days) | Lambda custom (not native) |
+| **Cost** | $1/key/month + API calls | ~$1.50/hour/HSM | $0.40/secret/month + API | Free (standard) / $0.05 advanced |
+| **Use case** | General encryption for AWS services | Strict compliance, full HSM control | DB credentials, API keys with rotation | App config, parameters, simple values |
 
-> **Reglas examen:**
-> - "Cifrado de servicios AWS" → **KMS**
-> - "Compliance FIPS 140-2 **Level 3**" o "HSM dedicado" → **CloudHSM**
-> - "Rotar credenciales de base de datos automáticamente" → **Secrets Manager**
-> - "Almacenar configuración de la aplicación" → **Parameter Store** (más económico)
-> - "Secreto + rotación automática" → **Secrets Manager** (no Parameter Store)
+> **Exam rules:**
+> - "Encryption for AWS services" → **KMS**
+> - "FIPS 140-2 **Level 3** compliance" or "dedicated HSM" → **CloudHSM**
+> - "Automatically rotate database credentials" → **Secrets Manager**
+> - "Store application configuration" → **Parameter Store** (more economical)
+> - "Secret + automatic rotation" → **Secrets Manager** (not Parameter Store)
 
 ---
 
 ## WAF vs Shield vs Shield Advanced
 
-| Característica | WAF | Shield Standard | Shield Advanced |
-|---------------|-----|----------------|-----------------|
-| **Tipo** | Web Application Firewall | Protección DDoS básica | Protección DDoS avanzada |
-| **Capa** | Layer 7 (HTTP/HTTPS) | Layer 3/4 | Layer 3/4 **y** Layer 7 |
-| **Costo** | Por reglas y requests | **Gratis** (incluido) | $3,000/mes + datos |
-| **Protección** | SQL injection, XSS, geo-blocking, rate limiting, IP block | SYN flood, UDP reflection, DNS amplification | Todo de Standard + ataques sofisticados DDoS |
-| **Recursos protegidos** | ALB, API Gateway, CloudFront, AppSync, Cognito | Todos los recursos AWS | CloudFront, ALB, NLB, Elastic IP, Global Accelerator |
-| **Response Team** | No | No | **Sí** — AWS DDoS Response Team (DRT) 24/7 |
-| **Protección de costos** | No | No | **Sí** — crédito por scaling causado por DDoS |
-| **Visibilidad** | Logs, métricas | Métricas básicas | Métricas avanzadas, dashboards en tiempo real |
+| Feature | WAF | Shield Standard | Shield Advanced |
+|---------|-----|----------------|-----------------|
+| **Type** | Web Application Firewall | Basic DDoS protection | Advanced DDoS protection |
+| **Layer** | Layer 7 (HTTP/HTTPS) | Layer 3/4 | Layer 3/4 **and** Layer 7 |
+| **Cost** | Per rules and requests | **Free** (included) | $3,000/month + data |
+| **Protection** | SQL injection, XSS, geo-blocking, rate limiting, IP block | SYN flood, UDP reflection, DNS amplification | Everything from Standard + sophisticated DDoS attacks |
+| **Protected resources** | ALB, API Gateway, CloudFront, AppSync, Cognito | All AWS resources | CloudFront, ALB, NLB, Elastic IP, Global Accelerator |
+| **Response Team** | No | No | **Yes** — AWS DDoS Response Team (DRT) 24/7 |
+| **Cost protection** | No | No | **Yes** — credit for scaling caused by DDoS |
+| **Visibility** | Logs, metrics | Basic metrics | Advanced metrics, real-time dashboards |
 
-> **Reglas examen:**
-> - "Bloquear SQL injection o XSS" → **WAF**
-> - "Protección DDoS Layer 3/4 básica" → **Shield Standard** (gratis, siempre activo)
-> - "Protección DDoS avanzada con equipo de respuesta" → **Shield Advanced**
-> - "Rate limiting de IPs" → **WAF** (rate-based rules)
-> - "Geo-blocking (bloquear países)" → **WAF** o **CloudFront geo restriction**
+> **Exam rules:**
+> - "Block SQL injection or XSS" → **WAF**
+> - "Basic Layer 3/4 DDoS protection" → **Shield Standard** (free, always active)
+> - "Advanced DDoS protection with response team" → **Shield Advanced**
+> - "IP rate limiting" → **WAF** (rate-based rules)
+> - "Geo-blocking (block countries)" → **WAF** or **CloudFront geo restriction**
 
 ---
 
 ## Cognito: User Pools vs Identity Pools
 
-| Característica | Cognito User Pools | Cognito Identity Pools |
-|---------------|-------------------|----------------------|
-| **Función** | **Autenticación** (quién eres) | **Autorización** (qué puedes hacer en AWS) |
-| **Resultado** | Token JWT (ID token, Access token) | **Credenciales AWS temporales** (STS) |
-| **Flujo** | Sign-up, sign-in, MFA, password recovery | Federar identidad → obtener IAM role temporal |
-| **Proveedores** | Username/password, SAML, OIDC, social (Google, Facebook, Apple) | User Pools, SAML, OIDC, social, **identidades no autenticadas** |
-| **Caso de uso** | Login de aplicación web/mobile, gestión de usuarios | Acceso directo a servicios AWS (S3, DynamoDB) desde app |
-| **Integración** | ALB, API Gateway, Lambda | IAM roles, S3, DynamoDB, cualquier servicio AWS |
+| Feature | Cognito User Pools | Cognito Identity Pools |
+|---------|-------------------|----------------------|
+| **Function** | **Authentication** (who you are) | **Authorization** (what you can do on AWS) |
+| **Result** | JWT token (ID token, Access token) | **Temporary AWS credentials** (STS) |
+| **Flow** | Sign-up, sign-in, MFA, password recovery | Federate identity → obtain temporary IAM role |
+| **Providers** | Username/password, SAML, OIDC, social (Google, Facebook, Apple) | User Pools, SAML, OIDC, social, **unauthenticated identities** |
+| **Use case** | Web/mobile app login, user management | Direct access to AWS services (S3, DynamoDB) from app |
+| **Integration** | ALB, API Gateway, Lambda | IAM roles, S3, DynamoDB, any AWS service |
 
 ```
-Flujo típico combinado:
+Typical combined flow:
 
-  Usuario ──→ Cognito User Pool ──→ JWT Token
+  User ──→ Cognito User Pool ──→ JWT Token
                                         │
                                         ▼
-                              Cognito Identity Pool ──→ Credenciales AWS (IAM Role)
+                              Cognito Identity Pool ──→ AWS Credentials (IAM Role)
                                                               │
                                                               ▼
                                                     S3, DynamoDB, etc.
 ```
 
-> **Clave examen:**
-> - "Autenticación de usuarios en la app" → **User Pool**
-> - "Dar acceso temporal a servicios AWS a usuarios" → **Identity Pool**
-> - "Login con Google/Facebook en tu app" → **User Pool** (como proveedor social)
-> - "Acceso a S3 desde mobile app" → **Identity Pool** (credenciales temporales)
-> - ALB puede integrar **User Pool** directamente para autenticación.
+> **Exam key:**
+> - "User authentication in the app" → **User Pool**
+> - "Give temporary AWS service access to users" → **Identity Pool**
+> - "Login with Google/Facebook in your app" → **User Pool** (as social provider)
+> - "Access S3 from mobile app" → **Identity Pool** (temporary credentials)
+> - ALB can integrate **User Pool** directly for authentication.
 
 ---
 
-## Servicios de Seguridad AWS
+## AWS Security Services
 
-| Servicio | Descripción (1 línea) |
-|----------|----------------------|
-| **GuardDuty** | Detección inteligente de amenazas analizando CloudTrail, VPC Flow Logs, DNS logs y S3 data events con ML |
-| **Inspector** | Evaluación automatizada de vulnerabilidades en **EC2, ECR images y Lambda** — escaneo continuo de CVEs |
-| **Macie** | Descubrimiento y protección de **datos sensibles (PII)** en S3 usando ML — detecta datos expuestos |
-| **Detective** | Investigación y análisis de la **causa raíz** de hallazgos de seguridad — correlaciona datos de GuardDuty, CloudTrail, VPC Flow Logs |
-| **Security Hub** | Panel centralizado de seguridad — agrega hallazgos de GuardDuty, Inspector, Macie, Firewall Manager, etc. |
-| **CloudTrail** | Registra **todas las llamadas API** en tu cuenta AWS — auditoría, compliance, investigación forense |
-| **Config** | Evalúa la **configuración** de recursos AWS contra reglas — detecta desviaciones de compliance |
-| **Firewall Manager** | Gestión centralizada de WAF, Shield Advanced, Security Groups, NACLs a nivel de **AWS Organizations** |
-| **IAM Access Analyzer** | Identifica recursos compartidos externamente y valida políticas IAM — detecta acceso público no intencionado |
-| **Audit Manager** | Automatiza recopilación de evidencia para auditorías de compliance (SOC2, PCI-DSS, HIPAA, etc.) |
+| Service | Description (1 line) |
+|---------|---------------------|
+| **GuardDuty** | Intelligent threat detection analyzing CloudTrail, VPC Flow Logs, DNS logs, and S3 data events with ML |
+| **Inspector** | Automated vulnerability assessment on **EC2, ECR images, and Lambda** — continuous CVE scanning |
+| **Macie** | Discovery and protection of **sensitive data (PII)** in S3 using ML — detects exposed data |
+| **Detective** | Investigation and analysis of the **root cause** of security findings — correlates data from GuardDuty, CloudTrail, VPC Flow Logs |
+| **Security Hub** | Centralized security dashboard — aggregates findings from GuardDuty, Inspector, Macie, Firewall Manager, etc. |
+| **CloudTrail** | Records **all API calls** in your AWS account — auditing, compliance, forensic investigation |
+| **Config** | Evaluates the **configuration** of AWS resources against rules — detects compliance deviations |
+| **Firewall Manager** | Centralized management of WAF, Shield Advanced, Security Groups, NACLs at the **AWS Organizations** level |
+| **IAM Access Analyzer** | Identifies externally shared resources and validates IAM policies — detects unintended public access |
+| **Audit Manager** | Automates evidence collection for compliance audits (SOC2, PCI-DSS, HIPAA, etc.) |
 
 ```
-Flujo típico de seguridad:
+Typical security flow:
 
-  CloudTrail (registra APIs) ──→ GuardDuty (detecta amenazas) ──→ Security Hub (centraliza)
+  CloudTrail (records APIs) ──→ GuardDuty (detects threats) ──→ Security Hub (centralizes)
                                                                         │
-  Inspector (vulnerabilidades)  ──→ Security Hub ◄────── Macie (datos sensibles en S3)
+  Inspector (vulnerabilities)  ──→ Security Hub ◄────── Macie (sensitive data in S3)
                                          │
                                          ▼
-                                 EventBridge ──→ SNS / Lambda (remediación automática)
+                                 EventBridge ──→ SNS / Lambda (automatic remediation)
 ```
 
-> **Reglas examen:**
-> - "Detectar amenazas en la cuenta" → **GuardDuty**
-> - "Escanear vulnerabilidades en EC2/Lambda" → **Inspector**
-> - "Encontrar PII en S3" → **Macie**
-> - "Investigar causa raíz de un incidente" → **Detective**
-> - "Centralizar hallazgos de seguridad" → **Security Hub**
-> - "Auditar llamadas API" → **CloudTrail**
-> - "Evaluar compliance de configuración" → **Config**
+> **Exam rules:**
+> - "Detect threats in the account" → **GuardDuty**
+> - "Scan vulnerabilities in EC2/Lambda" → **Inspector**
+> - "Find PII in S3" → **Macie**
+> - "Investigate root cause of an incident" → **Detective**
+> - "Centralize security findings" → **Security Hub**
+> - "Audit API calls" → **CloudTrail**
+> - "Evaluate configuration compliance" → **Config**
 
 ---
 
-## Resumen de Decisiones Rápidas - Security
+## Quick Decision Summary - Security
 
 ```
-PREGUNTA DEL EXAMEN                                    → RESPUESTA
+EXAM QUESTION                                        → ANSWER
 ────────────────────────────────────────────────────────────────────
-"Cifrado de servicios AWS general"                      → KMS
-"HSM dedicado / FIPS 140-2 Level 3"                     → CloudHSM
-"Rotar credenciales de BD automáticamente"              → Secrets Manager
-"Almacenar config/parámetros de la app"                 → Parameter Store
-"Bloquear SQL injection / XSS"                          → WAF
-"Protección DDoS con equipo de respuesta"               → Shield Advanced
-"Login de usuarios en app web/mobile"                   → Cognito User Pools
-"Acceso temporal a S3 desde app mobile"                 → Cognito Identity Pools
-"Detectar amenazas con ML"                              → GuardDuty
-"Encontrar datos sensibles en S3"                       → Macie
-"Escanear vulnerabilidades en EC2"                      → Inspector
-"Centralizar hallazgos de seguridad"                    → Security Hub
-"Auditar todas las llamadas API"                        → CloudTrail
-"Cross-account access"                                  → IAM Role + Resource Policy
-"Limitar permisos máximos de un usuario"                → Permissions Boundary
-"Limitar permisos de toda una cuenta/OU"                → SCP (Organizations)
+"General AWS service encryption"                      → KMS
+"Dedicated HSM / FIPS 140-2 Level 3"                  → CloudHSM
+"Automatically rotate DB credentials"                 → Secrets Manager
+"Store app config/parameters"                         → Parameter Store
+"Block SQL injection / XSS"                           → WAF
+"DDoS protection with response team"                  → Shield Advanced
+"User login for web/mobile app"                       → Cognito User Pools
+"Temporary S3 access from mobile app"                 → Cognito Identity Pools
+"Detect threats with ML"                              → GuardDuty
+"Find sensitive data in S3"                           → Macie
+"Scan vulnerabilities in EC2"                         → Inspector
+"Centralize security findings"                        → Security Hub
+"Audit all API calls"                                 → CloudTrail
+"Cross-account access"                                → IAM Role + Resource Policy
+"Limit maximum permissions of a user"                 → Permissions Boundary
+"Limit permissions of an entire account/OU"           → SCP (Organizations)
 ```

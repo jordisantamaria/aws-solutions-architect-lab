@@ -1,166 +1,166 @@
-# Preguntas de Práctica - AWS Solutions Architect Associate (SAA-C03)
+# Practice Questions - AWS Solutions Architect Associate (SAA-C03)
 
-## Información del Examen
+## Exam Information
 
-| Dato | Detalle |
-|------|---------|
-| **Código del examen** | SAA-C03 |
-| **Número de preguntas** | 65 preguntas (50 puntuadas + 15 no puntuadas) |
-| **Duración** | 130 minutos |
-| **Puntuación** | 100 - 1,000 puntos |
-| **Puntuación para aprobar** | **720 puntos** |
-| **Formato** | Multiple choice (1 respuesta) y multiple response (2+ respuestas) |
-| **Idiomas** | Inglés, japonés, coreano, chino simplificado, y más |
-| **Costo** | $150 USD |
-| **Validez** | 3 años |
+| Detail | Description |
+|--------|-------------|
+| **Exam code** | SAA-C03 |
+| **Number of questions** | 65 questions (50 scored + 15 unscored) |
+| **Duration** | 130 minutes |
+| **Scoring** | 100 - 1,000 points |
+| **Passing score** | **720 points** |
+| **Format** | Multiple choice (1 answer) and multiple response (2+ answers) |
+| **Languages** | English, Japanese, Korean, Simplified Chinese, and more |
+| **Cost** | $150 USD |
+| **Validity** | 3 years |
 
-> **Nota:** Las 15 preguntas no puntuadas se usan para evaluar nuevas preguntas para futuros exámenes. No puedes saber cuáles son, así que responde todas con el mismo esfuerzo.
-
----
-
-## Dominios del Examen y Pesos
-
-| Dominio | Peso | Preguntas aprox. |
-|---------|------|-----------------|
-| **Dominio 1:** Diseñar arquitecturas seguras | **30%** | ~20 preguntas |
-| **Dominio 2:** Diseñar arquitecturas resilientes | **26%** | ~17 preguntas |
-| **Dominio 3:** Diseñar arquitecturas de alto rendimiento | **24%** | ~16 preguntas |
-| **Dominio 4:** Diseñar arquitecturas optimizadas en costo | **20%** | ~13 preguntas |
+> **Note:** The 15 unscored questions are used to evaluate new questions for future exams. You cannot tell which ones they are, so answer all with the same effort.
 
 ---
 
-## Tipos de Preguntas
+## Exam Domains and Weights
 
-### 1. Single Answer (Respuesta única)
-- Se presenta un escenario y **4 opciones** (A, B, C, D)
-- Solo **1 respuesta** es correcta
-- La mayoría de preguntas son de este tipo
-
-### 2. Multiple Answer (Respuesta múltiple)
-- Se presenta un escenario y **5-6 opciones**
-- Debes seleccionar **2 o 3 respuestas** correctas (se indica en el enunciado)
-- Ejemplo: "Selecciona DOS respuestas que cumplan el requisito"
-- Debes acertar TODAS las opciones correctas para obtener el punto
+| Domain | Weight | Approx. Questions |
+|--------|--------|-------------------|
+| **Domain 1:** Design Secure Architectures | **30%** | ~20 questions |
+| **Domain 2:** Design Resilient Architectures | **26%** | ~17 questions |
+| **Domain 3:** Design High-Performing Architectures | **24%** | ~16 questions |
+| **Domain 4:** Design Cost-Optimized Architectures | **20%** | ~13 questions |
 
 ---
 
-## Estrategia para Responder
+## Question Types
 
-### Antes del examen
-1. **Lee la guía oficial** del examen (Exam Guide) de AWS
-2. **Practica con exámenes simulados** de fuentes confiables
-3. **Repasa los cheat sheets** de esta carpeta la noche anterior
-4. Duerme bien la noche anterior
+### 1. Single Answer
+- A scenario is presented with **4 options** (A, B, C, D)
+- Only **1 answer** is correct
+- Most questions are of this type
 
-### Durante el examen
+### 2. Multiple Answer
+- A scenario is presented with **5-6 options**
+- You must select **2 or 3 correct answers** (indicated in the prompt)
+- Example: "Select TWO answers that meet the requirement"
+- You must get ALL correct options to earn the point
 
-#### Paso 1: Lee la pregunta completa
-- Lee **primero la última línea** de la pregunta (lo que realmente piden)
-- Luego lee el escenario completo
-- Identifica las **keywords clave** que limitan las opciones
+---
 
-#### Paso 2: Busca keywords restrictivas
-Las keywords más comunes y lo que implican:
+## Answering Strategy
 
-| Keyword | Significado |
-|---------|------------|
-| **"Most cost-effective"** | La opción más barata que cumpla requisitos |
-| **"Least operational overhead"** | Servicios gestionados/serverless |
-| **"Highest availability"** | Multi-AZ, multi-region, redundancia |
-| **"Minimum downtime"** | Blue/green, rolling, failover automático |
-| **"Most secure"** | Principio de mínimo privilegio, cifrado, VPC privada |
-| **"Fastest"** | Caching, CDN, read replicas, mayor instancia |
-| **"Simplest / easiest"** | Menor complejidad, servicios gestionados |
-| **"Durable"** | S3 (11 nueves), Multi-AZ, backups |
+### Before the Exam
+1. **Read the official exam guide** (Exam Guide) from AWS
+2. **Practice with mock exams** from reliable sources
+3. **Review the cheat sheets** in this folder the night before
+4. Get a good night's sleep
+
+### During the Exam
+
+#### Step 1: Read the Full Question
+- Read **the last line first** (what they are actually asking for)
+- Then read the full scenario
+- Identify the **key keywords** that narrow down the options
+
+#### Step 2: Look for Restrictive Keywords
+The most common keywords and what they imply:
+
+| Keyword | Meaning |
+|---------|---------|
+| **"Most cost-effective"** | The cheapest option that meets requirements |
+| **"Least operational overhead"** | Managed/serverless services |
+| **"Highest availability"** | Multi-AZ, multi-region, redundancy |
+| **"Minimum downtime"** | Blue/green, rolling, automatic failover |
+| **"Most secure"** | Principle of least privilege, encryption, private VPC |
+| **"Fastest"** | Caching, CDN, read replicas, larger instance |
+| **"Simplest / easiest"** | Least complexity, managed services |
+| **"Durable"** | S3 (11 nines), Multi-AZ, backups |
 | **"Decouple"** | SQS, SNS, EventBridge |
 | **"Serverless"** | Lambda, Fargate, DynamoDB, S3, API Gateway |
 | **"Real-time"** | Kinesis, WebSocket, ElastiCache |
 
-#### Paso 3: Elimina las opciones incorrectas
-- Elimina opciones que **no existen** en AWS o usan servicios mal
-- Elimina opciones que **cumplen pero son innecesariamente complejas**
-- Elimina opciones que **no satisfacen un requisito clave** del escenario
+#### Step 3: Eliminate Incorrect Options
+- Eliminate options that **do not exist** in AWS or misuse services
+- Eliminate options that **work but are unnecessarily complex**
+- Eliminate options that **do not satisfy a key requirement** of the scenario
 
-#### Paso 4: Entre las opciones restantes
-- Si dos opciones parecen correctas, la que tiene **menos pasos** suele ser la respuesta
-- AWS prefiere **servicios gestionados** sobre soluciones custom
-- AWS prefiere **serverless** cuando es posible
-- Si piden "cost-effective", el servicio más simple suele ganar
+#### Step 4: Between Remaining Options
+- If two options seem correct, the one with **fewer steps** is usually the answer
+- AWS prefers **managed services** over custom solutions
+- AWS prefers **serverless** when possible
+- If they ask for "cost-effective", the simplest service usually wins
 
-#### Paso 5: Marca y avanza
-- Si no estás seguro, marca la pregunta y sigue adelante
-- Vuelve a las preguntas marcadas al final
-- **No dejes preguntas sin responder** (no hay penalización)
-
----
-
-## Errores Comunes a Evitar
-
-1. **No leer todas las opciones** — A veces la opción D es mejor que la B
-2. **Elegir la opción "más completa"** — A veces menos es más
-3. **Ignorar las restricciones del escenario** — "On-prem" o "existing Oracle DB" cambia todo
-4. **Confundir HA con DR** — Multi-AZ es HA, cross-region es DR
-5. **Olvidar costos de transferencia de datos** — Cross-region y salida a internet cuestan dinero
-6. **Asumir que todo es serverless** — A veces la pregunta requiere EC2 explícitamente
-7. **No considerar los límites** — Lambda tiene límite de 15 min, SQS FIFO tiene límite de 3,000 msg/s
+#### Step 5: Flag and Move On
+- If you are unsure, flag the question and move on
+- Return to flagged questions at the end
+- **Do not leave questions unanswered** (there is no penalty)
 
 ---
 
-## Recursos para Práctica
+## Common Mistakes to Avoid
 
-### Exámenes de práctica oficiales de AWS
-- **AWS Skill Builder** — Exámenes de práctica oficiales (gratuitos y de pago)
+1. **Not reading all options** — Sometimes option D is better than B
+2. **Choosing the "most complete" option** — Sometimes less is more
+3. **Ignoring scenario constraints** — "On-prem" or "existing Oracle DB" changes everything
+4. **Confusing HA with DR** — Multi-AZ is HA, cross-region is DR
+5. **Forgetting data transfer costs** — Cross-region and internet egress cost money
+6. **Assuming everything is serverless** — Sometimes the question explicitly requires EC2
+7. **Not considering limits** — Lambda has a 15 min limit, SQS FIFO has a 3,000 msg/s limit
+
+---
+
+## Practice Resources
+
+### Official AWS Practice Exams
+- **AWS Skill Builder** — Official practice exams (free and paid)
   - URL: [https://explore.skillbuilder.aws/learn/signin](https://explore.skillbuilder.aws/learn/signin)
-  - Incluye un examen de práctica gratuito de 20 preguntas
-  - Examen completo oficial: $20 USD
+  - Includes a free 20-question practice exam
+  - Full official exam: $20 USD
 
-### Otros recursos recomendados
-- **AWS Whitepapers** relevantes:
+### Other Recommended Resources
+- **AWS Whitepapers** relevant to the exam:
   - Well-Architected Framework
   - Architecting for the Cloud: Best Practices
   - Disaster Recovery
   - Security Best Practices
-- **AWS FAQs** de los servicios principales (S3, EC2, RDS, Lambda, VPC)
-- **AWS re:Invent videos** sobre arquitectura
+- **AWS FAQs** for key services (S3, EC2, RDS, Lambda, VPC)
+- **AWS re:Invent videos** on architecture
 
 ---
 
-## Estructura de las Preguntas de Práctica
+## Practice Question Structure
 
-Cada pregunta en esta carpeta sigue el formato:
+Each question in this folder follows the format:
 
 ```
-## Pregunta X
+## Question X
 
-[Escenario basado en un caso real]
+[Scenario based on a real-world case]
 
-A) Opción A
-B) Opción B
-C) Opción C
-D) Opción D
+A) Option A
+B) Option B
+C) Option C
+D) Option D
 
 <details>
-<summary>Ver respuesta</summary>
+<summary>Show answer</summary>
 
-**Respuesta: X**
+**Answer: X**
 
-[Explicación detallada de por qué es correcta y por qué las demás no]
+[Detailed explanation of why it is correct and why the others are not]
 
-**Servicio/concepto clave:** [Servicio AWS principal]
+**Key service/concept:** [Main AWS service]
 </details>
 ```
 
 ---
 
-## Archivos de Preguntas por Dominio
+## Question Files by Domain
 
-| Archivo | Dominio | Preguntas |
-|---------|---------|-----------|
-| [domain-1-secure-architectures.md](./domain-1-secure-architectures.md) | Diseñar arquitecturas seguras | 15 preguntas |
-| [domain-2-resilient-architectures.md](./domain-2-resilient-architectures.md) | Diseñar arquitecturas resilientes | 15 preguntas |
-| [domain-3-high-performing-architectures.md](./domain-3-high-performing-architectures.md) | Diseñar arquitecturas de alto rendimiento | 15 preguntas |
-| [domain-4-cost-optimized-architectures.md](./domain-4-cost-optimized-architectures.md) | Diseñar arquitecturas optimizadas en costo | 15 preguntas |
+| File | Domain | Questions |
+|------|--------|-----------|
+| [domain-1-secure-architectures.md](./domain-1-secure-architectures.md) | Design Secure Architectures | 15 questions |
+| [domain-2-resilient-architectures.md](./domain-2-resilient-architectures.md) | Design Resilient Architectures | 15 questions |
+| [domain-3-high-performing-architectures.md](./domain-3-high-performing-architectures.md) | Design High-Performing Architectures | 15 questions |
+| [domain-4-cost-optimized-architectures.md](./domain-4-cost-optimized-architectures.md) | Design Cost-Optimized Architectures | 15 questions |
 
-**Total: 60 preguntas de práctica**
+**Total: 60 practice questions**
 
-> **Consejo:** Intenta responder cada pregunta ANTES de ver la respuesta. Marca las que falles y repásalas de nuevo en unos días.
+> **Tip:** Try to answer each question BEFORE viewing the answer. Flag the ones you get wrong and review them again in a few days.

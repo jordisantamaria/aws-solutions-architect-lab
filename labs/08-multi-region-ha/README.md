@@ -1,72 +1,72 @@
-# Lab 08: Multi-Region High Availability con Failover Automatico
+# Lab 08: Multi-Region High Availability with Automatic Failover
 
-## Objetivo
+## Objective
 
-Disenar y desplegar una arquitectura multi-region con failover automatico usando Route53, Aurora Global Database y S3 Cross-Region Replication. Este es uno de los patrones mas importantes para el examen SA.
+Design and deploy a multi-region architecture with automatic failover using Route53, Aurora Global Database and S3 Cross-Region Replication. This is one of the most important patterns for the SA exam.
 
-## Arquitectura
+## Architecture
 
 ```
-                         ┌──────────────────┐
-                         │    Route 53       │
-                         │  Failover DNS     │
-                         │                   │
-                         └─────┬───────┬─────┘
-                               │       │
-                    PRIMARY    │       │    SECONDARY
-                    (active)   │       │    (passive)
-                               ▼       ▼
-              ┌────────────────────┐  ┌────────────────────┐
-              │   eu-west-1        │  │   us-east-1        │
-              │                    │  │                    │
-              │  ┌──────────────┐  │  │  ┌──────────────┐  │
-              │  │     ALB      │  │  │  │     ALB      │  │
-              │  └──────┬───────┘  │  │  └──────┬───────┘  │
-              │         │          │  │         │          │
-              │  ┌──────▼───────┐  │  │  ┌──────▼───────┐  │
-              │  │     ASG      │  │  │  │     ASG      │  │
-              │  │  (t3.micro)  │  │  │  │  (t3.micro)  │  │
-              │  └──────┬───────┘  │  │  └──────┬───────┘  │
-              │         │          │  │         │          │
-              │  ┌──────▼───────┐  │  │  ┌──────▼───────┐  │
-              │  │ Aurora       │◄─┼──┼──│ Aurora       │  │
-              │  │ Primary      │──┼──┼─▶│ Read Replica │  │
-              │  │ (writer)     │  │  │  │ (reader)     │  │
-              │  └──────────────┘  │  │  └──────────────┘  │
-              │                    │  │                    │
-              │  ┌──────────────┐  │  │  ┌──────────────┐  │
-              │  │  S3 Bucket   │──┼──┼─▶│  S3 Bucket   │  │
-              │  │  (source)    │  │  │  │  (replica)   │  │
-              │  └──────────────┘  │  │  └──────────────┘  │
-              └────────────────────┘  └────────────────────┘
-                                  ▲
+                         +------------------+
+                         |    Route 53      |
+                         |  Failover DNS    |
+                         |                  |
+                         +-----+-------+----+
+                               |       |
+                    PRIMARY    |       |    SECONDARY
+                    (active)   |       |    (passive)
+                               v       v
+              +--------------------+  +--------------------+
+              |   eu-west-1        |  |   us-east-1        |
+              |                    |  |                    |
+              |  +--------------+  |  |  +--------------+  |
+              |  |     ALB      |  |  |  |     ALB      |  |
+              |  +------+-------+  |  |  +------+-------+  |
+              |         |          |  |         |          |
+              |  +------v-------+  |  |  +------v-------+  |
+              |  |     ASG      |  |  |  |     ASG      |  |
+              |  |  (t3.micro)  |  |  |  |  (t3.micro)  |  |
+              |  +------+-------+  |  |  +------+-------+  |
+              |         |          |  |         |          |
+              |  +------v-------+  |  |  +------v-------+  |
+              |  | Aurora       |<-+--+--| Aurora       |  |
+              |  | Primary      |--+--+->| Read Replica |  |
+              |  | (writer)     |  |  |  | (reader)     |  |
+              |  +--------------+  |  |  +--------------+  |
+              |                    |  |                    |
+              |  +--------------+  |  |  +--------------+  |
+              |  |  S3 Bucket   |--+--+->|  S3 Bucket   |  |
+              |  |  (source)    |  |  |  |  (replica)   |  |
+              |  +--------------+  |  |  +--------------+  |
+              +--------------------+  +--------------------+
+                                  ^
                        Aurora Global Database
                        (async replication <1s)
 ```
 
-## Que vas a aprender
+## What you will learn
 
-- **Multi-Region Architecture**: desplegar infraestructura identica en dos regiones
-- **Route53 Failover Routing**: DNS failover automatico basado en health checks
-- **Aurora Global Database**: replicacion de base de datos entre regiones con latencia <1 segundo
-- **S3 Cross-Region Replication (CRR)**: replicacion automatica de objetos entre buckets
-- **DR Strategies**: diferencias entre Backup/Restore, Pilot Light, Warm Standby y Multi-Site
-- **Terraform Multi-Provider**: uso de provider aliases para desplegar en multiples regiones
+- **Multi-Region Architecture**: deploy identical infrastructure in two regions
+- **Route53 Failover Routing**: automatic DNS failover based on health checks
+- **Aurora Global Database**: database replication between regions with <1 second latency
+- **S3 Cross-Region Replication (CRR)**: automatic object replication between buckets
+- **DR Strategies**: differences between Backup/Restore, Pilot Light, Warm Standby and Multi-Site
+- **Terraform Multi-Provider**: use of provider aliases to deploy in multiple regions
 
-## Estrategias de Disaster Recovery
+## Disaster Recovery Strategies
 
-| Estrategia | RPO | RTO | Coste | Este Lab |
+| Strategy | RPO | RTO | Cost | This Lab |
 |------------|-----|-----|-------|----------|
-| Backup & Restore | Horas | Horas | $ | No |
-| Pilot Light | Minutos | Minutos | $$ | No |
-| Warm Standby | Segundos | Minutos | $$$ | **Si** |
+| Backup & Restore | Hours | Hours | $ | No |
+| Pilot Light | Minutes | Minutes | $$ | No |
+| Warm Standby | Seconds | Minutes | $$$ | **Yes** |
 | Multi-Site Active/Active | ~0 | ~0 | $$$$ | No |
 
-Este lab implementa **Warm Standby**: infraestructura minima activa en la region secundaria, lista para escalar.
+This lab implements **Warm Standby**: minimal active infrastructure in the secondary region, ready to scale.
 
-## Componentes desplegados
+## Deployed Components
 
-| Recurso | Region Primary | Region Secondary |
+| Resource | Primary Region | Secondary Region |
 |---------|---------------|-----------------|
 | VPC + Subnets | eu-west-1 | us-east-1 |
 | ALB | eu-west-1 | us-east-1 |
@@ -76,62 +76,62 @@ Este lab implementa **Warm Standby**: infraestructura minima activa en la region
 | Route53 Health Check | Primary ALB | - |
 | Route53 Failover | Primary record | Secondary record |
 
-## Coste estimado
+## Estimated Cost
 
-**~$8-12/dia** (infraestructura duplicada en dos regiones)
+**~$8-12/day** (duplicated infrastructure in two regions)
 
-> **IMPORTANTE**: Este lab es caro por tener infraestructura activa en dos regiones. **DESTRUYE LA INFRAESTRUCTURA EN CUANTO TERMINES**.
+> **IMPORTANT**: This lab is expensive due to having active infrastructure in two regions. **DESTROY THE INFRASTRUCTURE AS SOON AS YOU FINISH**.
 
-## Como desplegar
+## How to Deploy
 
 ```bash
-# Inicializar Terraform
+# Initialize Terraform
 terraform init
 
-# Ver el plan (observa los recursos en ambas regiones)
+# View the plan (observe resources in both regions)
 terraform plan
 
-# Desplegar
+# Deploy
 terraform apply
 
-# IMPORTANTE: Destruir cuando termines
+# IMPORTANT: Destroy when finished
 terraform destroy
 ```
 
-## Probar el failover
+## Testing Failover
 
-1. **Verificar que el DNS resuelve a la region primaria**:
+1. **Verify that DNS resolves to the primary region**:
    ```bash
-   dig +short tu-dominio.ejemplo.com
+   dig +short your-domain.example.com
    ```
 
-2. **Simular fallo** (detener instancias en la region primaria):
+2. **Simulate failure** (stop instances in the primary region):
    ```bash
-   # El health check de Route53 detectara el fallo
-   # Automaticamente redirigira el trafico a la region secundaria
+   # The Route53 health check will detect the failure
+   # It will automatically redirect traffic to the secondary region
    ```
 
-3. **Verificar failover**:
+3. **Verify failover**:
    ```bash
-   # Espera ~60 segundos para que Route53 detecte el fallo
-   dig +short tu-dominio.ejemplo.com
-   # Deberia resolver a la IP del ALB secundario
+   # Wait ~60 seconds for Route53 to detect the failure
+   dig +short your-domain.example.com
+   # Should resolve to the secondary ALB IP
    ```
 
-## Conceptos clave para el examen
+## Key Concepts for the Exam
 
-1. **Route53 Failover**: requiere health check activo en el registro primario
-2. **Aurora Global Database**: replicacion asincrona, RPO tipico <1 segundo
-3. **Aurora Failover**: se puede promover la replica secundaria a primaria (unplanned failover)
-4. **S3 CRR**: requiere versionado habilitado en ambos buckets, replicacion asincrona
+1. **Route53 Failover**: requires an active health check on the primary record
+2. **Aurora Global Database**: asynchronous replication, typical RPO <1 second
+3. **Aurora Failover**: the secondary replica can be promoted to primary (unplanned failover)
+4. **S3 CRR**: requires versioning enabled on both buckets, asynchronous replication
 5. **RTO vs RPO**: Recovery Time Objective vs Recovery Point Objective
-6. **Multi-AZ vs Multi-Region**: Multi-AZ es HA, Multi-Region es DR
+6. **Multi-AZ vs Multi-Region**: Multi-AZ is HA, Multi-Region is DR
 
-## Limpieza
+## Cleanup
 
 ```bash
-# DESTRUIR INMEDIATAMENTE cuando termines
+# DESTROY IMMEDIATELY when finished
 terraform destroy
 ```
 
-> **Advertencia**: Verifica en la consola de AWS que todos los recursos se han eliminado en AMBAS regiones.
+> **Warning**: Verify in the AWS console that all resources have been deleted in BOTH regions.

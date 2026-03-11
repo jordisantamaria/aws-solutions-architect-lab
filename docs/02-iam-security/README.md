@@ -1,23 +1,23 @@
-# IAM y Seguridad en AWS
+# IAM and Security in AWS
 
-## Tabla de Contenidos
+## Table of Contents
 
 - [IAM Fundamentals](#iam-fundamentals)
-- [Tipos de Políticas IAM](#tipos-de-políticas-iam)
-- [Lógica de Evaluación de Políticas](#lógica-de-evaluación-de-políticas)
+- [Types of IAM Policies](#types-of-iam-policies)
+- [Policy Evaluation Logic](#policy-evaluation-logic)
 - [IAM Best Practices](#iam-best-practices)
 - [AWS Organizations](#aws-organizations)
 - [AWS Control Tower](#aws-control-tower)
 - [AWS RAM (Resource Access Manager)](#aws-ram-resource-access-manager)
-- [STS y AssumeRole](#sts-y-assumerole)
+- [STS and AssumeRole](#sts-and-assumerole)
 - [AWS IAM Identity Center (SSO)](#aws-iam-identity-center-sso)
 - [AWS KMS](#aws-kms)
 - [Secrets Manager vs Parameter Store](#secrets-manager-vs-parameter-store)
 - [AWS CloudHSM](#aws-cloudhsm)
-- [AWS WAF, Shield y Shield Advanced](#aws-waf-shield-y-shield-advanced)
+- [AWS WAF, Shield and Shield Advanced](#aws-waf-shield-and-shield-advanced)
 - [Amazon Cognito](#amazon-cognito)
 - [AWS Directory Service (Active Directory)](#aws-directory-service-active-directory)
-- [Servicios de Detección y Seguridad](#servicios-de-detección-y-seguridad)
+- [Detection and Security Services](#detection-and-security-services)
 - [AWS Certificate Manager (ACM)](#aws-certificate-manager-acm)
 - [Security Exam Tips](#security-exam-tips)
 
@@ -25,40 +25,40 @@
 
 ## IAM Fundamentals
 
-IAM (Identity and Access Management) es un servicio **global** (no regional) que controla quién puede hacer qué en tu cuenta de AWS.
+IAM (Identity and Access Management) is a **global** (not regional) service that controls who can do what in your AWS account.
 
-### Componentes principales
+### Main Components
 
-#### Users (Usuarios)
+#### Users
 
-- Representan una persona o aplicación que interactúa con AWS.
-- Pueden tener credenciales de consola (usuario/contraseña) y/o credenciales de acceso programático (Access Key ID + Secret Access Key).
-- Un usuario nuevo **no tiene ningún permiso** por defecto (implicit deny).
-- Límite: 5,000 usuarios IAM por cuenta.
+- Represent a person or application that interacts with AWS.
+- Can have console credentials (username/password) and/or programmatic access credentials (Access Key ID + Secret Access Key).
+- A new user has **no permissions** by default (implicit deny).
+- Limit: 5,000 IAM users per account.
 
-#### Groups (Grupos)
+#### Groups
 
-- Colección de usuarios IAM.
-- Permiten asignar políticas a múltiples usuarios de una sola vez.
-- Un usuario puede pertenecer a **múltiples grupos** (máximo 10).
-- Los grupos **no pueden contener otros grupos** (no anidamiento).
-- No existe un "grupo por defecto" que incluya a todos los usuarios.
-- Los grupos **no son identidades** (no puedes referenciar un grupo en una resource-based policy como principal).
+- Collection of IAM users.
+- Allow assigning policies to multiple users at once.
+- A user can belong to **multiple groups** (maximum 10).
+- Groups **cannot contain other groups** (no nesting).
+- There is no "default group" that includes all users.
+- Groups **are not identities** (you cannot reference a group in a resource-based policy as a principal).
 
 #### Roles
 
-- Identidad IAM con permisos, pero **sin credenciales a largo plazo**.
-- Se "asumen" temporalmente por usuarios, aplicaciones o servicios de AWS.
-- Casos de uso principales:
-  - **EC2 Instance Role**: Dar permisos a una instancia EC2 para acceder a otros servicios.
-  - **Cross-account access**: Permitir que una cuenta externa acceda a recursos de tu cuenta.
-  - **Service Role**: Permitir que un servicio AWS (Lambda, ECS) acceda a otros recursos.
-  - **Federación**: Usuarios externos (AD, SAML, OIDC) que asumen un rol.
+- IAM identity with permissions, but **without long-term credentials**.
+- Temporarily "assumed" by users, applications, or AWS services.
+- Main use cases:
+  - **EC2 Instance Role**: Grant permissions to an EC2 instance to access other services.
+  - **Cross-account access**: Allow an external account to access resources in your account.
+  - **Service Role**: Allow an AWS service (Lambda, ECS) to access other resources.
+  - **Federation**: External users (AD, SAML, OIDC) who assume a role.
 
-#### Policies (Políticas)
+#### Policies
 
-- Documentos JSON que definen permisos.
-- Estructura de una política:
+- JSON documents that define permissions.
+- Structure of a policy:
 
 ```json
 {
@@ -85,522 +85,522 @@ IAM (Identity and Access Management) es un servicio **global** (no regional) que
 }
 ```
 
-- **Version**: Siempre usar `"2012-10-17"` (versión actual).
-- **Effect**: `Allow` o `Deny`.
-- **Action**: Las acciones de API permitidas o denegadas.
-- **Resource**: Los recursos afectados (ARN).
-- **Condition** (opcional): Condiciones que deben cumplirse.
+- **Version**: Always use `"2012-10-17"` (current version).
+- **Effect**: `Allow` or `Deny`.
+- **Action**: The API actions allowed or denied.
+- **Resource**: The affected resources (ARN).
+- **Condition** (optional): Conditions that must be met.
 
 ---
 
-## Tipos de Políticas IAM
+## Types of IAM Policies
 
-| Tipo de Política | Adjunta a | Descripción | Ejemplo |
-|-----------------|-----------|-------------|---------|
-| **Identity-based (basada en identidad)** | Users, Groups, Roles | Define qué puede hacer la identidad | Política que permite leer S3 adjunta a un rol |
-| **Resource-based (basada en recurso)** | Recursos (S3, SQS, KMS, etc.) | Define quién puede acceder al recurso | Bucket policy de S3, Key policy de KMS |
-| **Permission Boundary** | Users, Roles | Límite máximo de permisos que una identidad puede tener | Limitar a un desarrollador a solo servicios de us-east-1 |
-| **SCP (Service Control Policy)** | AWS Organization (OU o cuenta) | Límite máximo de permisos para toda la cuenta/OU | Prohibir crear recursos fuera de EU |
-| **Session Policy** | Sesiones de STS | Limita permisos de una sesión temporal de AssumeRole | Restringir acceso durante una sesión federada |
-| **ACL (Access Control List)** | Recursos (S3, VPC) | Control de acceso cross-account sin formato JSON policy | S3 ACL (legacy, no recomendado) |
+| Policy Type | Attached to | Description | Example |
+|-------------|-------------|-------------|---------|
+| **Identity-based** | Users, Groups, Roles | Defines what the identity can do | Policy allowing S3 read attached to a role |
+| **Resource-based** | Resources (S3, SQS, KMS, etc.) | Defines who can access the resource | S3 bucket policy, KMS key policy |
+| **Permission Boundary** | Users, Roles | Maximum permissions limit that an identity can have | Limit a developer to only us-east-1 services |
+| **SCP (Service Control Policy)** | AWS Organization (OU or account) | Maximum permissions limit for the entire account/OU | Prohibit creating resources outside EU |
+| **Session Policy** | STS sessions | Limits permissions of a temporary AssumeRole session | Restrict access during a federated session |
+| **ACL (Access Control List)** | Resources (S3, VPC) | Cross-account access control without JSON policy format | S3 ACL (legacy, not recommended) |
 
 ### Identity-based Policies: Managed vs Inline
 
-| Tipo | Descripción | Recomendación |
-|------|-------------|---------------|
-| **AWS Managed** | Creadas y mantenidas por AWS | Usar para permisos comunes (ReadOnlyAccess, etc.) |
-| **Customer Managed** | Creadas por ti, reutilizables | Recomendado para políticas personalizadas |
-| **Inline** | Embebida directamente en un usuario, grupo o rol | Solo para relación estricta 1:1, no recomendado generalmente |
+| Type | Description | Recommendation |
+|------|-------------|----------------|
+| **AWS Managed** | Created and maintained by AWS | Use for common permissions (ReadOnlyAccess, etc.) |
+| **Customer Managed** | Created by you, reusable | Recommended for custom policies |
+| **Inline** | Embedded directly in a user, group, or role | Only for strict 1:1 relationships, not generally recommended |
 
 ### Permission Boundaries
 
-- No otorgan permisos por sí solas; solo **limitan** los permisos máximos.
-- Los permisos efectivos son la **intersección** entre la identity-based policy y la permission boundary.
-- Caso de uso: Permitir a desarrolladores crear roles IAM pero asegurando que nunca puedan exceder ciertos permisos.
-- Solo aplican a usuarios y roles (no a grupos).
+- Do not grant permissions on their own; they only **limit** the maximum permissions.
+- Effective permissions are the **intersection** between the identity-based policy and the permission boundary.
+- Use case: Allow developers to create IAM roles while ensuring they can never exceed certain permissions.
+- Only apply to users and roles (not groups).
 
 ---
 
-## Lógica de Evaluación de Políticas
+## Policy Evaluation Logic
 
-El orden de evaluación de políticas en AWS sigue esta lógica:
+The order of policy evaluation in AWS follows this logic:
 
 ```
-1. Explicit Deny en cualquier política  -->  DENY (siempre gana)
+1. Explicit Deny in any policy  -->  DENY (always wins)
         |
-        v (si no hay explicit deny)
-2. SCP permite la acción?  -->  si NO --> DENY
+        v (if no explicit deny)
+2. SCP allows the action?  -->  if NO --> DENY
         |
-        v (si SCP permite)
-3. Resource-based policy permite (con Principal)?  -->  si SÍ --> ALLOW
+        v (if SCP allows)
+3. Resource-based policy allows (with Principal)?  -->  if YES --> ALLOW
         |
-        v (si no hay resource-based o no aplica)
-4. Permission Boundary permite?  -->  si NO --> DENY
+        v (if no resource-based or doesn't apply)
+4. Permission Boundary allows?  -->  if NO --> DENY
         |
-        v (si Permission Boundary permite)
-5. Session Policy permite?  -->  si NO --> DENY
+        v (if Permission Boundary allows)
+5. Session Policy allows?  -->  if NO --> DENY
         |
-        v (si Session Policy permite)
-6. Identity-based policy permite?  -->  si SÍ --> ALLOW
+        v (if Session Policy allows)
+6. Identity-based policy allows?  -->  if YES --> ALLOW
         |
-        v (si ninguna política permite)
-7. DENY implícito (default)
+        v (if no policy allows)
+7. Implicit DENY (default)
 ```
 
-### Regla de oro
+### Golden Rule
 
 > **Explicit Deny > Explicit Allow > Implicit Deny (default)**
 
-### Evaluación cross-account
+### Cross-account Evaluation
 
-Cuando un principal de la Cuenta A intenta acceder a un recurso de la Cuenta B:
-- La Cuenta A debe tener una **identity-based policy** que permita la acción.
-- La Cuenta B debe tener una **resource-based policy** que permita al principal de la Cuenta A.
-- **Ambas** deben permitir; cualquiera que deniegue prevalece.
+When a principal from Account A attempts to access a resource in Account B:
+- Account A must have an **identity-based policy** that allows the action.
+- Account B must have a **resource-based policy** that allows the principal from Account A.
+- **Both** must allow; whichever denies prevails.
 
-> **Excepción:** Si el recurso de Cuenta B tiene una resource-based policy que especifica el principal de Cuenta A directamente, y es misma-cuenta (no cross-account), no se necesita identity-based policy.
+> **Exception:** If the resource in Account B has a resource-based policy that specifies the principal from Account A directly, and it's same-account (not cross-account), no identity-based policy is needed.
 
 ---
 
 ## IAM Best Practices
 
-1. **No usar la cuenta root** para tareas diarias. Protegerla con MFA de hardware.
-2. **Crear usuarios IAM individuales** - No compartir credenciales.
-3. **Usar grupos** para asignar permisos.
-4. **Principio de menor privilegio (Least Privilege)** - Dar solo los permisos necesarios.
-5. **Habilitar MFA** para todos los usuarios, especialmente los privilegiados.
-6. **Usar roles** en lugar de access keys para aplicaciones en EC2/Lambda/ECS.
-7. **Rotar credenciales** regularmente (access keys).
-8. **Usar políticas de contraseña** fuertes (longitud mínima, complejidad, rotación).
-9. **Usar IAM Access Analyzer** para identificar recursos compartidos externamente.
-10. **Monitorizar con CloudTrail** todas las acciones de IAM.
-11. **Nunca embeber access keys** en código. Usar roles o Secrets Manager.
-12. **Usar Permission Boundaries** para delegar la gestión de IAM de forma segura.
+1. **Do not use the root account** for daily tasks. Protect it with hardware MFA.
+2. **Create individual IAM users** - Do not share credentials.
+3. **Use groups** to assign permissions.
+4. **Principle of Least Privilege** - Grant only the necessary permissions.
+5. **Enable MFA** for all users, especially privileged ones.
+6. **Use roles** instead of access keys for applications on EC2/Lambda/ECS.
+7. **Rotate credentials** regularly (access keys).
+8. **Use strong password policies** (minimum length, complexity, rotation).
+9. **Use IAM Access Analyzer** to identify externally shared resources.
+10. **Monitor with CloudTrail** all IAM actions.
+11. **Never embed access keys** in code. Use roles or Secrets Manager.
+12. **Use Permission Boundaries** to delegate IAM management securely.
 
 ---
 
 ## AWS Organizations
 
-AWS Organizations permite gestionar múltiples cuentas AWS centralmente.
+AWS Organizations allows you to centrally manage multiple AWS accounts.
 
-### Conceptos clave
+### Key Concepts
 
-- **Management Account** (antes "Master Account"): La cuenta raíz de la organización. No le aplican los SCPs.
-- **Member Accounts**: Las cuentas que pertenecen a la organización.
-- **Organizational Units (OUs)**: Agrupaciones lógicas de cuentas (pueden anidarse).
-- **Root**: El contenedor superior de la organización (contiene todas las OUs y cuentas).
+- **Management Account** (formerly "Master Account"): The root account of the organization. SCPs do not apply to it.
+- **Member Accounts**: The accounts that belong to the organization.
+- **Organizational Units (OUs)**: Logical groupings of accounts (can be nested).
+- **Root**: The top container of the organization (contains all OUs and accounts).
 
 ### Service Control Policies (SCPs)
 
-- Definen el **máximo de permisos** disponibles para las cuentas de una OU o cuenta individual.
-- **No otorgan permisos**, solo los restringen.
-- No aplican a la Management Account.
-- Aplican a **todos los usuarios y roles** de la cuenta (incluido el root de la cuenta).
-- No aplican a service-linked roles.
-- Deben tener un `Allow` explícito (por defecto, si usas "deny list strategy", la SCP `FullAWSAccess` está adjunta).
+- Define the **maximum permissions** available for accounts in an OU or individual account.
+- **Do not grant permissions**, they only restrict them.
+- Do not apply to the Management Account.
+- Apply to **all users and roles** in the account (including the account root user).
+- Do not apply to service-linked roles.
+- Must have an explicit `Allow` (by default, when using "deny list strategy", the `FullAWSAccess` SCP is attached).
 
-### Estrategias de SCP
+### SCP Strategies
 
-| Estrategia | Descripción | Uso |
-|-----------|-------------|-----|
-| **Deny List** (default) | `FullAWSAccess` adjunta + SCPs de deny explícito | Bloquear servicios/acciones específicas |
-| **Allow List** | Quitar `FullAWSAccess` + SCPs de allow explícito | Solo permitir servicios específicos (más restrictivo) |
+| Strategy | Description | Use |
+|----------|-------------|-----|
+| **Deny List** (default) | `FullAWSAccess` attached + explicit deny SCPs | Block specific services/actions |
+| **Allow List** | Remove `FullAWSAccess` + explicit allow SCPs | Only allow specific services (more restrictive) |
 
-### Consolidated Billing (Facturación consolidada)
+### Consolidated Billing
 
-- Una sola factura para todas las cuentas de la organización.
-- **Descuentos por volumen** se agregan entre cuentas (ej: S3, EC2).
-- Las **Reserved Instances** se comparten entre cuentas de la organización (a menos que se desactive).
-- Permite rastrear costes por cuenta individual con AWS Cost Explorer.
+- A single bill for all accounts in the organization.
+- **Volume discounts** are aggregated across accounts (e.g., S3, EC2).
+- **Reserved Instances** are shared across organization accounts (unless disabled).
+- Allows tracking costs per individual account with AWS Cost Explorer.
 
 ---
 
 ## AWS Control Tower
 
-Servicio para configurar y gobernar un **entorno multi-cuenta seguro** basado en mejores prácticas. Se construye sobre AWS Organizations.
+Service for setting up and governing a **secure multi-account environment** based on best practices. Built on top of AWS Organizations.
 
-### Qué problema resuelve
+### What Problem It Solves
 
-Configurar un entorno multi-cuenta manualmente requiere: crear cuentas, configurar SSO, aplicar SCPs, configurar logging centralizado, etc. **Control Tower automatiza todo esto**.
+Setting up a multi-account environment manually requires: creating accounts, configuring SSO, applying SCPs, setting up centralized logging, etc. **Control Tower automates all of this**.
 
-### Componentes principales
+### Main Components
 
-| Componente | Descripción |
+| Component | Description |
 |-----------|-------------|
-| **Landing Zone** | Entorno multi-cuenta pre-configurado con mejores prácticas. Incluye cuentas de logging, audit, y la estructura de OUs |
-| **Account Factory** | Provisión automatizada de nuevas cuentas AWS con configuración estandarizada. Usa AWS Service Catalog bajo el capó |
-| **Guardrails (Controls)** | Reglas de gobernanza aplicadas a las OUs. Pueden ser preventivas (SCP) o detectivas (AWS Config Rules) |
-| **Dashboard** | Vista centralizada del estado de compliance de todas las cuentas y guardrails |
+| **Landing Zone** | Pre-configured multi-account environment with best practices. Includes logging, audit accounts, and OU structure |
+| **Account Factory** | Automated provisioning of new AWS accounts with standardized configuration. Uses AWS Service Catalog under the hood |
+| **Guardrails (Controls)** | Governance rules applied to OUs. Can be preventive (SCP) or detective (AWS Config Rules) |
+| **Dashboard** | Centralized view of compliance status for all accounts and guardrails |
 
-### Tipos de Guardrails
+### Types of Guardrails
 
-| Tipo | Mecanismo | Ejemplo |
+| Type | Mechanism | Example |
 |------|-----------|---------|
-| **Preventive** | SCP (Service Control Policy) | "No permitir eliminar CloudTrail logs" |
-| **Detective** | AWS Config Rules | "Detectar si un bucket S3 es público" |
-| **Proactive** | CloudFormation Hooks | "Bloquear despliegue de recursos no conformes antes de crearlos" |
+| **Preventive** | SCP (Service Control Policy) | "Do not allow deleting CloudTrail logs" |
+| **Detective** | AWS Config Rules | "Detect if an S3 bucket is public" |
+| **Proactive** | CloudFormation Hooks | "Block deployment of non-compliant resources before creating them" |
 
-### Niveles de Guardrails
+### Guardrail Levels
 
-| Nivel | Descripción |
+| Level | Description |
 |-------|-------------|
-| **Mandatory** | Siempre habilitados. No se pueden desactivar (ej: prohibir cambios en la cuenta de logging) |
-| **Strongly Recommended** | Basados en mejores prácticas de AWS (ej: habilitar cifrado en EBS) |
-| **Elective** | Opcionales, para requisitos específicos de la empresa |
+| **Mandatory** | Always enabled. Cannot be deactivated (e.g., prohibit changes to the logging account) |
+| **Strongly Recommended** | Based on AWS best practices (e.g., enable EBS encryption) |
+| **Elective** | Optional, for specific company requirements |
 
-### Estructura de Landing Zone
+### Landing Zone Structure
 
 ```
 Management Account (root)
 ├── Security OU
-│   ├── Log Archive Account      → Almacena CloudTrail y Config logs de TODAS las cuentas
-│   └── Audit Account            → Acceso cross-account para auditoría y compliance
+│   ├── Log Archive Account      → Stores CloudTrail and Config logs from ALL accounts
+│   └── Audit Account            → Cross-account access for auditing and compliance
 ├── Sandbox OU
-│   └── Dev accounts             → Para experimentación con guardrails relajados
+│   └── Dev accounts             → For experimentation with relaxed guardrails
 ├── Production OU
-│   └── Prod accounts            → Guardrails estrictos
-└── Guardrails aplicados por OU
+│   └── Prod accounts            → Strict guardrails
+└── Guardrails applied per OU
 ```
 
 ### Control Tower Drift Detection
 
-**Drift** ocurre cuando los recursos gestionados por Control Tower se modifican fuera de su control (manualmente o por otros servicios), desviándose del estado esperado.
+**Drift** occurs when resources managed by Control Tower are modified outside its control (manually or by other services), deviating from the expected state.
 
-**Tipos de drift detectados:**
-- Cambios en SCPs gestionadas por Control Tower.
-- Cambios en la configuración de cuentas (CloudTrail deshabilitado, Config deshabilitado).
-- Cuentas movidas entre OUs manualmente.
-- Cambios en guardrails mandatorios.
+**Types of drift detected:**
+- Changes to SCPs managed by Control Tower.
+- Changes to account configuration (CloudTrail disabled, Config disabled).
+- Accounts moved between OUs manually.
+- Changes to mandatory guardrails.
 
-**Notificaciones de drift:**
-- Control Tower detecta drift automáticamente y envía notificaciones via **SNS** al admin.
-- Se puede integrar con **EventBridge** para automatizar la remediación.
-- El drift aparece en el **Control Tower Dashboard** con estado de las cuentas y guardrails afectados.
-- Para resolverlo, se puede usar **Re-register OU** o corregir manualmente y luego **Update Landing Zone**.
+**Drift notifications:**
+- Control Tower detects drift automatically and sends notifications via **SNS** to the admin.
+- Can be integrated with **EventBridge** to automate remediation.
+- Drift appears in the **Control Tower Dashboard** with the status of affected accounts and guardrails.
+- To resolve it, you can use **Re-register OU** or correct manually and then **Update Landing Zone**.
 
-> **Tip para el examen:** Si la pregunta menciona "detectar cambios no autorizados en cuentas de Control Tower" o "notificar cuando una SCP gestionada se modifica" → **Control Tower drift detection**. Las notificaciones van por SNS y aparecen en el dashboard.
+> **Exam tip:** If the question mentions "detect unauthorized changes in Control Tower accounts" or "notify when a managed SCP is modified" -> **Control Tower drift detection**. Notifications go via SNS and appear in the dashboard.
 
 ### Control Tower vs Organizations
 
-| Característica | Organizations (solo) | Control Tower |
-|---------------|---------------------|---------------|
-| **Crear cuentas** | Manual o API | Account Factory (automatizado, estandarizado) |
-| **Guardrails** | SCPs manuales | Guardrails predefinidos (preventivos + detectivos) |
-| **Logging centralizado** | Configurar manualmente | Pre-configurado (Log Archive Account) |
-| **Dashboard de compliance** | No | Sí |
-| **Best practices automáticas** | No | Sí (Landing Zone) |
+| Feature | Organizations (only) | Control Tower |
+|---------|---------------------|---------------|
+| **Create accounts** | Manual or API | Account Factory (automated, standardized) |
+| **Guardrails** | Manual SCPs | Predefined guardrails (preventive + detective) |
+| **Centralized logging** | Configure manually | Pre-configured (Log Archive Account) |
+| **Compliance dashboard** | No | Yes |
+| **Automatic best practices** | No | Yes (Landing Zone) |
 
-> **Tip para el examen:** Si la pregunta menciona "configurar entorno multi-cuenta con mejores prácticas", "landing zone", "gobernanza multi-cuenta automatizada", "Account Factory" → **Control Tower**. Si solo necesitas agrupar cuentas y aplicar SCPs manualmente → **Organizations**. Control Tower usa Organizations bajo el capó.
+> **Exam tip:** If the question mentions "set up multi-account environment with best practices", "landing zone", "automated multi-account governance", "Account Factory" -> **Control Tower**. If you only need to group accounts and apply SCPs manually -> **Organizations**. Control Tower uses Organizations under the hood.
 
 ---
 
 ## AWS RAM (Resource Access Manager)
 
-Servicio para **compartir recursos AWS entre cuentas** de forma segura, sin necesidad de crear duplicados.
+Service for **sharing AWS resources between accounts** securely, without needing to create duplicates.
 
-### Recursos que se pueden compartir
+### Resources That Can Be Shared
 
-| Recurso | Caso de uso |
-|---------|------------|
-| **VPC Subnets** | Cuentas diferentes lanzan recursos en subnets compartidas de una VPC central |
-| **Transit Gateway** | Compartir un Transit Gateway entre cuentas sin que cada una cree el suyo |
-| **Route 53 Resolver Rules** | Compartir reglas de resolución DNS |
-| **License Manager** | Compartir configuraciones de licencias |
-| **Aurora DB Cluster** | Compartir un cluster Aurora entre cuentas |
-| **AWS CodeBuild Projects** | Compartir proyectos de build |
-| **EC2 (Dedicated Hosts, Capacity Reservations)** | Compartir hosts dedicados |
+| Resource | Use Case |
+|----------|----------|
+| **VPC Subnets** | Different accounts launch resources in shared subnets of a central VPC |
+| **Transit Gateway** | Share a Transit Gateway between accounts without each one creating their own |
+| **Route 53 Resolver Rules** | Share DNS resolution rules |
+| **License Manager** | Share license configurations |
+| **Aurora DB Cluster** | Share an Aurora cluster between accounts |
+| **AWS CodeBuild Projects** | Share build projects |
+| **EC2 (Dedicated Hosts, Capacity Reservations)** | Share dedicated hosts |
 
-### Caso de uso más común: VPC Subnet Sharing
+### Most Common Use Case: VPC Subnet Sharing
 
 ```
-Cuenta A (Network Account): Crea la VPC y las subnets
+Account A (Network Account): Creates the VPC and subnets
     │
-    ├── Comparte subnet-private-1 via RAM → Cuenta B
-    ├── Comparte subnet-private-2 via RAM → Cuenta C
+    ├── Shares subnet-private-1 via RAM → Account B
+    ├── Shares subnet-private-2 via RAM → Account C
     │
     ▼
-Cuenta B: Lanza EC2/RDS/Lambda en subnet-private-1 (de la VPC de Cuenta A)
-Cuenta C: Lanza EC2/RDS/Lambda en subnet-private-2 (de la VPC de Cuenta A)
+Account B: Launches EC2/RDS/Lambda in subnet-private-1 (from Account A's VPC)
+Account C: Launches EC2/RDS/Lambda in subnet-private-2 (from Account A's VPC)
 ```
 
-- Los recursos de cada cuenta están **aislados** (cada cuenta gestiona sus security groups, instancias, etc.).
-- La VPC y las subnets las **gestiona solo la cuenta propietaria**.
-- Reduce la complejidad de VPC peering entre muchas cuentas.
+- Resources from each account are **isolated** (each account manages its own security groups, instances, etc.).
+- The VPC and subnets are **managed only by the owner account**.
+- Reduces the complexity of VPC peering between many accounts.
 
-### RAM con AWS Organizations
+### RAM with AWS Organizations
 
-- Si las cuentas están en la misma Organization, RAM puede compartir automáticamente sin invitaciones.
-- Si no están en la misma Organization, se envía una invitación que la otra cuenta debe aceptar.
+- If accounts are in the same Organization, RAM can share automatically without invitations.
+- If they are not in the same Organization, an invitation is sent that the other account must accept.
 
-### RAM vs otras alternativas
+### RAM vs Other Alternatives
 
-| Necesidad | Solución |
-|-----------|---------|
-| "Compartir una subnet entre cuentas" | **RAM** |
-| "Compartir un Transit Gateway entre cuentas" | **RAM** |
-| "Acceder a recursos de otra cuenta via API" | **STS AssumeRole (cross-account)** |
-| "Compartir un bucket S3 con otra cuenta" | **S3 Bucket Policy** (no necesitas RAM) |
-| "Compartir una AMI con otra cuenta" | **AMI Sharing** (no necesitas RAM) |
+| Need | Solution |
+|------|---------|
+| "Share a subnet between accounts" | **RAM** |
+| "Share a Transit Gateway between accounts" | **RAM** |
+| "Access resources from another account via API" | **STS AssumeRole (cross-account)** |
+| "Share an S3 bucket with another account" | **S3 Bucket Policy** (no need for RAM) |
+| "Share an AMI with another account" | **AMI Sharing** (no need for RAM) |
 
-> **Tip para el examen:** Si la pregunta menciona "compartir VPC subnets entre cuentas", "compartir Transit Gateway entre cuentas", "compartir recursos entre cuentas de una Organization" → **RAM**. No confundir con cross-account IAM roles (STS AssumeRole), que es para acceder a APIs, no para compartir recursos de red.
+> **Exam tip:** If the question mentions "share VPC subnets between accounts", "share Transit Gateway between accounts", "share resources between Organization accounts" -> **RAM**. Don't confuse with cross-account IAM roles (STS AssumeRole), which is for accessing APIs, not for sharing network resources.
 
 ---
 
-## STS y AssumeRole
+## STS and AssumeRole
 
-AWS Security Token Service (STS) es un servicio global que permite obtener **credenciales temporales** y de privilegio limitado.
+AWS Security Token Service (STS) is a global service that allows obtaining **temporary credentials** with limited privileges.
 
-### Operaciones principales de STS
+### Main STS Operations
 
-| Operación | Descripción | Caso de uso |
-|-----------|-------------|-------------|
-| **AssumeRole** | Asumir un rol IAM (misma o diferente cuenta) | Cross-account access, roles de servicio |
-| **AssumeRoleWithSAML** | Asumir rol con autenticación SAML 2.0 | Federación con Active Directory / IdP corporativo |
-| **AssumeRoleWithWebIdentity** | Asumir rol con token de IdP web (Google, Facebook, Amazon) | Apps móviles (aunque se recomienda Cognito) |
-| **GetSessionToken** | Obtener credenciales temporales para usuario IAM | Acceso programático con MFA |
-| **GetFederationToken** | Credenciales temporales para un usuario federado | Proxy federado personalizado |
+| Operation | Description | Use Case |
+|-----------|-------------|----------|
+| **AssumeRole** | Assume an IAM role (same or different account) | Cross-account access, service roles |
+| **AssumeRoleWithSAML** | Assume role with SAML 2.0 authentication | Federation with Active Directory / corporate IdP |
+| **AssumeRoleWithWebIdentity** | Assume role with web IdP token (Google, Facebook, Amazon) | Mobile apps (although Cognito is recommended) |
+| **GetSessionToken** | Get temporary credentials for IAM user | Programmatic access with MFA |
+| **GetFederationToken** | Temporary credentials for a federated user | Custom federation proxy |
 
-### Cross-Account Access con AssumeRole
+### Cross-Account Access with AssumeRole
 
-**Escenario**: Un usuario de la Cuenta A necesita acceder a un bucket S3 en la Cuenta B.
+**Scenario**: A user from Account A needs to access an S3 bucket in Account B.
 
-1. **Cuenta B**: Crear un rol IAM con una **trust policy** que permita a la Cuenta A asumir el rol.
-2. **Cuenta B**: El rol tiene una **permission policy** que permite acceso al bucket S3.
-3. **Cuenta A**: El usuario tiene una policy que permite ejecutar `sts:AssumeRole` sobre el ARN del rol de Cuenta B.
-4. El usuario llama a `sts:AssumeRole` y recibe credenciales temporales.
-5. Usa esas credenciales para acceder al bucket S3 de Cuenta B.
+1. **Account B**: Create an IAM role with a **trust policy** that allows Account A to assume the role.
+2. **Account B**: The role has a **permission policy** that allows access to the S3 bucket.
+3. **Account A**: The user has a policy that allows executing `sts:AssumeRole` on the ARN of Account B's role.
+4. The user calls `sts:AssumeRole` and receives temporary credentials.
+5. Uses those credentials to access the S3 bucket in Account B.
 
-### Credenciales temporales
+### Temporary Credentials
 
-- Incluyen: Access Key ID, Secret Access Key y **Session Token**.
-- Duración configurable (15 minutos a 12 horas según el caso).
-- No se pueden revocar individualmente, pero el rol puede tener su policy modificada.
+- Include: Access Key ID, Secret Access Key, and **Session Token**.
+- Configurable duration (15 minutes to 12 hours depending on the case).
+- Cannot be individually revoked, but the role can have its policy modified.
 
-### Federation + IAM Policy Variables (acceso per-user a S3)
+### Federation + IAM Policy Variables (per-user S3 access)
 
-Escenario típico del examen: 1000+ empleados de una empresa con AD corporativo necesitan acceso cada uno a su propia carpeta en S3, con SSO.
+Typical exam scenario: 1000+ employees of a company with corporate AD need access each to their own folder in S3, with SSO.
 
-**No creas 1000 IAM users.** Usas federation + un solo IAM Role con policy variables:
+**Don't create 1000 IAM users.** Use federation + a single IAM Role with policy variables:
 
 ```
-Empleado ──► AD corporativo (SSO)
+Employee ──► Corporate AD (SSO)
                  │
                  ▼
          Federation proxy / IdP (SAML 2.0)
                  │
                  ▼
-         STS: AssumeRoleWithSAML → credenciales temporales
+         STS: AssumeRoleWithSAML → temporary credentials
                  │
                  ▼
-         IAM Role con policy variable → acceso solo a su carpeta en S3
+         IAM Role with policy variable → access only to their folder in S3
 ```
 
-**La policy usa `${aws:userid}` que se reemplaza automáticamente** por la identidad del usuario federado:
+**The policy uses `${aws:userid}` which is automatically replaced** by the federated user's identity:
 
 ```json
 {
   "Effect": "Allow",
   "Action": ["s3:GetObject", "s3:PutObject"],
-  "Resource": "arn:aws:s3:::empresa-docs/${aws:userid}/*"
+  "Resource": "arn:aws:s3:::company-docs/${aws:userid}/*"
 }
 ```
 
-Cuando Juan se autentica, `${aws:userid}` se resuelve a `juan` → solo puede acceder a `s3://empresa-docs/juan/*`. María ve solo `maria/*`. **Un solo Role, una sola policy, miles de usuarios.**
+When John authenticates, `${aws:userid}` resolves to `john` -> can only access `s3://company-docs/john/*`. Mary sees only `mary/*`. **One Role, one policy, thousands of users.**
 
-**Variables de policy disponibles:**
+**Available policy variables:**
 
-| Variable | Se reemplaza por | Ejemplo |
+| Variable | Replaced by | Example |
 |---|---|---|
-| `${aws:userid}` | ID del usuario (o role-id:session-name en federation) | `AROA12345:juan` |
-| `${aws:username}` | Nombre del usuario IAM | `juan` |
-| `${aws:PrincipalTag/department}` | Tag de la sesión federada | `ingenieria` |
-| `${s3:prefix}` | Prefijo solicitado en la operación S3 | `home/juan/` |
+| `${aws:userid}` | User ID (or role-id:session-name in federation) | `AROA12345:john` |
+| `${aws:username}` | IAM user name | `john` |
+| `${aws:PrincipalTag/department}` | Federated session tag | `engineering` |
+| `${s3:prefix}` | Requested prefix in the S3 operation | `home/john/` |
 
-> **Tip para el examen:** Si la pregunta dice "miles de usuarios corporativos + SSO + carpeta individual en S3" → **Federation (SAML/IdP) + STS + IAM Role con policy variables**. Nunca crear un IAM user por empleado.
+> **Exam tip:** If the question says "thousands of corporate users + SSO + individual S3 folder" -> **Federation (SAML/IdP) + STS + IAM Role with policy variables**. Never create one IAM user per employee.
 
 ---
 
 ## AWS IAM Identity Center (SSO)
 
-Anteriormente llamado **AWS Single Sign-On (SSO)**, es el servicio recomendado para gestionar acceso de personas a múltiples cuentas de AWS y aplicaciones de negocio.
+Formerly called **AWS Single Sign-On (SSO)**, it is the recommended service for managing people's access to multiple AWS accounts and business applications.
 
-### Características
+### Features
 
-- **Un único punto de acceso** para todas las cuentas de la organización y apps SAML 2.0.
-- Se integra con **AWS Organizations** para gestión centralizada.
-- **Identity Sources** soportados:
+- **Single access point** for all organization accounts and SAML 2.0 apps.
+- Integrates with **AWS Organizations** for centralized management.
+- Supported **Identity Sources**:
   - Identity Center directory (built-in).
-  - Active Directory (AWS Managed AD o AD Connector).
-  - Proveedores SAML 2.0 externos (Okta, Azure AD, etc.).
-- **Permission Sets**: Colecciones de políticas que definen el acceso a una cuenta AWS.
-- Proporciona un **portal web** donde los usuarios ven todas las cuentas y roles disponibles.
+  - Active Directory (AWS Managed AD or AD Connector).
+  - External SAML 2.0 providers (Okta, Azure AD, etc.).
+- **Permission Sets**: Collections of policies that define access to an AWS account.
+- Provides a **web portal** where users see all available accounts and roles.
 
-### Flujo de acceso
+### Access Flow
 
-1. Usuario accede al portal de IAM Identity Center.
-2. Se autentica contra el Identity Source configurado.
-3. Ve las cuentas AWS y Permission Sets asignados.
-4. Selecciona cuenta + Permission Set y obtiene credenciales temporales de STS.
+1. User accesses the IAM Identity Center portal.
+2. Authenticates against the configured Identity Source.
+3. Sees the assigned AWS accounts and Permission Sets.
+4. Selects account + Permission Set and gets temporary STS credentials.
 
-> **Tip para el examen:** Si preguntan cómo dar acceso centralizado a múltiples cuentas AWS a empleados corporativos, la respuesta es **IAM Identity Center**.
+> **Exam tip:** If they ask how to give centralized access to multiple AWS accounts to corporate employees, the answer is **IAM Identity Center**.
 
 ---
 
 ## AWS KMS
 
-AWS Key Management Service (KMS) es un servicio gestionado para crear y controlar las claves de cifrado utilizadas para proteger tus datos.
+AWS Key Management Service (KMS) is a managed service for creating and controlling encryption keys used to protect your data.
 
-### Tipos de claves
+### Key Types
 
-| Tipo | Descripción | Rotación | Coste |
-|------|-------------|----------|-------|
-| **AWS Owned Keys** | AWS las gestiona internamente (SSE-S3) | Automática (varía) | Gratis |
-| **AWS Managed Keys** | AWS las crea y gestiona por ti (aws/service-name) | Automática cada ~1 año | Gratis (pero cobran por uso) |
-| **Customer Managed Keys (CMK)** | Tú las creas, gestionas y controlas | Automática (opcional, cada ~1 año) o manual | $1/mes + $0.03 por 10,000 solicitudes |
+| Type | Description | Rotation | Cost |
+|------|-------------|----------|------|
+| **AWS Owned Keys** | AWS manages them internally (SSE-S3) | Automatic (varies) | Free |
+| **AWS Managed Keys** | AWS creates and manages them for you (aws/service-name) | Automatic every ~1 year | Free (but charges for usage) |
+| **Customer Managed Keys (CMK)** | You create, manage, and control them | Automatic (optional, every ~1 year) or manual | $1/month + $0.03 per 10,000 requests |
 
-### Envelope Encryption (Cifrado de sobre)
+### Envelope Encryption
 
-KMS puede cifrar datos de hasta **4 KB** directamente. Para datos más grandes, se usa **envelope encryption**:
+KMS can encrypt data up to **4 KB** directly. For larger data, **envelope encryption** is used:
 
-1. Llamas a KMS `GenerateDataKey` API.
-2. KMS devuelve una **Data Key en texto plano** + una **copia cifrada** de la Data Key.
-3. Usas la Data Key en texto plano para cifrar tus datos (client-side).
-4. Almacenas la Data Key cifrada junto con los datos cifrados.
-5. Descartas la Data Key en texto plano de memoria.
-6. Para descifrar: envías la Data Key cifrada a KMS (`Decrypt`), recibes la Data Key en texto plano y descifras los datos.
+1. Call the KMS `GenerateDataKey` API.
+2. KMS returns a **plaintext Data Key** + an **encrypted copy** of the Data Key.
+3. Use the plaintext Data Key to encrypt your data (client-side).
+4. Store the encrypted Data Key alongside the encrypted data.
+5. Discard the plaintext Data Key from memory.
+6. To decrypt: send the encrypted Data Key to KMS (`Decrypt`), receive the plaintext Data Key, and decrypt the data.
 
-> **Por qué envelope encryption?** Evita enviar grandes volúmenes de datos a KMS (límite 4 KB). Solo envías la clave, no los datos.
+> **Why envelope encryption?** Avoids sending large volumes of data to KMS (4 KB limit). You only send the key, not the data.
 
 ### Key Policies
 
-- Toda CMK **debe** tener una key policy (no hay default global).
-- La **default key policy** permite a la cuenta root (y por ende a los usuarios IAM con permisos) gestionar la clave.
-- Puedes crear **custom key policies** para definir quién puede administrar y quién puede usar la clave.
-- Se combinan con IAM policies para controlar acceso a la clave.
+- Every CMK **must** have a key policy (there is no global default).
+- The **default key policy** allows the account root (and thus IAM users with permissions) to manage the key.
+- You can create **custom key policies** to define who can administer and who can use the key.
+- Combined with IAM policies to control key access.
 
 ### Key Rotation
 
-| Tipo de clave | Rotación automática | Periodo |
-|--------------|-------------------|---------|
-| AWS Managed Key | Obligatoria | Cada ~1 año |
-| Customer Managed Key (simétrica) | Opcional (habilitada manualmente) | Cada ~1 año |
-| Customer Managed Key (asimétrica) | No soportada | Manual |
-| Imported Key Material | No soportada | Manual |
+| Key Type | Automatic Rotation | Period |
+|----------|-------------------|--------|
+| AWS Managed Key | Mandatory | Every ~1 year |
+| Customer Managed Key (symmetric) | Optional (manually enabled) | Every ~1 year |
+| Customer Managed Key (asymmetric) | Not supported | Manual |
+| Imported Key Material | Not supported | Manual |
 
-- Cuando se rota automáticamente, KMS mantiene las versiones antiguas de la clave para descifrar datos anteriores.
-- El Key ID no cambia al rotar automáticamente.
-- La rotación manual crea una nueva clave y requiere actualizar alias.
+- When automatically rotated, KMS keeps old versions of the key to decrypt previous data.
+- The Key ID does not change during automatic rotation.
+- Manual rotation creates a new key and requires updating aliases.
 
 ### Multi-Region Keys
 
-- Réplicas de una clave KMS en múltiples regiones.
-- Mismo material de clave (key material) en todas las réplicas.
-- Datos cifrados en una región pueden descifrarse en otra.
-- Caso de uso: cifrado client-side de datos que se replican entre regiones (DynamoDB Global Tables, Aurora Global).
+- Replicas of a KMS key in multiple regions.
+- Same key material in all replicas.
+- Data encrypted in one region can be decrypted in another.
+- Use case: client-side encryption of data replicated between regions (DynamoDB Global Tables, Aurora Global).
 
 ---
 
 ## Secrets Manager vs Parameter Store
 
-| Característica | AWS Secrets Manager | AWS Systems Manager Parameter Store |
-|---------------|--------------------|------------------------------------|
-| **Propósito principal** | Gestión de secretos (credenciales BD, API keys) | Almacén de configuración y secretos |
-| **Rotación automática** | Sí (integración nativa con Lambda para RDS, Redshift, DocumentDB) | No (puedes implementarla tú con Lambda + EventBridge) |
-| **Cifrado** | Siempre cifrado con KMS | Opcional (SecureString usa KMS) |
-| **Versionado** | Sí | Sí |
-| **Cross-account access** | Sí (via resource-based policy) | No directamente (necesitas capa adicional) |
-| **Tipos de datos** | Texto/binario | String, StringList, SecureString |
-| **Jerarquía** | No | Sí (paths: /dev/db/password) |
-| **Coste** | $0.40 por secreto/mes + $0.05 por 10,000 llamadas API | Gratis (Standard) o $0.05 por parámetro avanzado/mes |
-| **Tamaño máximo** | 64 KB | 4 KB (Standard) o 8 KB (Advanced) |
-| **Throughput** | Alto (sin límite práctico) | Standard: 40 TPS / Advanced: hasta 10,000 TPS |
-| **Integración con CloudFormation** | Sí (dynamic reference) | Sí (dynamic reference) |
+| Feature | AWS Secrets Manager | AWS Systems Manager Parameter Store |
+|---------|--------------------|------------------------------------|
+| **Primary purpose** | Secrets management (DB credentials, API keys) | Configuration and secrets store |
+| **Automatic rotation** | Yes (native integration with Lambda for RDS, Redshift, DocumentDB) | No (you can implement it yourself with Lambda + EventBridge) |
+| **Encryption** | Always encrypted with KMS | Optional (SecureString uses KMS) |
+| **Versioning** | Yes | Yes |
+| **Cross-account access** | Yes (via resource-based policy) | Not directly (needs additional layer) |
+| **Data types** | Text/binary | String, StringList, SecureString |
+| **Hierarchy** | No | Yes (paths: /dev/db/password) |
+| **Cost** | $0.40 per secret/month + $0.05 per 10,000 API calls | Free (Standard) or $0.05 per advanced parameter/month |
+| **Maximum size** | 64 KB | 4 KB (Standard) or 8 KB (Advanced) |
+| **Throughput** | High (no practical limit) | Standard: 40 TPS / Advanced: up to 10,000 TPS |
+| **CloudFormation integration** | Yes (dynamic reference) | Yes (dynamic reference) |
 
-> **Tip para el examen:** Si la pregunta menciona **rotación automática de credenciales de base de datos**, la respuesta es **Secrets Manager**. Si es solo almacenamiento de configuración, Parameter Store es más económico.
+> **Exam tip:** If the question mentions **automatic rotation of database credentials**, the answer is **Secrets Manager**. If it's just configuration storage, Parameter Store is more cost-effective.
 
 ---
 
 ## AWS CloudHSM
 
-CloudHSM proporciona módulos de seguridad de hardware (HSM) dedicados en la nube de AWS.
+CloudHSM provides dedicated hardware security modules (HSM) in the AWS cloud.
 
 ### CloudHSM vs KMS
 
-| Característica | KMS | CloudHSM |
-|---------------|-----|----------|
-| **Tipo de HSM** | Multi-tenant (compartido) | Single-tenant (dedicado) |
-| **Gestión de claves** | AWS gestiona el hardware y el software | Tú gestionas las claves; AWS gestiona el hardware |
-| **Estándar criptográfico** | FIPS 140-2 Level 2 (algunos Level 3) | FIPS 140-2 Level 3 |
-| **Disponibilidad** | Altamente disponible por defecto | Debes desplegar en múltiples AZs manualmente |
-| **Integración AWS** | Integración nativa con casi todos los servicios | Integración limitada; funciona como custom key store para KMS |
-| **Precio** | Pago por uso | ~$1.50/hora por HSM (mínimo 2 para HA) |
-| **Acceso** | Via API de KMS | Tú controlas las claves; AWS no puede acceder |
-| **Algoritmos** | Simétricos y asimétricos | Simétricos, asimétricos y hashing |
-| **Casos de uso** | Cifrado general, integración servicios AWS | Compliance regulatorio estricto (FIPS 140-2 L3), SSL/TLS offloading, PKI |
+| Feature | KMS | CloudHSM |
+|---------|-----|----------|
+| **HSM type** | Multi-tenant (shared) | Single-tenant (dedicated) |
+| **Key management** | AWS manages the hardware and software | You manage the keys; AWS manages the hardware |
+| **Cryptographic standard** | FIPS 140-2 Level 2 (some Level 3) | FIPS 140-2 Level 3 |
+| **Availability** | Highly available by default | You must deploy in multiple AZs manually |
+| **AWS integration** | Native integration with almost all services | Limited integration; works as custom key store for KMS |
+| **Price** | Pay per use | ~$1.50/hour per HSM (minimum 2 for HA) |
+| **Access** | Via KMS API | You control the keys; AWS cannot access |
+| **Algorithms** | Symmetric and asymmetric | Symmetric, asymmetric, and hashing |
+| **Use cases** | General encryption, AWS service integration | Strict regulatory compliance (FIPS 140-2 L3), SSL/TLS offloading, PKI |
 
 ### Custom Key Store (KMS + CloudHSM)
 
-Un custom key store conecta KMS con tu CloudHSM cluster. Obtienes **lo mejor de ambos mundos**:
+A custom key store connects KMS with your CloudHSM cluster. You get the **best of both worlds**:
 
-- **De KMS**: integración nativa con servicios AWS (S3, EBS, RDS, etc.).
-- **De CloudHSM**: control total sobre el hardware donde vive el material de clave.
+- **From KMS**: native integration with AWS services (S3, EBS, RDS, etc.).
+- **From CloudHSM**: full control over the hardware where the key material resides.
 
 ```
-Sin custom key store:                    Con custom key store:
-App → KMS → HSM compartido de AWS        App → KMS → Tu CloudHSM dedicado
-(fácil pero sin control total)           (fácil + control total)
+Without custom key store:                 With custom key store:
+App → KMS → AWS shared HSM               App → KMS → Your dedicated CloudHSM
+(easy but no full control)                (easy + full control)
 ```
 
-**Capacidades exclusivas del custom key store:**
-- **Eliminar material de clave inmediatamente** de AWS (imposible con claves KMS normales, que tienen periodo de espera de 7-30 días).
-- **Auditar uso de claves en los logs de CloudHSM**, independientemente de CloudTrail.
-- El material de clave es **non-extractable**: nunca sale del HSM en texto plano.
+**Exclusive custom key store capabilities:**
+- **Immediately delete key material** from AWS (impossible with normal KMS keys, which have a 7-30 day waiting period).
+- **Audit key usage in CloudHSM logs**, independently of CloudTrail.
+- Key material is **non-extractable**: it never leaves the HSM in plaintext.
 
-### Tipos de KMS Keys (para el examen)
+### Types of KMS Keys (for the exam)
 
-| Tipo | Quién la controla | Rotación | Puedes borrarla | Ejemplo |
+| Type | Who controls it | Rotation | Can you delete it | Example |
 |---|---|---|---|---|
-| **AWS Owned Key** | AWS completamente | AWS decide | No | Cifrado por defecto de S3 (SSE-S3) |
-| **AWS Managed Key** | AWS la gestiona, tú la usas | Automática (~1 año) | No | `aws/s3`, `aws/ebs`, `aws/rds` |
-| **Customer Managed Key** | Tú la controlas | Opcional | Sí (7-30 días espera) | Claves que tú creas en KMS |
-| **Customer Managed Key en Custom Key Store** | Tú la controlas + control del HSM | Opcional | Sí (inmediato, borrando del HSM) | Claves en KMS respaldadas por CloudHSM |
+| **AWS Owned Key** | AWS completely | AWS decides | No | Default S3 encryption (SSE-S3) |
+| **AWS Managed Key** | AWS manages it, you use it | Automatic (~1 year) | No | `aws/s3`, `aws/ebs`, `aws/rds` |
+| **Customer Managed Key** | You control it | Optional | Yes (7-30 day wait) | Keys you create in KMS |
+| **Customer Managed Key in Custom Key Store** | You control it + HSM control | Optional | Yes (immediate, deleting from HSM) | KMS keys backed by CloudHSM |
 
-> **Tip para el examen:**
-> - **FIPS 140-2 Level 3** o **single-tenant HSM** o **control total de las claves** → **CloudHSM**.
-> - **Integración fácil con servicios AWS + control total + eliminar material inmediatamente** → **KMS con custom key store (CloudHSM)**.
-> - **Auditar uso de claves independientemente de CloudTrail** → **Custom key store** (los logs de CloudHSM son independientes).
+> **Exam tip:**
+> - **FIPS 140-2 Level 3** or **single-tenant HSM** or **full key control** -> **CloudHSM**.
+> - **Easy integration with AWS services + full control + immediately delete material** -> **KMS with custom key store (CloudHSM)**.
+> - **Audit key usage independently of CloudTrail** -> **Custom key store** (CloudHSM logs are independent).
 
 ---
 
-## AWS WAF, Shield y Shield Advanced
+## AWS WAF, Shield and Shield Advanced
 
 ### AWS WAF (Web Application Firewall)
 
-- Protege aplicaciones web contra exploits web comunes (capa 7).
-- Se despliega en: **ALB, API Gateway, CloudFront, AppSync, Cognito User Pool**.
-- Define **Web ACLs** con reglas que permiten, bloquean o cuentan solicitudes.
-- Puede filtrar basado en:
+- Protects web applications against common web exploits (Layer 7).
+- Deployed on: **ALB, API Gateway, CloudFront, AppSync, Cognito User Pool**.
+- Defines **Web ACLs** with rules that allow, block, or count requests.
+- Can filter based on:
   - **IP addresses** (IP sets).
-  - **País de origen** (geo-match).
-  - **Tamaño de la solicitud**.
-  - **Strings/regex** en headers, body, URI.
-  - **SQL injection** y **Cross-Site Scripting (XSS)** detection.
-  - **Rate-based rules** para protección contra DDoS a nivel de aplicación.
-- **AWS Managed Rules**: Conjuntos de reglas pre-configuradas mantenidas por AWS o marketplace.
+  - **Country of origin** (geo-match).
+  - **Request size**.
+  - **Strings/regex** in headers, body, URI.
+  - **SQL injection** and **Cross-Site Scripting (XSS)** detection.
+  - **Rate-based rules** for application-level DDoS protection.
+- **AWS Managed Rules**: Pre-configured rule sets maintained by AWS or marketplace.
 
 ### AWS Shield
 
-| Característica | Shield Standard | Shield Advanced |
-|---------------|----------------|-----------------|
-| **Coste** | Gratis (incluido automáticamente) | $3,000/mes por organización + costes de uso |
-| **Protección** | Ataques DDoS capa 3/4 comunes | Ataques DDoS sofisticados capa 3/4/7 |
-| **Protege** | Todos los recursos AWS automáticamente | EC2, ELB, CloudFront, Global Accelerator, Route 53 |
-| **Visibilidad** | Básica | Diagnósticos en tiempo real, métricas detalladas |
-| **DDoS Response Team (DRT)** | No | Sí, 24/7 |
-| **Protección de costes** | No | Sí (créditos por escalado DDoS involuntario) |
-| **WAF incluido** | No | Sí (WAF sin coste adicional para recursos protegidos) |
+| Feature | Shield Standard | Shield Advanced |
+|---------|----------------|-----------------|
+| **Cost** | Free (automatically included) | $3,000/month per organization + usage costs |
+| **Protection** | Common Layer 3/4 DDoS attacks | Sophisticated Layer 3/4/7 DDoS attacks |
+| **Protects** | All AWS resources automatically | EC2, ELB, CloudFront, Global Accelerator, Route 53 |
+| **Visibility** | Basic | Real-time diagnostics, detailed metrics |
+| **DDoS Response Team (DRT)** | No | Yes, 24/7 |
+| **Cost protection** | No | Yes (credits for involuntary DDoS scaling) |
+| **WAF included** | No | Yes (WAF at no additional cost for protected resources) |
 
-### Arquitectura de protección típica
+### Typical Protection Architecture
 
 ```
 Internet -> CloudFront (Shield + WAF) -> ALB (Shield + WAF) -> EC2 (Security Groups)
@@ -610,147 +610,147 @@ Internet -> CloudFront (Shield + WAF) -> ALB (Shield + WAF) -> EC2 (Security Gro
 
 ## Amazon Cognito
 
-Amazon Cognito proporciona autenticación, autorización y gestión de usuarios para aplicaciones web y móviles.
+Amazon Cognito provides authentication, authorization, and user management for web and mobile applications.
 
 ### User Pools vs Identity Pools
 
-| Característica | Cognito User Pools | Cognito Identity Pools |
-|---------------|-------------------|----------------------|
-| **Propósito** | Autenticación (sign-up, sign-in) | Autorización (acceso a servicios AWS) |
-| **Output** | JSON Web Tokens (JWT) | Credenciales temporales de AWS (STS) |
-| **Funcionalidad** | Directorio de usuarios, login social, MFA, password recovery | Federar identidades y mapearlas a IAM roles |
-| **Proveedores de identidad** | Local users, Google, Facebook, Apple, SAML, OIDC | Cognito User Pools, Google, Facebook, SAML, OIDC, custom |
-| **Caso de uso** | Login para tu aplicación web/móvil | Dar acceso directo a servicios AWS (S3, DynamoDB) desde el cliente |
-| **Integración con ALB** | Sí (autenticación en ALB) | No directamente |
-| **Guest access** | No | Sí (usuarios no autenticados pueden tener un rol IAM limitado) |
+| Feature | Cognito User Pools | Cognito Identity Pools |
+|---------|-------------------|----------------------|
+| **Purpose** | Authentication (sign-up, sign-in) | Authorization (access to AWS services) |
+| **Output** | JSON Web Tokens (JWT) | Temporary AWS credentials (STS) |
+| **Functionality** | User directory, social login, MFA, password recovery | Federate identities and map them to IAM roles |
+| **Identity providers** | Local users, Google, Facebook, Apple, SAML, OIDC | Cognito User Pools, Google, Facebook, SAML, OIDC, custom |
+| **Use case** | Login for your web/mobile application | Give direct access to AWS services (S3, DynamoDB) from the client |
+| **ALB integration** | Yes (authentication on ALB) | Not directly |
+| **Guest access** | No | Yes (unauthenticated users can have a limited IAM role) |
 
-### Flujo combinado típico
+### Typical Combined Flow
 
-1. El usuario se autentica con **User Pool** y recibe un **JWT token**.
-2. El JWT se intercambia con **Identity Pool** por **credenciales temporales de AWS**.
-3. Con esas credenciales, el cliente accede directamente a servicios AWS (S3, API Gateway, etc.).
+1. The user authenticates with the **User Pool** and receives a **JWT token**.
+2. The JWT is exchanged with the **Identity Pool** for **temporary AWS credentials**.
+3. With those credentials, the client accesses AWS services directly (S3, API Gateway, etc.).
 
-> **Tip para el examen:** User Pools = autenticación (quién eres). Identity Pools = autorización (qué puedes hacer en AWS). Muchas preguntas intentan confundirte entre ambos.
+> **Exam tip:** User Pools = authentication (who you are). Identity Pools = authorization (what you can do in AWS). Many questions try to confuse you between the two.
 
 ---
 
 ## AWS Directory Service (Active Directory)
 
-### Qué es Active Directory
+### What is Active Directory
 
-**Active Directory (AD)** es el sistema de Microsoft para gestionar identidades en una organización. Es la "base de datos de empleados" que controla autenticación (quién eres) y autorización (a qué tienes acceso) en entornos Windows.
+**Active Directory (AD)** is Microsoft's system for managing identities in an organization. It's the "employee database" that controls authentication (who you are) and authorization (what you have access to) in Windows environments.
 
 ```
-Active Directory (on-premises típico)
-├── Usuarios: juan@empresa.com, maria@empresa.com
-├── Grupos: Ingeniería, RRHH, Finanzas
-├── Permisos: Ingeniería → acceso a \\servidor\codigo
-│             RRHH → acceso a \\servidor\nominas
-└── Políticas: Contraseña mínimo 12 caracteres, bloqueo tras 3 intentos
+Active Directory (typical on-premises)
+├── Users: john@company.com, mary@company.com
+├── Groups: Engineering, HR, Finance
+├── Permissions: Engineering → access to \\server\code
+│                HR → access to \\server\payroll
+└── Policies: Password minimum 12 characters, lockout after 3 attempts
 ```
 
-Cuando un empleado hace login en su PC Windows, el PC consulta al AD: "¿existe este usuario y es correcta su contraseña?". Una vez autenticado, AD determina a qué carpetas compartidas, aplicaciones e impresoras tiene acceso.
+When an employee logs into their Windows PC, the PC queries AD: "does this user exist and is the password correct?". Once authenticated, AD determines which shared folders, applications, and printers the user has access to.
 
 ### AWS Directory Service
 
-Las empresas que migran a AWS no quieren recrear miles de usuarios en IAM. AWS Directory Service ofrece tres formas de usar Active Directory en la nube:
+Companies migrating to AWS don't want to recreate thousands of users in IAM. AWS Directory Service offers three ways to use Active Directory in the cloud:
 
-| Tipo | Qué es | AD on-premises? | Caso de uso |
+| Type | What it is | AD on-premises? | Use Case |
 |---|---|---|---|
-| **AWS Managed Microsoft AD** | AD completo gestionado por AWS. Soporta trust bidireccional con AD on-premises | Opcional (funciona standalone o conectado) | FSx for Windows, RDS SQL Server, WorkSpaces, SSO, entornos híbridos |
-| **AD Connector** | Proxy que redirige todas las peticiones al AD on-premises. No almacena datos en AWS | **Requerido** (sin AD on-premises no funciona) | Empresas que quieren usar su AD existente sin replicar datos en AWS |
-| **Simple AD** | AD básico standalone basado en Samba. Sin conexión a AD on-premises | No soportado | Empresas pequeñas sin AD existente que necesitan funcionalidad AD básica |
+| **AWS Managed Microsoft AD** | Full AD managed by AWS. Supports bidirectional trust with on-premises AD | Optional (works standalone or connected) | FSx for Windows, RDS SQL Server, WorkSpaces, SSO, hybrid environments |
+| **AD Connector** | Proxy that redirects all requests to on-premises AD. Does not store data in AWS | **Required** (without on-premises AD it doesn't work) | Companies that want to use their existing AD without replicating data in AWS |
+| **Simple AD** | Basic standalone AD based on Samba. No connection to on-premises AD | Not supported | Small companies without existing AD that need basic AD functionality |
 
 ```
 AWS Managed Microsoft AD:
-  Usuarios AWS  ──►  AWS Managed AD  ◄──  trust  ──►  AD on-premises
-                     (AD completo)                     (usuarios corporativos)
-                     Usuarios de ambos lados se ven mutuamente
+  AWS Users  ──►  AWS Managed AD  ◄──  trust  ──►  AD on-premises
+                  (full AD)                        (corporate users)
+                  Users from both sides see each other
 
 AD Connector:
-  Usuarios AWS  ──►  AD Connector  ──────────────────►  AD on-premises
-                     (solo proxy)                        (todo vive aquí)
+  AWS Users  ──►  AD Connector  ──────────────────►  AD on-premises
+                  (proxy only)                        (everything lives here)
 
 Simple AD:
-  Usuarios AWS  ──►  Simple AD
-                     (standalone, básico)
+  AWS Users  ──►  Simple AD
+                  (standalone, basic)
 ```
 
-### Integración con servicios AWS
+### Integration with AWS Services
 
-| Servicio | Cómo usa AD |
+| Service | How it uses AD |
 |---|---|
-| **FSx for Windows File Server** | Se "une" (join) al dominio AD. Los usuarios acceden con sus credenciales de empresa |
-| **RDS for SQL Server** | Autenticación Windows integrada via Managed AD |
-| **Amazon WorkSpaces** | Escritorios virtuales con login de AD corporativo |
-| **IAM Identity Center (SSO)** | Login único con credenciales de AD para la consola AWS y apps |
-| **Amazon EC2 Windows** | Las instancias pueden unirse al dominio AD |
+| **FSx for Windows File Server** | "Joins" the AD domain. Users access with their corporate credentials |
+| **RDS for SQL Server** | Windows integrated authentication via Managed AD |
+| **Amazon WorkSpaces** | Virtual desktops with corporate AD login |
+| **IAM Identity Center (SSO)** | Single sign-on with AD credentials for the AWS console and apps |
+| **Amazon EC2 Windows** | Instances can join the AD domain |
 
-> **Tip para el examen:**
-> - "SharePoint / Windows file share + Active Directory en AWS" → **FSx for Windows File Server + AWS Managed Microsoft AD** (no EFS, que es solo Linux).
-> - "Usar AD on-premises existente sin almacenar datos de directorio en AWS" → **AD Connector**.
-> - "AD gestionado en la nube con trust a on-premises" → **AWS Managed Microsoft AD**.
-> - "AD básico sin conexión on-premises, presupuesto bajo" → **Simple AD**.
+> **Exam tip:**
+> - "SharePoint / Windows file share + Active Directory in AWS" -> **FSx for Windows File Server + AWS Managed Microsoft AD** (not EFS, which is Linux only).
+> - "Use existing on-premises AD without storing directory data in AWS" -> **AD Connector**.
+> - "Cloud-managed AD with trust to on-premises" -> **AWS Managed Microsoft AD**.
+> - "Basic AD without on-premises connection, low budget" -> **Simple AD**.
 
 ---
 
-## Servicios de Detección y Seguridad
+## Detection and Security Services
 
 ### Amazon GuardDuty
 
-- **Detección inteligente de amenazas** usando ML, anomalías y threat intelligence.
-- Analiza: **VPC Flow Logs, CloudTrail Logs, DNS Logs, EKS Audit Logs, S3 Data Events**.
-- No necesitas habilitar Flow Logs o CloudTrail manualmente; GuardDuty los analiza independientemente.
-- Genera **findings** clasificados por severidad.
-- Puede activar notificaciones via **EventBridge** y remediar automáticamente con Lambda.
-- **Delegated Administrator**: En Organizations, una cuenta miembro puede administrar GuardDuty para toda la organización.
+- **Intelligent threat detection** using ML, anomalies, and threat intelligence.
+- Analyzes: **VPC Flow Logs, CloudTrail Logs, DNS Logs, EKS Audit Logs, S3 Data Events**.
+- You don't need to enable Flow Logs or CloudTrail manually; GuardDuty analyzes them independently.
+- Generates **findings** classified by severity.
+- Can trigger notifications via **EventBridge** and remediate automatically with Lambda.
+- **Delegated Administrator**: In Organizations, a member account can administer GuardDuty for the entire organization.
 
 ### Amazon Inspector
 
-- **Evaluación automática de vulnerabilidades** en:
-  - **EC2 instances**: Vulnerabilidades de red y del SO (necesita SSM Agent).
-  - **Container images en ECR**: Vulnerabilidades en imágenes Docker.
-  - **Lambda functions**: Vulnerabilidades en código y dependencias.
-- Genera un **risk score** para priorizar remediaciones.
-- Se ejecuta automáticamente cuando se detectan cambios (nuevo deploy, nueva CVE publicada).
+- **Automatic vulnerability assessment** in:
+  - **EC2 instances**: Network and OS vulnerabilities (requires SSM Agent).
+  - **Container images in ECR**: Vulnerabilities in Docker images.
+  - **Lambda functions**: Vulnerabilities in code and dependencies.
+- Generates a **risk score** to prioritize remediations.
+- Runs automatically when changes are detected (new deploy, new CVE published).
 
 ### Amazon Macie
 
-- Usa ML y pattern matching para **descubrir y proteger datos sensibles en S3**.
-- Detecta: PII (Personally Identifiable Information), datos financieros, credenciales, etc.
-- Genera **findings** cuando se detecta información sensible.
-- Se integra con EventBridge para automatizar remediaciones.
+- Uses ML and pattern matching to **discover and protect sensitive data in S3**.
+- Detects: PII (Personally Identifiable Information), financial data, credentials, etc.
+- Generates **findings** when sensitive information is detected.
+- Integrates with EventBridge to automate remediations.
 
 ### Amazon Detective
 
-- **Investiga y analiza** la causa raíz de hallazgos de seguridad.
-- Ingiere datos de **GuardDuty, VPC Flow Logs, CloudTrail, EKS**.
-- Crea **visualizaciones gráficas** para entender relaciones entre recursos y actividades.
-- No detecta amenazas (eso lo hace GuardDuty); solo ayuda a **investigarlas**.
+- **Investigates and analyzes** the root cause of security findings.
+- Ingests data from **GuardDuty, VPC Flow Logs, CloudTrail, EKS**.
+- Creates **graphical visualizations** to understand relationships between resources and activities.
+- Does not detect threats (that's what GuardDuty does); it only helps **investigate them**.
 
-### Resumen de servicios de seguridad
+### Security Services Summary
 
-| Servicio | Función principal |
-|----------|------------------|
-| **GuardDuty** | Detección de amenazas (ML + threat intelligence) |
-| **Inspector** | Evaluación de vulnerabilidades (EC2, ECR, Lambda) |
-| **Macie** | Descubrimiento de datos sensibles en S3 |
-| **Detective** | Investigación de causa raíz de hallazgos de seguridad |
-| **Security Hub** | Panel centralizado que agrega findings de todos los anteriores |
+| Service | Primary Function |
+|---------|-----------------|
+| **GuardDuty** | Threat detection (ML + threat intelligence) |
+| **Inspector** | Vulnerability assessment (EC2, ECR, Lambda) |
+| **Macie** | Sensitive data discovery in S3 |
+| **Detective** | Root cause investigation of security findings |
+| **Security Hub** | Centralized panel that aggregates findings from all the above |
 
 ---
 
 ## AWS Certificate Manager (ACM)
 
-- Servicio para **aprovisionar, gestionar y desplegar certificados SSL/TLS** públicos y privados.
-- Los certificados públicos emitidos por ACM son **gratuitos**.
-- **Renovación automática** de certificados emitidos por ACM.
-- Se integra con: **ELB (ALB/NLB), CloudFront, API Gateway, Elastic Beanstalk**.
-- **No se puede usar directamente con EC2** (debes configurar SSL/TLS manualmente en la instancia).
-- Los certificados de ACM son **regionales**. Para usarlos con CloudFront, deben estar en **us-east-1**.
-- Puedes importar certificados externos (pero pierdes la renovación automática).
+- Service for **provisioning, managing, and deploying SSL/TLS certificates** both public and private.
+- Public certificates issued by ACM are **free**.
+- **Automatic renewal** of certificates issued by ACM.
+- Integrates with: **ELB (ALB/NLB), CloudFront, API Gateway, Elastic Beanstalk**.
+- **Cannot be used directly with EC2** (you must configure SSL/TLS manually on the instance).
+- ACM certificates are **regional**. To use them with CloudFront, they must be in **us-east-1**.
+- You can import external certificates (but you lose automatic renewal).
 
-> **Tip para el examen:** Si necesitas SSL/TLS para ALB o CloudFront, usa ACM (gratis y renovación automática). Si la pregunta dice "certificado en us-east-1 para CloudFront", es comportamiento normal de ACM.
+> **Exam tip:** If you need SSL/TLS for ALB or CloudFront, use ACM (free and automatic renewal). If the question says "certificate in us-east-1 for CloudFront", that's normal ACM behavior.
 
 ---
 
@@ -758,74 +758,74 @@ Simple AD:
 
 ### IAM
 
-- Las **IAM policies** se evalúan como: Explicit Deny > Explicit Allow > Implicit Deny.
-- La cuenta **root** no puede ser restringida por IAM policies, pero sí por **SCPs** de Organizations (excepto la Management Account).
-- Las **access keys** son para acceso programático; usuario/contraseña para la consola.
-- **Roles** son la forma recomendada de dar permisos a servicios AWS (no access keys).
-- **Permission Boundaries** limitan el máximo de permisos, no otorgan permisos.
-- **"Miles de usuarios corporativos + SSO + carpeta per-user en S3"** → Federation + STS + IAM Role con policy variables (`${aws:userid}`). Nunca crear un IAM user por empleado.
+- **IAM policies** are evaluated as: Explicit Deny > Explicit Allow > Implicit Deny.
+- The **root** account cannot be restricted by IAM policies, but it can be by **SCPs** from Organizations (except the Management Account).
+- **Access keys** are for programmatic access; username/password for the console.
+- **Roles** are the recommended way to grant permissions to AWS services (not access keys).
+- **Permission Boundaries** limit the maximum permissions, they do not grant permissions.
+- **"Thousands of corporate users + SSO + per-user S3 folder"** -> Federation + STS + IAM Role with policy variables (`${aws:userid}`). Never create one IAM user per employee.
 
-### Organizations y SCPs
+### Organizations and SCPs
 
-- SCPs no aplican a la **Management Account**.
-- SCPs no aplican a **service-linked roles**.
-- SCPs afectan a **todos los usuarios y roles** de la cuenta, incluido el root de la cuenta member.
+- SCPs do not apply to the **Management Account**.
+- SCPs do not apply to **service-linked roles**.
+- SCPs affect **all users and roles** in the account, including the member account root user.
 
 ### Control Tower
 
-- **"Configurar entorno multi-cuenta con best practices"** → Control Tower.
-- **"Landing Zone"** → Control Tower.
-- **"Account Factory"** → Control Tower (provisión automatizada de cuentas).
-- **Guardrails preventivos** = SCPs. **Guardrails detectivos** = Config Rules.
-- Control Tower usa Organizations bajo el capó, pero automatiza toda la configuración.
+- **"Set up multi-account environment with best practices"** -> Control Tower.
+- **"Landing Zone"** -> Control Tower.
+- **"Account Factory"** -> Control Tower (automated account provisioning).
+- **Preventive guardrails** = SCPs. **Detective guardrails** = Config Rules.
+- Control Tower uses Organizations under the hood but automates all configuration.
 
 ### RAM (Resource Access Manager)
 
-- **"Compartir subnets entre cuentas"** → RAM.
-- **"Compartir Transit Gateway entre cuentas"** → RAM.
-- No confundir con cross-account roles (STS AssumeRole) que es para acceso a APIs.
-- En Organizations, RAM comparte sin invitaciones. Fuera, requiere aceptar invitación.
+- **"Share subnets between accounts"** -> RAM.
+- **"Share Transit Gateway between accounts"** -> RAM.
+- Don't confuse with cross-account roles (STS AssumeRole) which is for API access.
+- In Organizations, RAM shares without invitations. Outside, requires accepting an invitation.
 
-### Cifrado
+### Encryption
 
-- **KMS** para la mayoría de escenarios de cifrado. Multi-tenant.
-- **CloudHSM** cuando necesitas FIPS 140-2 Level 3 o control total de claves.
-- **Envelope encryption** para datos mayores a 4 KB.
-- **Multi-Region Keys** para descifrar datos replicados entre regiones.
-- SSE-S3 usa **AWS Owned Keys**. SSE-KMS usa **AWS Managed** o **Customer Managed Keys**. SSE-C = el cliente proporciona la clave.
+- **KMS** for most encryption scenarios. Multi-tenant.
+- **CloudHSM** when you need FIPS 140-2 Level 3 or full key control.
+- **Envelope encryption** for data larger than 4 KB.
+- **Multi-Region Keys** to decrypt data replicated between regions.
+- SSE-S3 uses **AWS Owned Keys**. SSE-KMS uses **AWS Managed** or **Customer Managed Keys**. SSE-C = the customer provides the key.
 
-### Secrets y Configuración
+### Secrets and Configuration
 
-- **Secrets Manager** = rotación automática de credenciales de BD. Más caro.
-- **Parameter Store** = configuración general y secretos simples. Más barato. Jerarquía con paths.
+- **Secrets Manager** = automatic rotation of DB credentials. More expensive.
+- **Parameter Store** = general configuration and simple secrets. Cheaper. Hierarchy with paths.
 
-### Protección Web
+### Web Protection
 
-- **WAF** = capa 7 (HTTP/HTTPS). Reglas contra SQL injection, XSS, rate limiting.
-- **Shield Standard** = gratis, DDoS capa 3/4 básico.
-- **Shield Advanced** = DDoS avanzado + DRT + protección de costes.
-- WAF se despliega en ALB, CloudFront, API Gateway (no en NLB ni EC2 directamente).
+- **WAF** = Layer 7 (HTTP/HTTPS). Rules against SQL injection, XSS, rate limiting.
+- **Shield Standard** = free, basic Layer 3/4 DDoS.
+- **Shield Advanced** = advanced DDoS + DRT + cost protection.
+- WAF deploys on ALB, CloudFront, API Gateway (not on NLB or EC2 directly).
 
 ### Cognito
 
-- **User Pools** = autenticación (JWT).
-- **Identity Pools** = credenciales temporales de AWS.
-- Para dar acceso directo a S3 desde una app móvil: User Pool + Identity Pool.
-- ALB puede autenticar contra Cognito User Pools o proveedores OIDC.
+- **User Pools** = authentication (JWT).
+- **Identity Pools** = temporary AWS credentials.
+- To give direct S3 access from a mobile app: User Pool + Identity Pool.
+- ALB can authenticate against Cognito User Pools or OIDC providers.
 
 ### Active Directory
 
-- **"Migrar Windows workloads con Active Directory"** → AWS Managed Microsoft AD (+ FSx for Windows para file shares).
-- **"Usar AD on-premises sin replicar en AWS"** → AD Connector.
-- **"Windows file share + AD"** → FSx for Windows (no EFS). EFS = solo Linux/NFS.
-- **AWS Managed AD** soporta trust bidireccional con AD on-premises. AD Connector solo redirige.
+- **"Migrate Windows workloads with Active Directory"** -> AWS Managed Microsoft AD (+ FSx for Windows for file shares).
+- **"Use existing on-premises AD without replicating in AWS"** -> AD Connector.
+- **"Windows file share + AD"** -> FSx for Windows (not EFS). EFS = Linux/NFS only.
+- **AWS Managed AD** supports bidirectional trust with on-premises AD. AD Connector only redirects.
 
-### Detección
+### Detection
 
-- **GuardDuty** detecta amenazas analizando logs.
-- **Inspector** escanea vulnerabilidades en EC2, ECR y Lambda.
-- **Macie** detecta datos sensibles (PII) en S3.
-- **Detective** investiga hallazgos de seguridad (no detecta).
-- Si preguntan "descubrir datos sensibles en S3" -> Macie.
-- Si preguntan "detectar comportamiento sospechoso o amenazas" -> GuardDuty.
-- Si preguntan "escanear vulnerabilidades de software" -> Inspector.
+- **GuardDuty** detects threats by analyzing logs.
+- **Inspector** scans vulnerabilities in EC2, ECR, and Lambda.
+- **Macie** detects sensitive data (PII) in S3.
+- **Detective** investigates security findings (does not detect).
+- If they ask "discover sensitive data in S3" -> Macie.
+- If they ask "detect suspicious behavior or threats" -> GuardDuty.
+- If they ask "scan software vulnerabilities" -> Inspector.

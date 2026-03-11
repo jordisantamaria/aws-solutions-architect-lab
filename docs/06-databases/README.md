@@ -1,12 +1,12 @@
-# Bases de Datos en AWS (Databases)
+# Databases in AWS
 
-## Índice
+## Table of Contents
 
 - [Amazon RDS](#amazon-rds)
 - [RDS Proxy](#rds-proxy)
 - [Amazon Aurora](#amazon-aurora)
 - [Amazon DynamoDB](#amazon-dynamodb)
-- [DynamoDB Avanzado](#dynamodb-avanzado)
+- [DynamoDB Advanced](#dynamodb-advanced)
 - [Amazon ElastiCache](#amazon-elasticache)
 - [Amazon Redshift](#amazon-redshift)
 - [Amazon Neptune](#amazon-neptune)
@@ -14,147 +14,147 @@
 - [Amazon Keyspaces](#amazon-keyspaces)
 - [Amazon QLDB](#amazon-qldb)
 - [Amazon Timestream](#amazon-timestream)
-- [Árbol de decisión de bases de datos](#árbol-de-decisión-de-bases-de-datos)
-- [Tips para el examen](#tips-para-el-examen)
+- [Database Decision Tree](#database-decision-tree)
+- [Exam Tips](#exam-tips)
 
 ---
 
 ## Amazon RDS
 
-Amazon Relational Database Service es un servicio gestionado de bases de datos relacionales.
+Amazon Relational Database Service is a managed relational database service.
 
-### Motores soportados
+### Supported Engines
 
-| Motor | Notas |
+| Engine | Notes |
 |---|---|
-| **MySQL** | Compatible con Aurora |
-| **PostgreSQL** | Compatible con Aurora |
-| **MariaDB** | Fork de MySQL |
-| **Oracle** | Licencia incluida o BYOL |
-| **Microsoft SQL Server** | Licencia incluida |
+| **MySQL** | Compatible with Aurora |
+| **PostgreSQL** | Compatible with Aurora |
+| **MariaDB** | MySQL fork |
+| **Oracle** | License included or BYOL |
+| **Microsoft SQL Server** | License included |
 
-### Características principales
+### Main Features
 
-- **Servicio gestionado**: AWS gestiona parches, backups, monitoreo, escalado.
-- **No se puede acceder por SSH** a la instancia subyacente.
-- Almacenamiento respaldado por EBS (gp2, gp3, io1).
+- **Managed service**: AWS manages patches, backups, monitoring, scaling.
+- **No SSH access** to the underlying instance.
+- Storage backed by EBS (gp2, gp3, io1).
 
-### Multi-AZ (Alta Disponibilidad)
+### Multi-AZ (High Availability)
 
-- Réplica **síncrona** en otra AZ de la misma región.
-- **Failover automático** ante fallos (DNS automático, no requiere cambios en la app).
-- La instancia standby **NO sirve tráfico de lectura** (solo failover).
-- Se puede convertir de Single-AZ a Multi-AZ **sin downtime** (snapshot interno → restore en otra AZ → sincronización).
+- **Synchronous** replica in another AZ of the same region.
+- **Automatic failover** on failures (automatic DNS, no app changes required).
+- The standby instance **does NOT serve read traffic** (failover only).
+- Can be converted from Single-AZ to Multi-AZ **without downtime** (internal snapshot -> restore in another AZ -> synchronization).
 
 ```
-                    ┌──────────────┐
-                    │   Aplicación │
-                    └──────┬───────┘
-                           │
-                    ┌──────▼───────┐
-                    │  RDS Master  │ ◄──── Endpoint DNS
-                    │   (AZ-a)     │       (failover automático)
-                    └──────┬───────┘
-                           │ Replicación SÍNCRONA
-                    ┌──────▼───────┐
-                    │  RDS Standby │
-                    │   (AZ-b)     │
-                    └──────────────┘
+                    +------------------+
+                    |   Application    |
+                    +--------+---------+
+                             |
+                    +--------v---------+
+                    |  RDS Master      | <---- DNS Endpoint
+                    |   (AZ-a)         |       (automatic failover)
+                    +--------+---------+
+                             | SYNCHRONOUS Replication
+                    +--------v---------+
+                    |  RDS Standby     |
+                    |   (AZ-b)         |
+                    +------------------+
 ```
 
-### Read Replicas (Escalado de lecturas)
+### Read Replicas (Read Scaling)
 
-- Hasta **15 réplicas de lectura** (dentro de AZ, cross-AZ, cross-Region).
-- Replicación **ASÍNCRONA** (eventualmente consistente).
-- Las réplicas se pueden **promover a DB independiente**.
-- La aplicación debe actualizar la connection string para usar las réplicas.
-- **Coste de red**: No hay cargo por replicación dentro de la misma región. Cross-Region sí tiene cargo.
+- Up to **15 read replicas** (within AZ, cross-AZ, cross-Region).
+- **ASYNCHRONOUS** replication (eventually consistent).
+- Replicas can be **promoted to independent DB**.
+- The application must update the connection string to use replicas.
+- **Network cost**: No charge for replication within the same region. Cross-Region does have a charge.
 
-**Casos de uso**: Reportes, analytics, cargas de lectura intensiva.
+**Use cases**: Reporting, analytics, read-intensive workloads.
 
-> **Clave**: Multi-AZ = alta disponibilidad (HA). Read Replicas = escalabilidad de lectura. Son complementarios, no excluyentes.
+> **Key**: Multi-AZ = high availability (HA). Read Replicas = read scalability. They are complementary, not mutually exclusive.
 
 ### Storage Auto Scaling
 
-- Incrementa automáticamente el almacenamiento cuando se acerca al límite.
-- Se establece un **Maximum Storage Threshold** (límite máximo).
-- Se activa cuando:
-  - El espacio libre es < 10% del almacenamiento asignado.
-  - La condición persiste durante 5 minutos.
-  - Han pasado al menos 6 horas desde la última modificación.
-- Útil para cargas de trabajo impredecibles.
+- Automatically increases storage when approaching the limit.
+- A **Maximum Storage Threshold** (maximum limit) is set.
+- Triggers when:
+  - Free space is < 10% of allocated storage.
+  - The condition persists for 5 minutes.
+  - At least 6 hours have passed since the last modification.
+- Useful for unpredictable workloads.
 
-### Backup y Restore
+### Backup and Restore
 
 **Automated Backups:**
-- Habilitados por defecto.
-- Backup diario completo (durante la ventana de mantenimiento).
-- Transaction logs cada 5 minutos.
-- Retención de 1 a 35 días (0 para deshabilitar).
-- Restauración a **cualquier punto en el tiempo** (Point-in-Time Recovery) con granularidad de 5 minutos.
+- Enabled by default.
+- Daily full backup (during the maintenance window).
+- Transaction logs every 5 minutes.
+- Retention from 1 to 35 days (0 to disable).
+- Restoration to **any point in time** (Point-in-Time Recovery) with 5-minute granularity.
 
 **Manual Snapshots:**
-- Iniciados manualmente por el usuario.
-- Se conservan indefinidamente hasta que se eliminan.
-- Se pueden copiar entre regiones.
+- Manually initiated by the user.
+- Retained indefinitely until deleted.
+- Can be copied between regions.
 
-> **Clave**: Restaurar un backup o snapshot **siempre crea una nueva instancia RDS** con un nuevo endpoint.
+> **Key**: Restoring a backup or snapshot **always creates a new RDS instance** with a new endpoint.
 
 ### IAM DB Authentication
 
-Método de autenticación que reemplaza usuario/contraseña por tokens temporales generados via IAM. Soportado en **MySQL** y **PostgreSQL**.
+Authentication method that replaces username/password with temporary tokens generated via IAM. Supported on **MySQL** and **PostgreSQL**.
 
-**Autenticación tradicional vs IAM DB Auth:**
+**Traditional authentication vs IAM DB Auth:**
 
 ```
-Tradicional:
-  App en EC2 ──► conecta con usuario="admin" password="s3cret123"
-                 (contraseña almacenada en config o Secrets Manager)
+Traditional:
+  App on EC2 --> connects with username="admin" password="s3cret123"
+                 (password stored in config or Secrets Manager)
 
 IAM DB Auth:
-  1. EC2 tiene un IAM Role con permiso rds-db:connect
-  2. App pide token ──► API de RDS genera token firmado con credenciales del IAM Role
-  3. App conecta con usuario="iam_user" password=TOKEN
-                   (el token expira en 15 minutos)
+  1. EC2 has an IAM Role with rds-db:connect permission
+  2. App requests token --> RDS API generates token signed with IAM Role credentials
+  3. App connects with username="iam_user" password=TOKEN
+                   (the token expires in 15 minutes)
 ```
 
-**El token no se almacena.** La app genera un token nuevo cada vez que necesita una conexión. Si la conexión ya está abierta, sigue funcionando. Para una nueva conexión, pide otro token.
+**The token is not stored.** The app generates a new token each time it needs a connection. If the connection is already open, it keeps working. For a new connection, it requests another token.
 
-**Beneficios:**
-- No hay contraseñas que gestionar, rotar ni que puedan filtrarse.
-- El tráfico está cifrado con SSL automáticamente.
-- Control de acceso centralizado con IAM policies (quién puede conectarse a qué DB).
-- En EC2: usa las credenciales del **instance profile** (IAM Role) automáticamente, sin configuración adicional.
+**Benefits:**
+- No passwords to manage, rotate, or that can leak.
+- Traffic is encrypted with SSL automatically.
+- Centralized access control with IAM policies (who can connect to which DB).
+- On EC2: uses the **instance profile** (IAM Role) credentials automatically, without additional configuration.
 
-**Limitaciones:**
-- Solo MySQL y PostgreSQL (no Oracle, SQL Server ni MariaDB en RDS).
-- Máximo **256 conexiones por segundo** con IAM auth (no es para alto throughput de conexiones).
-- El token dura **15 minutos** (pero las conexiones ya establecidas no se cortan).
+**Limitations:**
+- Only MySQL and PostgreSQL (not Oracle, SQL Server or MariaDB on RDS).
+- Maximum **256 connections per second** with IAM auth (not for high connection throughput).
+- The token lasts **15 minutes** (but already established connections are not cut).
 
-> **Tip para el examen:** Si la pregunta dice "authentication token" o "profile credentials of EC2" para conectar a RDS → **IAM DB Authentication**. No confundir con simplemente asignar un IAM Role a EC2 (eso da permisos a la API de AWS, no autenticación directa a la base de datos). No confundir con SSL (que cifra la conexión pero no cambia el método de autenticación).
+> **Exam tip:** If the question says "authentication token" or "profile credentials of EC2" to connect to RDS -> **IAM DB Authentication**. Do not confuse with simply assigning an IAM Role to EC2 (that gives permissions to the AWS API, not direct database authentication). Do not confuse with SSL (which encrypts the connection but does not change the authentication method).
 
-### Acceso a RDS privado (para desarrollo y mantenimiento)
+### Private RDS Access (for development and maintenance)
 
-RDS debe estar en una subnet privada (sin acceso directo desde Internet). Para conectarse desde tu portátil con herramientas como pgAdmin o DBeaver, hay varias opciones de menos a más complejidad:
+RDS should be in a private subnet (no direct access from the Internet). To connect from your laptop with tools like pgAdmin or DBeaver, there are several options from less to more complexity:
 
-| Método | Necesita EC2? | Necesita VPN? | Complejidad |
+| Method | Needs EC2? | Needs VPN? | Complexity |
 |---|---|---|---|
-| **EC2 Instance Connect Endpoint** | No | No | Baja |
-| **SSM Port Forwarding** | Sí (privada, sin SSH) | No | Baja |
-| **Client VPN** | No | Sí | Media |
-| **Bastion + SSH tunnel** | Sí (pública, con SSH) | No | Alta |
+| **EC2 Instance Connect Endpoint** | No | No | Low |
+| **SSM Port Forwarding** | Yes (private, no SSH) | No | Low |
+| **Client VPN** | No | Yes | Medium |
+| **Bastion + SSH tunnel** | Yes (public, with SSH) | No | High |
 
-#### EC2 Instance Connect Endpoint (recomendado)
+#### EC2 Instance Connect Endpoint (recommended)
 
-Permite crear un túnel directo a recursos privados **sin necesidad de EC2 intermediarias ni VPN**. Se crea como un endpoint dentro de la VPC y el acceso se controla exclusivamente con IAM y Security Groups.
+Allows creating a direct tunnel to private resources **without needing intermediary EC2 instances or VPN**. Created as an endpoint within the VPC and access is controlled exclusively with IAM and Security Groups.
 
 ```
-Tu portátil ──► EC2 Instance Connect Endpoint ──► RDS (subnet privada)
-                (túnel seguro via API de AWS)
-                No hay bastion, no hay VPN, no hay SSH
+Your laptop --> EC2 Instance Connect Endpoint --> RDS (private subnet)
+                (secure tunnel via AWS API)
+                No bastion, no VPN, no SSH
 ```
 
-Se usa con el CLI de AWS:
+Used with the AWS CLI:
 ```bash
 aws ec2-instance-connect open-tunnel \
   --instance-connect-endpoint-id eice-xxxx \
@@ -162,636 +162,636 @@ aws ec2-instance-connect open-tunnel \
   --remote-port 5432 \
   --local-port 5432
 
-# pgAdmin conecta a localhost:5432 como si RDS fuera local
+# pgAdmin connects to localhost:5432 as if RDS were local
 ```
 
-**Requisitos:**
-- Crear un EC2 Instance Connect Endpoint en una subnet de la VPC.
-- Security Group del endpoint con acceso al puerto de RDS.
-- Permisos IAM para `ec2-instance-connect:OpenTunnel`.
+**Requirements:**
+- Create an EC2 Instance Connect Endpoint in a VPC subnet.
+- Security Group of the endpoint with access to the RDS port.
+- IAM permissions for `ec2-instance-connect:OpenTunnel`.
 
-#### SSM Session Manager con Port Forwarding
+#### SSM Session Manager with Port Forwarding
 
-Requiere una instancia EC2 privada con SSM Agent (viene preinstalado por defecto), pero **no necesita bastion ni puertos SSH abiertos**:
+Requires a private EC2 instance with SSM Agent (comes pre-installed by default), but **does not need a bastion or open SSH ports**:
 
 ```
-Tu portátil ──► SSM Session Manager ──► EC2 (privada) ──► RDS
-                (túnel por API de AWS)   (solo necesita SSM Agent)
+Your laptop --> SSM Session Manager --> EC2 (private) --> RDS
+                (tunnel via AWS API)   (only needs SSM Agent)
 ```
 
-> **Tip para el examen:** Si la pregunta dice "acceso seguro a recursos privados sin bastion ni SSH" → **SSM Session Manager** o **EC2 Instance Connect Endpoint**. Si dice "acceso a RDS privado sin EC2 intermediaria" → **EC2 Instance Connect Endpoint**.
+> **Exam tip:** If the question says "secure access to private resources without bastion or SSH" -> **SSM Session Manager** or **EC2 Instance Connect Endpoint**. If it says "access to private RDS without intermediary EC2" -> **EC2 Instance Connect Endpoint**.
 
 ---
 
 ## RDS Proxy
 
-Proxy gestionado de base de datos que se sitúa entre la aplicación y RDS.
+Managed database proxy that sits between the application and RDS.
 
-### Beneficios
+### Benefits
 
-- **Connection pooling**: Reduce y reutiliza conexiones a la base de datos.
-- **Menor failover time**: Reduce el tiempo de failover Multi-AZ hasta un **66%**.
-- Soporta **IAM authentication** para la conexión a la DB.
-- Las credenciales se almacenan en **AWS Secrets Manager**.
-- **Nunca es accesible públicamente** (solo desde dentro de la VPC).
+- **Connection pooling**: Reduces and reuses database connections.
+- **Lower failover time**: Reduces Multi-AZ failover time by up to **66%**.
+- Supports **IAM authentication** for the DB connection.
+- Credentials are stored in **AWS Secrets Manager**.
+- **Never publicly accessible** (only from within the VPC).
 
-### Cuándo usar RDS Proxy
+### When to Use RDS Proxy
 
-| Escenario | Problema sin Proxy | Solución con Proxy |
+| Scenario | Problem Without Proxy | Solution With Proxy |
 |---|---|---|
-| **Lambda + RDS** | Cada invocación Lambda abre una conexión. Con alta concurrencia se agotan las conexiones | El proxy gestiona un pool de conexiones compartido |
-| **Failover Multi-AZ** | Tiempo de failover de ~60-120 segundos | Reduce a ~30 segundos |
-| **Muchos microservicios** | Cada servicio abre sus propias conexiones | Pool compartido reduce conexiones totales |
+| **Lambda + RDS** | Each Lambda invocation opens a connection. With high concurrency, connections are exhausted | The proxy manages a shared connection pool |
+| **Multi-AZ Failover** | Failover time of ~60-120 seconds | Reduces to ~30 seconds |
+| **Many microservices** | Each service opens its own connections | Shared pool reduces total connections |
 
-> **Clave para el examen**: Si una pregunta menciona Lambda + RDS con problemas de conexiones, la respuesta casi siempre es RDS Proxy.
+> **Key for the exam**: If a question mentions Lambda + RDS with connection problems, the answer is almost always RDS Proxy.
 
 ---
 
 ## Amazon Aurora
 
-Base de datos relacional propietaria de AWS, compatible con **MySQL** y **PostgreSQL**. Hasta **5x mejor rendimiento que MySQL** y **3x mejor que PostgreSQL**.
+AWS proprietary relational database, compatible with **MySQL** and **PostgreSQL**. Up to **5x better performance than MySQL** and **3x better than PostgreSQL**.
 
-### Arquitectura
+### Architecture
 
-- Almacenamiento distribuido y auto-replicado en **6 copias** a través de **3 AZs**.
-  - Necesita solo 4/6 copias para escrituras.
-  - Necesita solo 3/6 copias para lecturas.
-  - Self-healing con peer-to-peer replication.
-- Almacenamiento **auto-escalable** de 10 GB hasta **128 TB**.
-- **Failover instantáneo** (< 30 segundos).
+- Storage distributed and auto-replicated in **6 copies** across **3 AZs**.
+  - Only needs 4/6 copies for writes.
+  - Only needs 3/6 copies for reads.
+  - Self-healing with peer-to-peer replication.
+- **Auto-scaling** storage from 10 GB to **128 TB**.
+- **Instant failover** (< 30 seconds).
 
 ```
-    ┌─────────────┐      ┌─────────────┐
-    │   Writer     │      │  Reader(s)  │
-    │  Endpoint    │      │  Endpoint   │
-    └──────┬──────┘      └──────┬──────┘
-           │                     │
-    ┌──────▼─────────────────────▼──────┐
-    │     Shared Storage Volume         │
-    │  (Auto-scaling, 6 copies, 3 AZs) │
-    │  10 GB ──────────────► 128 TB     │
-    └───────────────────────────────────┘
+    +-------------+      +-------------+
+    |   Writer     |      |  Reader(s)  |
+    |  Endpoint    |      |  Endpoint   |
+    +------+------+      +------+------+
+           |                     |
+    +------v---------------------v------+
+    |     Shared Storage Volume         |
+    |  (Auto-scaling, 6 copies, 3 AZs) |
+    |  10 GB ------------------> 128 TB |
+    +-----------------------------------+
 ```
 
 ### Aurora Replicas
 
-- Hasta **15 réplicas de lectura** con replicación de baja latencia (< 10 ms de lag).
-- Failover automático a cualquier réplica (se puede configurar prioridad con **tiers**).
-- **Reader Endpoint**: Balanceo de carga automático a nivel de conexión entre réplicas.
-- **Custom Endpoints**: Dirigir tráfico a un subconjunto de réplicas (ej: réplicas más potentes para analytics).
+- Up to **15 read replicas** with low-latency replication (< 10 ms lag).
+- Automatic failover to any replica (priority can be configured with **tiers**).
+- **Reader Endpoint**: Automatic connection-level load balancing across replicas.
+- **Custom Endpoints**: Direct traffic to a subset of replicas (e.g., more powerful replicas for analytics).
 
 ### Aurora Global Database
 
-- **1 región primaria** (lectura/escritura).
-- Hasta **5 regiones secundarias** (solo lectura).
-- Hasta 16 réplicas de lectura por región secundaria.
-- Latencia de replicación < **1 segundo** cross-region.
-- **Failover cross-region** con RTO < 1 minuto.
-- Caso de uso: Disaster recovery global, baja latencia para lecturas globales.
+- **1 primary region** (read/write).
+- Up to **5 secondary regions** (read-only).
+- Up to 16 read replicas per secondary region.
+- Replication latency < **1 second** cross-region.
+- **Cross-region failover** with RTO < 1 minute.
+- Use case: Global disaster recovery, low latency for global reads.
 
 ### Aurora Serverless v2
 
-- Escalado automático de la capacidad de cómputo basado en la carga.
-- Se define un rango de **ACUs (Aurora Capacity Units)**: mínimo y máximo.
-- Escala en incrementos granulares (no en pasos discretos como v1).
-- Soporta Multi-AZ.
-- **Caso de uso**: Cargas impredecibles, desarrollo, entornos con tráfico intermitente.
+- Automatic compute capacity scaling based on load.
+- A range of **ACUs (Aurora Capacity Units)** is defined: minimum and maximum.
+- Scales in granular increments (not in discrete steps like v1).
+- Supports Multi-AZ.
+- **Use case**: Unpredictable workloads, development, environments with intermittent traffic.
 
 ### Aurora Machine Learning
 
-- Integración directa con **SageMaker** y **Amazon Comprehend**.
-- Ejecutar inferencias ML directamente desde consultas SQL.
-- Caso de uso: Detección de fraude, análisis de sentimiento, recomendaciones.
+- Direct integration with **SageMaker** and **Amazon Comprehend**.
+- Run ML inferences directly from SQL queries.
+- Use case: Fraud detection, sentiment analysis, recommendations.
 
-### Aurora Native Functions y Stored Procedures (invocar Lambda)
+### Aurora Native Functions and Stored Procedures (invoking Lambda)
 
-Aurora puede **llamar a AWS Lambda directamente desde dentro de la base de datos**, usando native functions o stored procedures. Esto permite reaccionar a cambios en los datos (INSERT, UPDATE, DELETE) desde la propia DB.
+Aurora can **call AWS Lambda directly from within the database**, using native functions or stored procedures. This allows reacting to data changes (INSERT, UPDATE, DELETE) from the DB itself.
 
 ```
-App borra un registro ──► Aurora ejecuta trigger/stored procedure
-                              │
-                              ▼
-                         Llama a Lambda (native function)
-                              │
-                              ▼
-                         Lambda procesa (envía a SQS, SNS, etc.)
+App deletes a record --> Aurora executes trigger/stored procedure
+                              |
+                              v
+                         Calls Lambda (native function)
+                              |
+                              v
+                         Lambda processes (sends to SQS, SNS, etc.)
 ```
 
-**Ejemplo (Aurora MySQL):**
+**Example (Aurora MySQL):**
 ```sql
--- Stored procedure que invoca Lambda al borrar un coche:
+-- Stored procedure that invokes Lambda when deleting a car:
 CALL mysql.lambda_async(
-    'arn:aws:lambda:eu-west-1:123456:function:procesar-venta',
+    'arn:aws:lambda:eu-west-1:123456:function:process-sale',
     '{"car_id": 123, "action": "sold"}'
 );
 ```
 
-**Requisitos:**
-- Aurora MySQL o Aurora PostgreSQL (RDS estándar no lo soporta).
-- El cluster Aurora necesita un IAM Role con permisos para invocar Lambda.
-- Conectividad de red entre Aurora y Lambda (NAT Gateway o VPC endpoint para Lambda).
+**Requirements:**
+- Aurora MySQL or Aurora PostgreSQL (standard RDS does not support it).
+- The Aurora cluster needs an IAM Role with permissions to invoke Lambda.
+- Network connectivity between Aurora and Lambda (NAT Gateway or VPC endpoint for Lambda).
 
 #### RDS Event Subscription vs Native Functions
 
 | | RDS Event Subscription | Native Function / Stored Procedure |
 |---|---|---|
-| **Detecta** | Eventos **operacionales** (failover, backup, maintenance) | Cambios **en los datos** (INSERT, UPDATE, DELETE) |
-| **Ejemplo** | "La instancia se reinició" | "Se borró el registro con id=123" |
-| **Destino** | SNS | Lambda (directamente desde la DB) |
-| **Solo Aurora?** | No (funciona con cualquier RDS) | **Sí** (solo Aurora puede invocar Lambda) |
+| **Detects** | **Operational** events (failover, backup, maintenance) | **Data** changes (INSERT, UPDATE, DELETE) |
+| **Example** | "The instance was restarted" | "The record with id=123 was deleted" |
+| **Destination** | SNS | Lambda (directly from the DB) |
+| **Aurora only?** | No (works with any RDS) | **Yes** (only Aurora can invoke Lambda) |
 
-> **Tip para el examen:** Si la pregunta dice "reaccionar cuando se modifica/borra un registro en Aurora" → **native function o stored procedure que invoca Lambda**. No confundir con RDS Event Subscription, que solo detecta eventos de infraestructura (failovers, backups), no cambios en los datos.
+> **Exam tip:** If the question says "react when a record is modified/deleted in Aurora" -> **native function or stored procedure that invokes Lambda**. Do not confuse with RDS Event Subscription, which only detects infrastructure events (failovers, backups), not data changes.
 
-### Otras características de Aurora
+### Other Aurora Features
 
-| Característica | Descripción |
+| Feature | Description |
 |---|---|
-| **Backtracking** | Rebobinar la base de datos a un punto en el tiempo sin restaurar desde backup. Solo Aurora MySQL. No crea nueva instancia. |
-| **Cloning** | Crear una copia de la DB usando copy-on-write. Rápido y eficiente en almacenamiento. Ideal para testing en producción. |
-| **Database Activity Streams** | Auditoría en tiempo real de la actividad de la DB. Se envía a Kinesis Data Streams. |
+| **Backtracking** | Rewind the database to a point in time without restoring from backup. Aurora MySQL only. Does not create a new instance. |
+| **Cloning** | Create a copy of the DB using copy-on-write. Fast and storage-efficient. Ideal for testing in production. |
+| **Database Activity Streams** | Real-time auditing of DB activity. Sent to Kinesis Data Streams. |
 
-> **Clave**: Aurora Backtracking "rebobina" la DB existente in-place. Restaurar desde backup crea una nueva instancia. Son conceptos diferentes.
+> **Key**: Aurora Backtracking "rewinds" the existing DB in-place. Restoring from backup creates a new instance. They are different concepts.
 
 ---
 
 ## Amazon DynamoDB
 
-Base de datos NoSQL serverless, totalmente gestionada, con rendimiento de milisegundos de un solo dígito.
+Serverless NoSQL database, fully managed, with single-digit millisecond performance.
 
-### Conceptos fundamentales
+### Fundamental Concepts
 
-- **Tables**: Colección de items.
-- **Items**: Cada registro (similar a una fila). Tamaño máximo: **400 KB**.
-- **Attributes**: Campos del item.
+- **Tables**: Collection of items.
+- **Items**: Each record (similar to a row). Maximum size: **400 KB**.
+- **Attributes**: Fields of the item.
 
-### Claves
+### Keys
 
-| Tipo de clave | Descripción | Ejemplo |
+| Key Type | Description | Example |
 |---|---|---|
-| **Partition Key (PK)** | Clave primaria simple. Debe ser única. | `user_id` |
-| **Partition Key + Sort Key (PK + SK)** | Clave compuesta. La combinación debe ser única. | `user_id` + `timestamp` |
+| **Partition Key (PK)** | Simple primary key. Must be unique. | `user_id` |
+| **Partition Key + Sort Key (PK + SK)** | Composite key. The combination must be unique. | `user_id` + `timestamp` |
 
-La **Partition Key** determina en qué partición se almacena el item. DynamoDB aplica una función hash interna sobre el valor de la PK para decidir en qué partición física va cada item.
+The **Partition Key** determines which partition the item is stored in. DynamoDB applies an internal hash function on the PK value to decide which physical partition each item goes to.
 
-### Cardinalidad de la Partition Key (hot partitions)
+### Partition Key Cardinality (Hot Partitions)
 
-La elección de la PK es la decisión de diseño más importante en DynamoDB. La capacidad provisionada (RCU/WCU) se reparte **uniformemente entre las particiones**. Si una partición recibe más tráfico que las demás, se produce **throttling** aunque la tabla tenga capacidad total sobrante.
+The choice of PK is the most important design decision in DynamoDB. Provisioned capacity (RCU/WCU) is distributed **evenly across partitions**. If one partition receives more traffic than others, **throttling** occurs even if the table has surplus total capacity.
 
-**Alta cardinalidad** = muchos valores distintos = buena distribución:
-
-```
-PK = user_id  →  millones de valores distintos  →  tráfico repartido entre muchas particiones
-PK = order_id →  millones de valores distintos  →  tráfico repartido entre muchas particiones
-```
-
-**Baja cardinalidad** = pocos valores distintos = "hot partition":
+**High cardinality** = many distinct values = good distribution:
 
 ```
-PK = status ("active"/"inactive")  →  solo 2 valores  →  todo el tráfico va a 2 particiones
-PK = country_code                  →  ~200 valores     →  particiones de US/CN reciben el 80% del tráfico
+PK = user_id  ->  millions of distinct values  ->  traffic spread across many partitions
+PK = order_id ->  millions of distinct values  ->  traffic spread across many partitions
 ```
 
-**Ejemplo numérico:**
-- Tabla con 10,000 WCU provisionados y 10 particiones → cada partición recibe 1,000 WCU.
-- Si usas `status` como PK (2 valores), el 90% de writes van a la partición "active" → esa partición tiene 1,000 WCU pero recibe 9,000 → **throttling**, aunque la tabla tenga 9,000 WCU sin usar en otras particiones.
+**Low cardinality** = few distinct values = "hot partition":
 
-**Soluciones para hot partitions:**
-- Elegir una PK con **alta cardinalidad** (user_id, order_id, session_id).
-- **Write Sharding**: Añadir un sufijo aleatorio a la PK (ej: `status#1`, `status#2`, ..., `status#10`) para forzar distribución.
-- Usar claves compuestas (PK + SK) para tener más combinaciones únicas.
+```
+PK = status ("active"/"inactive")  ->  only 2 values  ->  all traffic goes to 2 partitions
+PK = country_code                  ->  ~200 values     ->  US/CN partitions receive 80% of traffic
+```
 
-> **Tip para el examen:** Si preguntan "distribuir workload uniformemente" o "utilizar throughput eficientemente" en DynamoDB → **partition key con alta cardinalidad**. Si dicen "hot partition" o "throttling con capacidad sobrante" → el problema es una PK con baja cardinalidad.
+**Numerical example:**
+- Table with 10,000 provisioned WCU and 10 partitions -> each partition receives 1,000 WCU.
+- If you use `status` as PK (2 values), 90% of writes go to the "active" partition -> that partition has 1,000 WCU but receives 9,000 -> **throttling**, even though the table has 9,000 WCU unused in other partitions.
 
-### Índices secundarios
+**Solutions for hot partitions:**
+- Choose a PK with **high cardinality** (user_id, order_id, session_id).
+- **Write Sharding**: Add a random suffix to the PK (e.g., `status#1`, `status#2`, ..., `status#10`) to force distribution.
+- Use composite keys (PK + SK) for more unique combinations.
 
-| Tipo | Descripción | Creación | Límite |
+> **Exam tip:** If they ask "distribute workload evenly" or "use throughput efficiently" in DynamoDB -> **partition key with high cardinality**. If they say "hot partition" or "throttling with surplus capacity" -> the problem is a PK with low cardinality.
+
+### Secondary Indexes
+
+| Type | Description | Creation | Limit |
 |---|---|---|---|
-| **GSI (Global Secondary Index)** | PK y SK alternativas. Se puede consultar sobre atributos no clave. Tiene su propia tabla proyectada. | En cualquier momento | 20 por tabla |
-| **LSI (Local Secondary Index)** | Misma PK de la tabla, pero diferente SK. | Solo al crear la tabla | 5 por tabla |
+| **GSI (Global Secondary Index)** | Alternative PK and SK. Can query on non-key attributes. Has its own projected table. | At any time | 20 per table |
+| **LSI (Local Secondary Index)** | Same PK as the table, but different SK. | Only at table creation | 5 per table |
 
-**Notas importantes sobre GSI:**
+**Important notes about GSI:**
 
-- Si el GSI tiene throttling, la tabla base también sufre throttling.
-- El GSI consume su propia capacidad de lectura/escritura (WCU/RCU separados).
-- Se recomienda elegir cuidadosamente la PK del GSI para evitar hot partitions.
+- If the GSI has throttling, the base table also suffers throttling.
+- The GSI consumes its own read/write capacity (separate WCU/RCU).
+- It is recommended to carefully choose the GSI PK to avoid hot partitions.
 
-### Modos de capacidad
+### Capacity Modes
 
-| Modo | Descripción | Precio | Caso de uso |
+| Mode | Description | Price | Use Case |
 |---|---|---|---|
-| **Provisioned** | Se definen RCU y WCU por adelantado. Auto scaling opcional. | Más económico para cargas predecibles | Tráfico estable, predecible |
-| **On-Demand** | Escala automáticamente sin planificar. Sin throttling por capacidad. | ~2.5x más caro que provisioned | Tráfico impredecible, nuevas tablas, spiky |
+| **Provisioned** | RCU and WCU are defined in advance. Optional auto scaling. | More economical for predictable workloads | Stable, predictable traffic |
+| **On-Demand** | Scales automatically without planning. No throttling by capacity. | ~2.5x more expensive than provisioned | Unpredictable traffic, new tables, spiky |
 
-**Unidades de capacidad:**
+**Capacity units:**
 
-- **1 RCU** = 1 lectura strongly consistent de hasta 4 KB/s, o 2 lecturas eventually consistent de hasta 4 KB/s.
-- **1 WCU** = 1 escritura de hasta 1 KB/s.
+- **1 RCU** = 1 strongly consistent read of up to 4 KB/s, or 2 eventually consistent reads of up to 4 KB/s.
+- **1 WCU** = 1 write of up to 1 KB/s.
 
-> **Ejemplo de cálculo**: Leer 10 items de 6 KB cada uno por segundo (strongly consistent):
-> Cada item necesita ceil(6/4) = 2 RCU → 10 * 2 = **20 RCU**.
+> **Calculation example**: Read 10 items of 6 KB each per second (strongly consistent):
+> Each item needs ceil(6/4) = 2 RCU -> 10 * 2 = **20 RCU**.
 
 ---
 
-## DynamoDB Avanzado
+## DynamoDB Advanced
 
 ### DAX (DynamoDB Accelerator)
 
-- Cache in-memory para DynamoDB, totalmente gestionado.
-- Latencia de **microsegundos** (vs milisegundos de DynamoDB).
-- Compatible con la API de DynamoDB existente (cambio mínimo de código).
-- TTL por defecto de **5 minutos**.
-- Cluster de hasta 11 nodos, Multi-AZ.
-- **No sirve para writes**, solo para lecturas cacheadas.
+- In-memory cache for DynamoDB, fully managed.
+- **Microsecond** latency (vs milliseconds from DynamoDB).
+- Compatible with existing DynamoDB API (minimal code change).
+- Default TTL of **5 minutes**.
+- Cluster of up to 11 nodes, Multi-AZ.
+- **Does not work for writes**, only for cached reads.
 
-**DAX vs ElastiCache para DynamoDB:**
+**DAX vs ElastiCache for DynamoDB:**
 
 | | DAX | ElastiCache |
 |---|---|---|
-| **Integración** | Nativa con DynamoDB | Requiere lógica de aplicación |
-| **Tipo de cache** | Individual items y query results | Resultados computados/agregados |
-| **Caso de uso** | Cache de lecturas DynamoDB | Almacenar resultados de cálculos complejos |
+| **Integration** | Native with DynamoDB | Requires application logic |
+| **Cache type** | Individual items and query results | Computed/aggregated results |
+| **Use case** | Cache for DynamoDB reads | Store results of complex calculations |
 
 ### DynamoDB Streams
 
-- Flujo ordenado de cambios (inserciones, actualizaciones, eliminaciones) en la tabla.
-- Retención de **24 horas**.
-- Se pueden procesar con **Lambda** o **Kinesis Data Streams** (opción más reciente con retención de 1 año).
-- Casos de uso: Reaccionar a cambios en tiempo real, replicación cross-region, analytics.
+- Ordered stream of changes (inserts, updates, deletions) in the table.
+- **24-hour** retention.
+- Can be processed with **Lambda** or **Kinesis Data Streams** (more recent option with 1-year retention).
+- Use cases: React to changes in real time, cross-region replication, analytics.
 
 ### DynamoDB Global Tables
 
-- Tablas replicadas en **múltiples regiones**.
-- Replicación **activa-activa** (lectura y escritura en cualquier región).
-- **No es automático por defecto**: Debe configurarse explícitamente añadiendo regiones a la tabla.
-- Requiere **DynamoDB Streams habilitado** (prerequisito obligatorio).
-- Latencia de replicación típica: **< 1 segundo**.
-- Resolución de conflictos: **Last writer wins** (basado en timestamp).
-- Caso de uso: Aplicaciones globales de baja latencia, DR multi-región.
+- Tables replicated in **multiple regions**.
+- **Active-active** replication (read and write in any region).
+- **Not automatic by default**: Must be explicitly configured by adding regions to the table.
+- Requires **DynamoDB Streams enabled** (mandatory prerequisite).
+- Typical replication latency: **< 1 second**.
+- Conflict resolution: **Last writer wins** (based on timestamp).
+- Use case: Low-latency global applications, multi-region DR.
 
-> **Trampa del examen:** DynamoDB Global Tables NO están habilitadas por defecto. Debes configurarlas explícitamente y DynamoDB Streams debe estar habilitado primero.
+> **Exam trap:** DynamoDB Global Tables are NOT enabled by default. You must configure them explicitly and DynamoDB Streams must be enabled first.
 
 ### TTL (Time To Live)
 
-- Elimina automáticamente items expirados sin consumir WCU.
-- Se define un atributo con un timestamp Unix (epoch) de expiración.
-- La eliminación real puede tardar hasta **48 horas** después de la expiración.
-- Los items expirados aparecen en DynamoDB Streams.
-- Caso de uso: Sesiones de usuario, datos temporales, logs con retención.
+- Automatically deletes expired items without consuming WCU.
+- A TTL attribute is defined with a Unix timestamp (epoch) for expiration.
+- Actual deletion can take up to **48 hours** after expiration.
+- Expired items appear in DynamoDB Streams.
+- Use case: User sessions, temporary data, logs with retention.
 
-### Backup y Restore
+### Backup and Restore
 
-| Tipo | Descripción |
+| Type | Description |
 |---|---|
-| **On-demand backup** | Backup completo, se conserva hasta eliminarlo. Sin impacto en rendimiento. |
-| **Point-in-time recovery (PITR)** | Restauración continua a cualquier punto en los últimos 35 días. Debe habilitarse explícitamente. |
+| **On-demand backup** | Full backup, retained until deleted. No performance impact. |
+| **Point-in-time recovery (PITR)** | Continuous restoration to any point in the last 35 days. Must be explicitly enabled. |
 
-> **Nota**: Restaurar siempre crea una **nueva tabla**.
+> **Note**: Restoring always creates a **new table**.
 
-### DynamoDB - Patrones de diseño para el examen
+### DynamoDB - Design Patterns for the Exam
 
-- **Write Sharding**: Añadir un sufijo aleatorio a la PK para distribuir escrituras.
-- **Sparse Index**: GSI sobre atributos que solo existen en algunos items para consultas eficientes.
-- **Composite Key**: Usar SK jerárquica (ej: `COUNTRY#US#STATE#CA#CITY#LA`).
+- **Write Sharding**: Add a random suffix to the PK to distribute writes.
+- **Sparse Index**: GSI on attributes that only exist in some items for efficient queries.
+- **Composite Key**: Use hierarchical SK (e.g., `COUNTRY#US#STATE#CA#CITY#LA`).
 
 ---
 
 ## Amazon ElastiCache
 
-Servicio de caché en memoria gestionado. Soporta dos motores:
+Managed in-memory cache service. Supports two engines:
 
 ### Redis vs Memcached
 
-| Característica | Redis | Memcached |
+| Feature | Redis | Memcached |
 |---|---|---|
-| **Modelo de datos** | Estructuras complejas (strings, hashes, lists, sets, sorted sets) | Key-value simple |
-| **Persistencia** | Sí (AOF, RDB) | No |
-| **Replicación** | Sí (Read Replicas) | No |
-| **Alta disponibilidad** | Multi-AZ con failover automático | No |
-| **Backup y restore** | Sí | No |
-| **Pub/Sub** | Sí | No |
-| **Clustering** | Cluster mode (particionamiento de datos) | Multi-node partitioning |
-| **Multi-thread** | No (single-threaded) | Sí (multi-threaded) |
-| **Caso de uso** | Sesiones, leaderboards, pub/sub, geoespacial, HA requerida | Cache simple, alta concurrencia |
+| **Data model** | Complex structures (strings, hashes, lists, sets, sorted sets) | Simple key-value |
+| **Persistence** | Yes (AOF, RDB) | No |
+| **Replication** | Yes (Read Replicas) | No |
+| **High availability** | Multi-AZ with automatic failover | No |
+| **Backup and restore** | Yes | No |
+| **Pub/Sub** | Yes | No |
+| **Clustering** | Cluster mode (data partitioning) | Multi-node partitioning |
+| **Multi-thread** | No (single-threaded) | Yes (multi-threaded) |
+| **Use case** | Sessions, leaderboards, pub/sub, geospatial, HA required | Simple cache, high concurrency |
 
-> **Regla para el examen**: Si la pregunta necesita HA, persistencia, o estructuras de datos complejas → **Redis**. Si solo necesita cache simple multi-threaded → **Memcached**.
+> **Exam rule**: If the question needs HA, persistence, or complex data structures -> **Redis**. If it only needs simple multi-threaded cache -> **Memcached**.
 
-### Estrategias de caching
+### Caching Strategies
 
-| Estrategia | Descripción | Pros | Contras |
+| Strategy | Description | Pros | Cons |
 |---|---|---|---|
-| **Lazy Loading** | Carga datos en cache solo cuando se solicitan (cache miss → leer DB → escribir cache) | Solo se cachean datos necesarios. Resiliente a fallos de cache | Cache miss = 3 llamadas (penalty). Datos pueden quedar stale |
-| **Write-Through** | Escribe en cache cada vez que se actualiza la DB | Datos siempre frescos en cache | Write penalty (2 escrituras). Cache puede llenarse con datos no leídos |
-| **Session Store** | Usar ElastiCache para almacenar sesiones de usuario con TTL | Aplicaciones stateless. Expiración automática | Requiere lógica de aplicación |
+| **Lazy Loading** | Loads data into cache only when requested (cache miss -> read DB -> write cache) | Only necessary data is cached. Resilient to cache failures | Cache miss = 3 calls (penalty). Data can become stale |
+| **Write-Through** | Writes to cache every time the DB is updated | Data always fresh in cache | Write penalty (2 writes). Cache can fill with unread data |
+| **Session Store** | Use ElastiCache to store user sessions with TTL | Stateless applications. Automatic expiration | Requires application logic |
 
-**Combinación recomendada**: Lazy Loading + TTL para datos que pueden estar stale un tiempo razonable.
+**Recommended combination**: Lazy Loading + TTL for data that can be stale for a reasonable time.
 
-### ElastiCache - Seguridad
+### ElastiCache - Security
 
-ElastiCache Redis tiene tres capas de seguridad independientes:
+ElastiCache Redis has three independent security layers:
 
-| Capa | Qué protege | Cómo |
+| Layer | What it protects | How |
 |---|---|---|
-| **At-rest encryption** | Datos almacenados en disco/memoria | Cifrado con KMS. Se habilita al crear el cluster. |
-| **In-transit encryption** | Datos en tránsito entre cliente y Redis | TLS. Se habilita con `--transit-encryption-enabled`. |
-| **Autenticación** | Quién puede ejecutar comandos | Redis AUTH o IAM authentication. |
+| **At-rest encryption** | Data stored on disk/memory | Encryption with KMS. Enabled at cluster creation. |
+| **In-transit encryption** | Data in transit between client and Redis | TLS. Enabled with `--transit-encryption-enabled`. |
+| **Authentication** | Who can execute commands | Redis AUTH or IAM authentication. |
 
 #### Redis AUTH vs IAM Authentication
 
 | | Redis AUTH | IAM Authentication |
 |---|---|---|
-| **Credencial** | Password estático (auth-token) | Token temporal generado via IAM |
-| **Duración** | Long-lived (no expira hasta que lo cambies) | Short-lived (expira automáticamente) |
-| **Requisito** | **Requiere in-transit encryption (TLS)** | Requiere in-transit encryption (TLS) |
-| **Gestión** | Tú gestionas el password | IAM gestiona credenciales |
-| **Caso de uso** | Apps que necesitan credenciales fijas | Apps que ya usan IAM Roles (EC2, Lambda) |
+| **Credential** | Static password (auth-token) | Temporary token generated via IAM |
+| **Duration** | Long-lived (doesn't expire until you change it) | Short-lived (expires automatically) |
+| **Requirement** | **Requires in-transit encryption (TLS)** | Requires in-transit encryption (TLS) |
+| **Management** | You manage the password | IAM manages credentials |
+| **Use case** | Apps that need fixed credentials | Apps that already use IAM Roles (EC2, Lambda) |
 
 ```
 Redis AUTH:
-  Cliente ──► AUTH mi-password ──► Redis acepta ──► MULTI / SET / EXEC funcionan
-              (password fijo, long-lived, requiere TLS habilitado)
+  Client --> AUTH my-password --> Redis accepts --> MULTI / SET / EXEC work
+              (fixed password, long-lived, requires TLS enabled)
 
 IAM Authentication:
-  App ──► genera token IAM ──► AUTH token-temporal ──► Redis acepta
-          (token expira, short-lived)
+  App --> generates IAM token --> AUTH temporary-token --> Redis accepts
+          (token expires, short-lived)
 ```
 
-**Importante:** Redis AUTH **no funciona sin in-transit encryption**. El flag `--auth-token` solo se puede usar junto con `--transit-encryption-enabled`. Si solo habilitas at-rest encryption o solo TLS sin auth-token, no hay autenticación de usuarios.
+**Important:** Redis AUTH **does not work without in-transit encryption**. The `--auth-token` flag can only be used together with `--transit-encryption-enabled`. If you only enable at-rest encryption or only TLS without auth-token, there is no user authentication.
 
-- Security Groups para control de red (quién puede conectarse al puerto de Redis).
+- Security Groups for network control (who can connect to the Redis port).
 
 ---
 
 ## Amazon Redshift
 
-Data warehouse basado en PostgreSQL, diseñado para **OLAP** (Online Analytical Processing) a escala de petabytes.
+Data warehouse based on PostgreSQL, designed for **OLAP** (Online Analytical Processing) at petabyte scale.
 
-### Características principales
+### Main Features
 
-- Almacenamiento **columnar** (no por filas).
-- Compresión de datos columnar.
-- **MPP (Massively Parallel Processing)**: Distribuye queries entre nodos.
-- Nodos **Leader** (planifica queries) y nodos **Compute** (ejecutan queries).
-- No es Multi-AZ (cluster en una sola AZ).
-- Carga de datos desde S3, DynamoDB, DMS, u otros.
+- **Columnar** storage (not row-based).
+- Columnar data compression.
+- **MPP (Massively Parallel Processing)**: Distributes queries across nodes.
+- **Leader** nodes (plan queries) and **Compute** nodes (execute queries).
+- Not Multi-AZ (cluster in a single AZ).
+- Data loading from S3, DynamoDB, DMS, or others.
 
 ### Redshift Spectrum
 
-- Ejecuta queries directamente sobre datos en **S3** sin necesidad de cargarlos.
-- Los nodos Compute no participan; se usan miles de nodos Spectrum dedicados.
-- Caso de uso: Consultar datos históricos en S3 sin moverlos a Redshift.
+- Executes queries directly on data in **S3** without loading it.
+- Compute nodes do not participate; thousands of dedicated Spectrum nodes are used.
+- Use case: Query historical data in S3 without moving it to Redshift.
 
-### Snapshots y DR
+### Snapshots and DR
 
-- Los snapshots se almacenan internamente en S3.
-- Snapshots incrementales.
-- Se pueden copiar automáticamente a **otra región** para DR.
-- Se puede restaurar un snapshot en un nuevo cluster.
+- Snapshots are stored internally in S3.
+- Incremental snapshots.
+- Can be automatically copied to **another region** for DR.
+- A snapshot can be restored to a new cluster.
 
 ### Redshift Serverless
 
-- Escala automáticamente según la carga.
-- No hay que gestionar la infraestructura del cluster.
-- Pago por RPU (Redshift Processing Units) consumidos.
-- Ideal para cargas intermitentes o impredecibles de analytics.
+- Scales automatically based on load.
+- No cluster infrastructure management needed.
+- Pay per RPU (Redshift Processing Units) consumed.
+- Ideal for intermittent or unpredictable analytics workloads.
 
-### Redshift y latencia: no es real-time
+### Redshift and Latency: Not Real-Time
 
-Redshift es para **analytics batch**, no para consultas en tiempo real. Las queries complejas tardan **segundos a minutos**. En el examen, "near real-time analytics" con Redshift significa que los datos llegan via Kinesis Firehose en micro-batches (~60s), pero las queries no son instantáneas.
+Redshift is for **batch analytics**, not for real-time queries. Complex queries take **seconds to minutes**. On the exam, "near real-time analytics" with Redshift means data arrives via Kinesis Firehose in micro-batches (~60s), but queries are not instant.
 
-| Servicio | Latencia de consulta | Tipo |
+| Service | Query Latency | Type |
 |---|---|---|
-| **DynamoDB** | Milisegundos | Real-time (CRUD individual) |
-| **OpenSearch** | Segundos | Near real-time (búsqueda/logs) |
-| **Athena** | Segundos | Ad-hoc queries sobre S3 |
-| **Redshift** | Segundos a minutos | Analytics complejas (JOINs, GROUP BY, agregaciones) |
+| **DynamoDB** | Milliseconds | Real-time (individual CRUD) |
+| **OpenSearch** | Seconds | Near real-time (search/logs) |
+| **Athena** | Seconds | Ad-hoc queries on S3 |
+| **Redshift** | Seconds to minutes | Complex analytics (JOINs, GROUP BY, aggregations) |
 
-> **Clave para el examen**: Redshift es para analytics/OLAP, NO para OLTP. Si la pregunta es sobre un data warehouse o BI, piensa en Redshift. Si dice "real-time dashboard de IoT con millones de lecturas por segundo" → **DynamoDB** (para ingesta) + **Kinesis** (para streaming). Si necesita datos de S3 sin moverlos → Redshift Spectrum.
+> **Key for the exam**: Redshift is for analytics/OLAP, NOT for OLTP. If the question is about a data warehouse or BI, think Redshift. If it says "real-time IoT dashboard with millions of reads per second" -> **DynamoDB** (for ingestion) + **Kinesis** (for streaming). If it needs data from S3 without moving it -> Redshift Spectrum.
 
 ---
 
 ## Amazon Neptune
 
-Base de datos de **grafos** totalmente gestionada.
+Fully managed **graph** database.
 
-### Características
+### Features
 
-- Alta disponibilidad con replicación en hasta 3 AZs, 15 réplicas de lectura.
-- Optimizada para relaciones complejas entre datos.
-- Soporta modelos de grafos: **Property Graph** (Gremlin) y **RDF** (SPARQL).
-- Latencia de milisegundos para queries de grafos.
-- Almacena miles de millones de relaciones.
+- High availability with replication across up to 3 AZs, 15 read replicas.
+- Optimized for complex relationships between data.
+- Supports graph models: **Property Graph** (Gremlin) and **RDF** (SPARQL).
+- Millisecond latency for graph queries.
+- Stores billions of relationships.
 
-### Casos de uso
+### Use Cases
 
-| Caso de uso | Descripción |
+| Use Case | Description |
 |---|---|
-| **Redes sociales** | Relaciones entre usuarios, amigos, likes, posts |
-| **Motor de recomendaciones** | "Usuarios que compraron esto también compraron..." |
-| **Detección de fraude** | Patrones de transacciones sospechosas |
-| **Knowledge graphs** | Relaciones entre entidades (Wikipedia, etc.) |
-| **Network management** | Topología de red, dependencias |
+| **Social networks** | Relationships between users, friends, likes, posts |
+| **Recommendation engine** | "Users who bought this also bought..." |
+| **Fraud detection** | Suspicious transaction patterns |
+| **Knowledge graphs** | Relationships between entities (Wikipedia, etc.) |
+| **Network management** | Network topology, dependencies |
 
-> **Clave**: Si la pregunta menciona "grafos", "relaciones complejas entre entidades", o "red social", la respuesta es **Neptune**.
+> **Key**: If the question mentions "graphs", "complex relationships between entities", or "social network", the answer is **Neptune**.
 
 ---
 
 ## Amazon DocumentDB
 
-Base de datos documental compatible con **MongoDB**.
+Document database compatible with **MongoDB**.
 
-### Características
+### Features
 
-- Totalmente gestionada, alta disponibilidad con replicación en 3 AZs.
-- Almacenamiento auto-escalable de 10 GB hasta 64 TB.
-- Hasta 15 réplicas de lectura con latencia < 10 ms.
-- Escala automáticamente para millones de requests por segundo.
+- Fully managed, high availability with replication across 3 AZs.
+- Auto-scaling storage from 10 GB to 64 TB.
+- Up to 15 read replicas with latency < 10 ms.
+- Scales automatically for millions of requests per second.
 
-### Cuándo usar
+### When to Use
 
-- Migración de workloads **MongoDB** a AWS.
-- Aplicaciones que necesitan almacenamiento de documentos JSON.
-- Cuando no quieres gestionar MongoDB manualmente.
+- Migration of **MongoDB** workloads to AWS.
+- Applications that need JSON document storage.
+- When you don't want to manage MongoDB manually.
 
-> **Clave**: Si la pregunta menciona "MongoDB" o "migración de MongoDB", la respuesta es **DocumentDB**.
+> **Key**: If the question mentions "MongoDB" or "MongoDB migration", the answer is **DocumentDB**.
 
 ---
 
 ## Amazon Keyspaces
 
-Base de datos compatible con **Apache Cassandra**, serverless y totalmente gestionada.
+Database compatible with **Apache Cassandra**, serverless and fully managed.
 
-### Características
+### Features
 
-- API compatible con CQL (Cassandra Query Language).
-- Serverless: escala automáticamente según la demanda.
-- Tablas replicadas 3 veces en múltiples AZs.
-- Modos de capacidad: **On-demand** y **Provisioned** (con auto scaling).
-- Cifrado at-rest y backup continuo con PITR (35 días).
+- API compatible with CQL (Cassandra Query Language).
+- Serverless: scales automatically based on demand.
+- Tables replicated 3 times across multiple AZs.
+- Capacity modes: **On-demand** and **Provisioned** (with auto scaling).
+- At-rest encryption and continuous backup with PITR (35 days).
 
-### Cuándo usar
+### When to Use
 
-- Migración de workloads **Apache Cassandra** a AWS.
-- Aplicaciones IoT con datos de series temporales y alto volumen de escrituras.
+- Migration of **Apache Cassandra** workloads to AWS.
+- IoT applications with time series data and high write volume.
 
-> **Clave**: Si la pregunta menciona "Cassandra" o "migración de Cassandra", la respuesta es **Keyspaces**.
+> **Key**: If the question mentions "Cassandra" or "Cassandra migration", the answer is **Keyspaces**.
 
 ---
 
 ## Amazon QLDB
 
-Quantum Ledger Database: base de datos de **ledger** (libro mayor) totalmente gestionada.
+Quantum Ledger Database: fully managed **ledger** database.
 
-### Características
+### Features
 
-- **Inmutable**: Los datos no se pueden modificar ni eliminar (append-only).
-- Historial completo y verificable criptográficamente de todos los cambios.
-- 2-3x mejor rendimiento que frameworks de blockchain tradicionales.
-- Usa un journal de transacciones con **hash chain** verificable.
-- Centralizado (a diferencia de blockchain que es descentralizado).
+- **Immutable**: Data cannot be modified or deleted (append-only).
+- Complete and cryptographically verifiable history of all changes.
+- 2-3x better performance than traditional blockchain frameworks.
+- Uses a transaction journal with a verifiable **hash chain**.
+- Centralized (unlike blockchain which is decentralized).
 
-### Cuándo usar
+### When to Use
 
-- Registros financieros, auditoría de transacciones.
-- Historial de cambios en datos críticos (supply chain).
-- Sistemas donde se necesita inmutabilidad verificable.
+- Financial records, transaction auditing.
+- History of changes in critical data (supply chain).
+- Systems where verifiable immutability is needed.
 
-> **Clave**: Si la pregunta menciona "ledger", "registro inmutable", "auditoría verificable criptográficamente" y el control es **centralizado** → QLDB. Si necesita **descentralización** → Amazon Managed Blockchain.
+> **Key**: If the question mentions "ledger", "immutable record", "cryptographically verifiable audit" and control is **centralized** -> QLDB. If it needs **decentralization** -> Amazon Managed Blockchain.
 
 ---
 
 ## Amazon Timestream
 
-Base de datos de **series temporales** serverless y totalmente gestionada.
+Serverless and fully managed **time series** database.
 
-### Características
+### Features
 
-- Hasta **1000x más rápido y 1/10 del coste** que bases de datos relacionales para datos de series temporales.
-- Almacenamiento automático en tiers: datos recientes en memoria, datos históricos en almacenamiento magnético.
-- Funciones analíticas de series temporales integradas (interpolación, smoothing, etc.).
-- Cifrado at-rest y en tránsito.
-- Integración con Grafana, QuickSight para visualización.
+- Up to **1000x faster and 1/10 the cost** of relational databases for time series data.
+- Automatic tiered storage: recent data in memory, historical data in magnetic storage.
+- Built-in time series analytics functions (interpolation, smoothing, etc.).
+- At-rest and in-transit encryption.
+- Integration with Grafana, QuickSight for visualization.
 
-### Cuándo usar
+### When to Use
 
-- Datos de IoT y sensores.
-- Métricas de aplicaciones y DevOps.
-- Datos de click-stream y análisis en tiempo real.
-- Cualquier dato con timestamp natural y patrones temporales.
+- IoT and sensor data.
+- Application and DevOps metrics.
+- Click-stream data and real-time analysis.
+- Any data with a natural timestamp and temporal patterns.
 
-> **Clave**: Si la pregunta menciona "time series", "IoT metrics", "datos temporales a gran escala", la respuesta es **Timestream**.
+> **Key**: If the question mentions "time series", "IoT metrics", "large-scale temporal data", the answer is **Timestream**.
 
 ---
 
-## Árbol de decisión de bases de datos
+## Database Decision Tree
 
-### Selección por tipo de dato y caso de uso
+### Selection by Data Type and Use Case
 
 ```
-¿Qué tipo de datos?
-│
-├── Datos RELACIONALES (SQL, transacciones ACID)
-│   ├── ¿Necesitas compatibilidad con MySQL/PostgreSQL con mejor rendimiento?
-│   │   └── Amazon Aurora
-│   ├── ¿Necesitas Oracle, SQL Server, MariaDB?
-│   │   └── Amazon RDS
-│   └── ¿Datos analíticos (OLAP, data warehouse)?
-│       └── Amazon Redshift
-│
-├── Datos NO RELACIONALES (NoSQL)
-│   ├── Key-Value / Documentos con baja latencia
-│   │   └── Amazon DynamoDB
-│   ├── Documentos JSON (compatible MongoDB)
-│   │   └── Amazon DocumentDB
-│   ├── Wide-column (compatible Cassandra)
-│   │   └── Amazon Keyspaces
-│   └── Grafos (relaciones complejas)
-│       └── Amazon Neptune
-│
-├── Datos de CACHE en memoria
-│   ├── ¿Necesitas persistencia, HA, estructuras complejas?
-│   │   └── ElastiCache for Redis
-│   └── ¿Solo cache simple multi-thread?
-│       └── ElastiCache for Memcached
-│
-├── Datos de SERIES TEMPORALES
-│   └── Amazon Timestream
-│
-├── LEDGER (inmutable, auditable)
-│   └── Amazon QLDB
-│
-└── BLOCKCHAIN (descentralizado)
-    └── Amazon Managed Blockchain
+What type of data?
+|
+|-- RELATIONAL data (SQL, ACID transactions)
+|   |-- Need MySQL/PostgreSQL compatibility with better performance?
+|   |   +-- Amazon Aurora
+|   |-- Need Oracle, SQL Server, MariaDB?
+|   |   +-- Amazon RDS
+|   +-- Analytical data (OLAP, data warehouse)?
+|       +-- Amazon Redshift
+|
+|-- NON-RELATIONAL data (NoSQL)
+|   |-- Key-Value / Documents with low latency
+|   |   +-- Amazon DynamoDB
+|   |-- JSON Documents (MongoDB compatible)
+|   |   +-- Amazon DocumentDB
+|   |-- Wide-column (Cassandra compatible)
+|   |   +-- Amazon Keyspaces
+|   +-- Graphs (complex relationships)
+|       +-- Amazon Neptune
+|
+|-- In-memory CACHE data
+|   |-- Need persistence, HA, complex structures?
+|   |   +-- ElastiCache for Redis
+|   +-- Just simple multi-threaded cache?
+|       +-- ElastiCache for Memcached
+|
+|-- TIME SERIES data
+|   +-- Amazon Timestream
+|
+|-- LEDGER (immutable, auditable)
+|   +-- Amazon QLDB
+|
++-- BLOCKCHAIN (decentralized)
+    +-- Amazon Managed Blockchain
 ```
 
-### Selección rápida por palabras clave
+### Quick Selection by Keywords
 
-| Palabra clave en la pregunta | Servicio |
+| Keyword in the Question | Service |
 |---|---|
-| "Relacional", "SQL", "transacciones ACID" | RDS o Aurora |
-| "MySQL/PostgreSQL con alto rendimiento" | Aurora |
+| "Relational", "SQL", "ACID transactions" | RDS or Aurora |
+| "MySQL/PostgreSQL with high performance" | Aurora |
 | "Oracle", "SQL Server" | RDS |
 | "Data warehouse", "OLAP", "analytics", "BI" | Redshift |
-| "NoSQL", "key-value", "baja latencia", "serverless DB" | DynamoDB |
+| "NoSQL", "key-value", "low latency", "serverless DB" | DynamoDB |
 | "MongoDB" | DocumentDB |
 | "Cassandra" | Keyspaces |
-| "Grafos", "relaciones entre entidades" | Neptune |
-| "Cache", "sesiones", "leaderboard" | ElastiCache Redis |
-| "Series temporales", "IoT", "métricas" | Timestream |
-| "Ledger", "inmutable", "auditoría" | QLDB |
-| "Lambda + RDS", "problemas de conexiones" | RDS Proxy |
-| "Migración de DB heterogénea" | DMS + SCT |
+| "Graphs", "relationships between entities" | Neptune |
+| "Cache", "sessions", "leaderboard" | ElastiCache Redis |
+| "Time series", "IoT", "metrics" | Timestream |
+| "Ledger", "immutable", "audit" | QLDB |
+| "Lambda + RDS", "connection problems" | RDS Proxy |
+| "Heterogeneous DB migration" | DMS + SCT |
 
 ---
 
-## Tips para el examen
+## Exam Tips
 
 ### RDS
 
-1. **"Alta disponibilidad para RDS"** → Multi-AZ (síncrono, failover automático).
-2. **"Escalar lecturas en RDS"** → Read Replicas (asíncrono).
-3. **"Menor tiempo de failover RDS"** → RDS Proxy.
-4. **"Lambda + RDS con problemas de conexiones"** → RDS Proxy (connection pooling).
-5. **"Restaurar RDS"** → Siempre crea una NUEVA instancia.
-6. **"Cifrar RDS existente no cifrado"** → Snapshot → copiar con cifrado → restaurar.
-7. **"Autenticación con token / profile credentials de EC2 a RDS"** → IAM DB Authentication (no un IAM Role a secas, no SSL).
+1. **"High availability for RDS"** -> Multi-AZ (synchronous, automatic failover).
+2. **"Scale reads in RDS"** -> Read Replicas (asynchronous).
+3. **"Lower RDS failover time"** -> RDS Proxy.
+4. **"Lambda + RDS with connection problems"** -> RDS Proxy (connection pooling).
+5. **"Restore RDS"** -> Always creates a NEW instance.
+6. **"Encrypt existing unencrypted RDS"** -> Snapshot -> copy with encryption -> restore.
+7. **"Authentication with token / EC2 profile credentials to RDS"** -> IAM DB Authentication (not a plain IAM Role, not SSL).
 
 ### Aurora
 
-7. **"MySQL/PostgreSQL con alto rendimiento y HA"** → Aurora.
-8. **"Rebobinar la DB a un punto anterior sin crear nueva instancia"** → Aurora Backtracking (solo MySQL).
-9. **"Clonar DB para testing"** → Aurora Cloning (copy-on-write).
-10. **"Lecturas globales cross-region con < 1s de lag"** → Aurora Global Database.
-11. **"Capacidad variable, serverless relacional"** → Aurora Serverless v2.
-12. **"Reaccionar a cambios en datos de Aurora (INSERT/UPDATE/DELETE)"** → Native function o stored procedure que invoca Lambda. No confundir con RDS Event Subscription (solo eventos de infraestructura).
+7. **"MySQL/PostgreSQL with high performance and HA"** -> Aurora.
+8. **"Rewind the DB to a previous point without creating a new instance"** -> Aurora Backtracking (MySQL only).
+9. **"Clone DB for testing"** -> Aurora Cloning (copy-on-write).
+10. **"Global cross-region reads with < 1s lag"** -> Aurora Global Database.
+11. **"Variable capacity, serverless relational"** -> Aurora Serverless v2.
+12. **"React to data changes in Aurora (INSERT/UPDATE/DELETE)"** -> Native function or stored procedure that invokes Lambda. Do not confuse with RDS Event Subscription (infrastructure events only).
 
 ### DynamoDB
 
-12. **"Base de datos serverless NoSQL"** → DynamoDB.
-13. **"Cache para DynamoDB"** → DAX (no ElastiCache para DynamoDB).
-14. **"Replicación multi-región activa-activa NoSQL"** → DynamoDB Global Tables.
-15. **"Reaccionar a cambios en DynamoDB"** → DynamoDB Streams + Lambda.
-16. **"Patrón de acceso impredecible en DynamoDB"** → Modo On-Demand.
-17. **"Expiración automática de items"** → TTL.
+12. **"Serverless NoSQL database"** -> DynamoDB.
+13. **"Cache for DynamoDB"** -> DAX (not ElastiCache for DynamoDB).
+14. **"Multi-region active-active NoSQL replication"** -> DynamoDB Global Tables.
+15. **"React to changes in DynamoDB"** -> DynamoDB Streams + Lambda.
+16. **"Unpredictable access pattern in DynamoDB"** -> On-Demand mode.
+17. **"Automatic item expiration"** -> TTL.
 
 ### ElastiCache
 
-18. **"Cache con HA y persistencia"** → ElastiCache Redis.
-19. **"Cache simple, multi-threaded"** → ElastiCache Memcached.
-20. **"Sesiones de usuario stateless"** → ElastiCache Redis (o DynamoDB).
-21. **"Autenticar usuarios con password antes de ejecutar comandos Redis"** → Redis AUTH (`--auth-token` + `--transit-encryption-enabled`). Ambos flags son obligatorios juntos.
-22. **"Short-lived credentials para Redis"** → IAM Authentication. **"Long-lived credentials"** → Redis AUTH.
+18. **"Cache with HA and persistence"** -> ElastiCache Redis.
+19. **"Simple cache, multi-threaded"** -> ElastiCache Memcached.
+20. **"Stateless user sessions"** -> ElastiCache Redis (or DynamoDB).
+21. **"Authenticate users with password before executing Redis commands"** -> Redis AUTH (`--auth-token` + `--transit-encryption-enabled`). Both flags are mandatory together.
+22. **"Short-lived credentials for Redis"** -> IAM Authentication. **"Long-lived credentials"** -> Redis AUTH.
 
 ### Redshift
 
-21. **"Data warehouse a gran escala"** → Redshift.
-22. **"Query datos en S3 desde Redshift sin cargarlos"** → Redshift Spectrum.
-23. **"OLAP, no OLTP"** → Redshift (OLAP) vs RDS/Aurora (OLTP).
+21. **"Large-scale data warehouse"** -> Redshift.
+22. **"Query data in S3 from Redshift without loading it"** -> Redshift Spectrum.
+23. **"OLAP, not OLTP"** -> Redshift (OLAP) vs RDS/Aurora (OLTP).
 
-### Bases de datos de propósito específico
+### Purpose-Specific Databases
 
-24. **"Grafos"** → Neptune.
-25. **"MongoDB"** → DocumentDB.
-26. **"Cassandra"** → Keyspaces.
-27. **"Ledger inmutable"** → QLDB.
-28. **"Series temporales"** → Timestream.
-29. **"Blockchain descentralizado"** → Managed Blockchain.
+24. **"Graphs"** -> Neptune.
+25. **"MongoDB"** -> DocumentDB.
+26. **"Cassandra"** -> Keyspaces.
+27. **"Immutable ledger"** -> QLDB.
+28. **"Time series"** -> Timestream.
+29. **"Decentralized blockchain"** -> Managed Blockchain.

@@ -1,6 +1,6 @@
-# Monitorización y Gestión en AWS (Monitoring & Management)
+# Monitoring and Management in AWS
 
-## Índice
+## Table of Contents
 
 - [Amazon CloudWatch](#amazon-cloudwatch)
 - [CloudWatch Logs](#cloudwatch-logs)
@@ -9,161 +9,161 @@
 - [AWS CloudTrail](#aws-cloudtrail)
 - [AWS Config](#aws-config)
 - [AWS X-Ray](#aws-x-ray)
-- [Amazon EventBridge como herramienta de monitorización](#amazon-eventbridge-como-herramienta-de-monitorización)
+- [Amazon EventBridge as a Monitoring Tool](#amazon-eventbridge-as-a-monitoring-tool)
 - [AWS Trusted Advisor](#aws-trusted-advisor)
 - [AWS Health Dashboard](#aws-health-dashboard)
 - [VPC Flow Logs](#vpc-flow-logs)
 - [AWS Systems Manager](#aws-systems-manager)
-- [Tips para el examen](#tips-para-el-examen)
+- [Exam Tips](#exam-tips)
 
 ---
 
 ## Amazon CloudWatch
 
-Servicio de monitorización y observabilidad de AWS. Recopila métricas, logs y eventos de los recursos y aplicaciones.
+AWS monitoring and observability service. Collects metrics, logs, and events from resources and applications.
 
-### Métricas (Metrics)
+### Metrics
 
-- Cada servicio AWS envía métricas a CloudWatch automáticamente.
-- Una **métrica** pertenece a un **namespace** (ej: `AWS/EC2`, `AWS/RDS`).
-- Cada métrica tiene hasta **30 dimensiones** (atributos como InstanceId, InstanceType).
-- **Resolución**:
-  - Estándar: datos cada **5 minutos** (gratuito).
-  - Detailed monitoring: datos cada **1 minuto** (coste adicional).
-  - High-resolution custom metrics: hasta cada **1 segundo**.
-- Retención de datos:
-  - Datos de 1 segundo → disponibles durante 3 horas.
-  - Datos de 60 segundos → disponibles durante 15 días.
-  - Datos de 5 minutos → disponibles durante 63 días.
-  - Datos de 1 hora → disponibles durante 455 días (15 meses).
+- Every AWS service sends metrics to CloudWatch automatically.
+- A **metric** belongs to a **namespace** (e.g., `AWS/EC2`, `AWS/RDS`).
+- Each metric has up to **30 dimensions** (attributes like InstanceId, InstanceType).
+- **Resolution**:
+  - Standard: data every **5 minutes** (free).
+  - Detailed monitoring: data every **1 minute** (additional cost).
+  - High-resolution custom metrics: up to every **1 second**.
+- Data retention:
+  - 1-second data → available for 3 hours.
+  - 60-second data → available for 15 days.
+  - 5-minute data → available for 63 days.
+  - 1-hour data → available for 455 days (15 months).
 
-### Métricas comunes por servicio
+### Common Metrics by Service
 
-| Servicio | Métricas clave | Nota |
+| Service | Key Metrics | Note |
 |---|---|---|
-| **EC2** | CPUUtilization, NetworkIn/Out, StatusCheckFailed | **NO incluye memoria RAM ni disco** (requieren agent) |
-| **EBS** | VolumeReadOps, VolumeWriteOps, BurstBalance | BurstBalance para gp2 |
-| **RDS** | DatabaseConnections, FreeableMemory, ReadIOPS | FreeableMemory SÍ está disponible |
-| **ALB** | RequestCount, TargetResponseTime, HTTPCode_Target_5XX | HealthyHostCount importante |
-| **Lambda** | Invocations, Duration, Errors, Throttles, ConcurrentExecutions | Métricas automáticas |
-| **S3** | BucketSizeBytes, NumberOfObjects | Métricas diarias de bucket |
-| **SQS** | ApproximateNumberOfMessagesVisible, ApproximateAgeOfOldestMessage | Clave para auto scaling |
+| **EC2** | CPUUtilization, NetworkIn/Out, StatusCheckFailed | **Does NOT include RAM or disk** (requires agent) |
+| **EBS** | VolumeReadOps, VolumeWriteOps, BurstBalance | BurstBalance for gp2 |
+| **RDS** | DatabaseConnections, FreeableMemory, ReadIOPS | FreeableMemory IS available |
+| **ALB** | RequestCount, TargetResponseTime, HTTPCode_Target_5XX | HealthyHostCount is important |
+| **Lambda** | Invocations, Duration, Errors, Throttles, ConcurrentExecutions | Automatic metrics |
+| **S3** | BucketSizeBytes, NumberOfObjects | Daily bucket metrics |
+| **SQS** | ApproximateNumberOfMessagesVisible, ApproximateAgeOfOldestMessage | Key for auto scaling |
 
-> **Clave para el examen**: EC2 NO envía métricas de RAM ni uso de disco a CloudWatch por defecto. Se necesita el CloudWatch Agent para esto.
+> **Key for the exam**: EC2 does NOT send RAM or disk usage metrics to CloudWatch by default. The CloudWatch Agent is needed for this.
 
 ### Custom Metrics
 
-- Se publican con la API `PutMetricData`.
-- Se puede definir resolución: **Standard** (60 segundos) o **High Resolution** (1 segundo).
-- Se pueden enviar datos del pasado (hasta 2 semanas) y del futuro (hasta 2 horas).
-- Se pueden usar dimensiones para segmentar (ej: `Environment=prod`, `InstanceId=i-xxx`).
+- Published with the `PutMetricData` API.
+- Resolution can be defined: **Standard** (60 seconds) or **High Resolution** (1 second).
+- Past data (up to 2 weeks) and future data (up to 2 hours) can be sent.
+- Dimensions can be used for segmentation (e.g., `Environment=prod`, `InstanceId=i-xxx`).
 
 ### CloudWatch Alarms
 
-Evalúan métricas y ejecutan acciones cuando se cruzan umbrales.
+Evaluate metrics and execute actions when thresholds are crossed.
 
-**Estados de una alarma:**
-- `OK`: La métrica está dentro del umbral.
-- `ALARM`: La métrica ha cruzado el umbral.
-- `INSUFFICIENT_DATA`: No hay datos suficientes para evaluar.
+**Alarm states:**
+- `OK`: The metric is within the threshold.
+- `ALARM`: The metric has crossed the threshold.
+- `INSUFFICIENT_DATA`: Not enough data to evaluate.
 
-**Acciones disponibles:**
+**Available actions:**
 
-| Acción | Descripción |
+| Action | Description |
 |---|---|
-| **EC2 Actions** | Stop, Terminate, Reboot, Recover la instancia |
+| **EC2 Actions** | Stop, Terminate, Reboot, Recover the instance |
 | **Auto Scaling** | Scale out/in |
-| **SNS** | Enviar notificación a un topic SNS |
-| **Systems Manager** | Ejecutar un OpsItem o Incident |
-| **Lambda** | Invocar función (a través de SNS) |
+| **SNS** | Send notification to an SNS topic |
+| **Systems Manager** | Execute an OpsItem or Incident |
+| **Lambda** | Invoke function (through SNS) |
 
-**Configuración de alarmas:**
-- **Period**: Período de evaluación (ej: 300 segundos = 5 min).
-- **Evaluation Periods**: Número de períodos consecutivos que deben estar en alarma.
-- **Datapoints to Alarm**: Número mínimo de datapoints en alarma dentro de los evaluation periods.
+**Alarm configuration:**
+- **Period**: Evaluation period (e.g., 300 seconds = 5 min).
+- **Evaluation Periods**: Number of consecutive periods that must be in alarm.
+- **Datapoints to Alarm**: Minimum number of datapoints in alarm within the evaluation periods.
 
-> **Ejemplo**: Period=60s, Evaluation Periods=5, Datapoints to Alarm=3 → La alarma se activa si 3 de los últimos 5 minutos están por encima del umbral.
+> **Example**: Period=60s, Evaluation Periods=5, Datapoints to Alarm=3 → The alarm triggers if 3 of the last 5 minutes are above the threshold.
 
 ### Composite Alarms
 
-- Combinan múltiples alarmas con operadores lógicos **AND** y **OR**.
-- Reducen el "alarm noise" al requerir que múltiples condiciones se cumplan.
-- Caso de uso: Solo alertar si CPU alta **AND** memoria alta (no solo una de las dos).
+- Combine multiple alarms with **AND** and **OR** logical operators.
+- Reduce "alarm noise" by requiring multiple conditions to be met.
+- Use case: Only alert if CPU is high **AND** memory is high (not just one of the two).
 
 ### CloudWatch Dashboards
 
-- Visualización de métricas en paneles personalizados.
-- **Globales**: Pueden incluir métricas de diferentes regiones y cuentas.
+- Visualization of metrics in custom panels.
+- **Global**: Can include metrics from different regions and accounts.
 - Widgets: Line, Stacked area, Number, Bar, Text, Log, Alarm status.
-- Se pueden compartir externamente (con Cognito).
-- Gratuitos hasta 3 dashboards (50 métricas cada uno). Después, $3/dashboard/mes.
+- Can be shared externally (with Cognito).
+- Free up to 3 dashboards (50 metrics each). After that, $3/dashboard/month.
 
 ---
 
 ## CloudWatch Logs
 
-Servicio centralizado para recopilar, monitorizar y analizar logs.
+Centralized service for collecting, monitoring, and analyzing logs.
 
-### Conceptos clave
+### Key Concepts
 
 ```
     ┌─────────────────────────────────────┐
     │          CloudWatch Logs            │
     │                                     │
-    │  Log Group: /aws/lambda/mi-funcion  │
+    │  Log Group: /aws/lambda/my-function │
     │  ├── Log Stream: 2024/01/15/[$LATEST]abc123  │
-    │  │   ├── Log Event (timestamp + mensaje)     │
+    │  │   ├── Log Event (timestamp + message)     │
     │  │   ├── Log Event                           │
     │  │   └── Log Event                           │
     │  ├── Log Stream: 2024/01/15/[$LATEST]def456  │
     │  └── ...                                     │
     │                                     │
-    │  Retention: 1 día → 10 años → Never │
+    │  Retention: 1 day → 10 years → Never│
     └─────────────────────────────────────┘
 ```
 
-| Concepto | Descripción |
+| Concept | Description |
 |---|---|
-| **Log Group** | Agrupación lógica de logs (ej: por aplicación o servicio). Configuración de retención y cifrado. |
-| **Log Stream** | Secuencia de eventos del mismo origen (ej: una instancia EC2 específica). |
-| **Log Event** | Un registro individual con timestamp y mensaje. |
-| **Retention** | Configurable: desde 1 día hasta 10 años, o sin expiración. |
+| **Log Group** | Logical grouping of logs (e.g., by application or service). Retention and encryption configuration. |
+| **Log Stream** | Sequence of events from the same source (e.g., a specific EC2 instance). |
+| **Log Event** | An individual record with timestamp and message. |
+| **Retention** | Configurable: from 1 day to 10 years, or no expiration. |
 
-### Fuentes de logs
+### Log Sources
 
-| Fuente | Log Group típico |
+| Source | Typical Log Group |
 |---|---|
-| **Lambda** | `/aws/lambda/<function-name>` (automático) |
+| **Lambda** | `/aws/lambda/<function-name>` (automatic) |
 | **API Gateway** | `/aws/apigateway/<api-name>` |
 | **ECS** | `/ecs/<service-name>` |
 | **CloudTrail** | Configurable |
 | **Route 53** | DNS query logs |
 | **VPC Flow Logs** | Configurable |
-| **EC2 / on-premises** | Requiere CloudWatch Agent |
-| **Elastic Beanstalk** | Automático |
+| **EC2 / on-premises** | Requires CloudWatch Agent |
+| **Elastic Beanstalk** | Automatic |
 
 ### Metric Filters
 
-- Extraen datos de los logs y los convierten en **métricas de CloudWatch**.
-- Usan patrones de filtro para buscar en los log events.
-- Se pueden crear alarmas sobre estas métricas.
+- Extract data from logs and convert them into **CloudWatch metrics**.
+- Use filter patterns to search through log events.
+- Alarms can be created on these metrics.
 
-**Ejemplo de uso**: Contar el número de errores "ERROR" en los logs y crear una alarma si supera un umbral.
+**Example use case**: Count the number of "ERROR" entries in logs and create an alarm if it exceeds a threshold.
 
 ```
     Logs ──► Metric Filter ("ERROR") ──► Custom Metric ──► Alarm ──► SNS
 ```
 
-> **Nota**: Los metric filters NO son retroactivos. Solo procesan eventos que llegan DESPUÉS de crear el filtro.
+> **Note**: Metric filters are NOT retroactive. They only process events that arrive AFTER the filter is created.
 
 ### CloudWatch Logs Insights
 
-- Motor de consultas interactivo para analizar logs.
-- Lenguaje de consulta propio (similar a SQL).
-- Puede consultar múltiples log groups.
-- Visualización de resultados en tablas y gráficos.
+- Interactive query engine for analyzing logs.
+- Proprietary query language (similar to SQL).
+- Can query multiple log groups.
+- Results visualization in tables and charts.
 
-**Ejemplo de query:**
+**Example query:**
 
 ```
 fields @timestamp, @message
@@ -172,21 +172,21 @@ fields @timestamp, @message
 | limit 20
 ```
 
-### Exportar logs
+### Exporting Logs
 
-| Destino | Método | Latencia |
+| Destination | Method | Latency |
 |---|---|---|
-| **S3** | Export task (API: `CreateExportTask`) | Hasta **12 horas** (no en tiempo real) |
-| **Kinesis Data Streams** | Subscription filter (tiempo real) | Tiempo real |
+| **S3** | Export task (API: `CreateExportTask`) | Up to **12 hours** (not real-time) |
+| **Kinesis Data Streams** | Subscription filter (real-time) | Real-time |
 | **Kinesis Data Firehose** | Subscription filter (near real-time) | Near real-time (~60s) |
-| **Lambda** | Subscription filter (tiempo real) | Tiempo real |
-| **OpenSearch** | Subscription filter (tiempo real) | Tiempo real |
+| **Lambda** | Subscription filter (real-time) | Real-time |
+| **OpenSearch** | Subscription filter (real-time) | Real-time |
 
-> **Clave**: Para exportar logs a S3 en tiempo real NO se usa `CreateExportTask` (tarda horas). Se usa un **Subscription Filter** → Kinesis Data Firehose → S3.
+> **Key**: To export logs to S3 in real-time, do NOT use `CreateExportTask` (takes hours). Use a **Subscription Filter** → Kinesis Data Firehose → S3.
 
-### Logs cross-account
+### Cross-Account Logs
 
-- Se pueden enviar logs de múltiples cuentas a una cuenta centralizada usando **Subscription Filters** + Kinesis Data Streams o Firehose.
+- Logs from multiple accounts can be sent to a centralized account using **Subscription Filters** + Kinesis Data Streams or Firehose.
 
 ---
 
@@ -194,199 +194,199 @@ fields @timestamp, @message
 
 ### CloudWatch Unified Agent
 
-Agente que se instala en instancias EC2 o servidores on-premises para enviar métricas y logs adicionales a CloudWatch.
+Agent installed on EC2 instances or on-premises servers to send additional metrics and logs to CloudWatch.
 
-**Métricas que recopila (no disponibles por defecto):**
+**Metrics it collects (not available by default):**
 
-| Métrica | Descripción |
+| Metric | Description |
 |---|---|
-| **Memory** | Utilización de RAM (mem_used_percent) |
-| **Disk** | Uso de disco, I/O (disk_used_percent) |
-| **Swap** | Uso de memoria swap |
-| **Netstat** | Conexiones TCP, UDP |
-| **Processes** | Número de procesos |
-| **CPU** | Métricas granulares por core |
+| **Memory** | RAM utilization (mem_used_percent) |
+| **Disk** | Disk usage, I/O (disk_used_percent) |
+| **Swap** | Swap memory usage |
+| **Netstat** | TCP, UDP connections |
+| **Processes** | Number of processes |
+| **CPU** | Granular per-core metrics |
 
-**Configuración:**
-- Se configura mediante un archivo JSON o con el **SSM Parameter Store** (centralizado).
-- Se puede usar el wizard `amazon-cloudwatch-agent-config-wizard` para generar la configuración.
-- Requiere un **IAM Role** con permisos para CloudWatch Logs y Metrics.
+**Configuration:**
+- Configured via a JSON file or with **SSM Parameter Store** (centralized).
+- The `amazon-cloudwatch-agent-config-wizard` can be used to generate the configuration.
+- Requires an **IAM Role** with permissions for CloudWatch Logs and Metrics.
 
-**Diferencia entre agentes:**
-- **CloudWatch Logs Agent** (legacy): Solo envía logs. No métricas custom.
-- **CloudWatch Unified Agent** (recomendado): Envía logs Y métricas custom. Más configurable.
+**Difference between agents:**
+- **CloudWatch Logs Agent** (legacy): Only sends logs. No custom metrics.
+- **CloudWatch Unified Agent** (recommended): Sends logs AND custom metrics. More configurable.
 
-> **Clave**: Si la pregunta menciona "monitorizar memoria RAM de EC2" o "uso de disco", la respuesta siempre incluye instalar el **CloudWatch Unified Agent**.
+> **Key**: If the question mentions "monitor EC2 RAM" or "disk usage", the answer always includes installing the **CloudWatch Unified Agent**.
 
 ---
 
 ## CloudWatch Container Insights
 
-Solución de monitorización para contenedores que recopila, agrega y resume métricas y logs de **ECS**, **EKS**, **Kubernetes on EC2** y **Fargate**.
+Monitoring solution for containers that collects, aggregates, and summarizes metrics and logs from **ECS**, **EKS**, **Kubernetes on EC2**, and **Fargate**.
 
-### Métricas que proporciona
+### Metrics Provided
 
-| Nivel | Métricas |
+| Level | Metrics |
 |---|---|
-| **Cluster** | CPU/Memory utilization del cluster completo, número de tasks/pods |
-| **Service/Deployment** | CPU/Memory por servicio ECS o deployment EKS |
-| **Task/Pod** | CPU/Memory por task individual o pod |
-| **Container** | CPU/Memory por contenedor dentro de un task/pod |
+| **Cluster** | CPU/Memory utilization of the entire cluster, number of tasks/pods |
+| **Service/Deployment** | CPU/Memory per ECS service or EKS deployment |
+| **Task/Pod** | CPU/Memory per individual task or pod |
+| **Container** | CPU/Memory per container within a task/pod |
 
-### Configuración
+### Configuration
 
-- **ECS**: Se habilita a nivel de cluster (`containerInsights` setting) o por cuenta.
-- **EKS**: Requiere instalar el **CloudWatch Agent** como DaemonSet en el cluster.
-- **Fargate**: Se habilita a nivel de cluster ECS.
+- **ECS**: Enabled at the cluster level (`containerInsights` setting) or per account.
+- **EKS**: Requires installing the **CloudWatch Agent** as a DaemonSet in the cluster.
+- **Fargate**: Enabled at the ECS cluster level.
 
-### Container Insights vs métricas básicas de ECS
+### Container Insights vs Basic ECS Metrics
 
-| | Métricas básicas ECS | Container Insights |
+| | Basic ECS Metrics | Container Insights |
 |---|---|---|
-| **Granularidad** | Solo a nivel de servicio y cluster | Cluster, servicio, task, contenedor |
-| **Métricas** | CPU/Memory del servicio | CPU, Memory, Network, Disk I/O por contenedor |
-| **Performance Logs** | No | Sí (events de rendimiento estructurados) |
-| **Coste** | Gratis | Coste adicional (métricas custom de CloudWatch) |
+| **Granularity** | Service and cluster level only | Cluster, service, task, container |
+| **Metrics** | Service CPU/Memory | CPU, Memory, Network, Disk I/O per container |
+| **Performance Logs** | No | Yes (structured performance events) |
+| **Cost** | Free | Additional cost (CloudWatch custom metrics) |
 
-> **Tip para el examen:** Si la pregunta dice "monitorizar CPU/Memory a nivel de contenedor en ECS" o "métricas granulares de pods en EKS" → **CloudWatch Container Insights**. No confundir con las métricas básicas de ECS que solo dan visibilidad a nivel de servicio.
+> **Exam tip:** If the question says "monitor CPU/Memory at container level in ECS" or "granular pod metrics in EKS" → **CloudWatch Container Insights**. Do not confuse with basic ECS metrics that only provide service-level visibility.
 
 ---
 
 ## AWS CloudTrail
 
-Servicio de auditoría que registra todas las llamadas API realizadas en la cuenta de AWS.
+Auditing service that records all API calls made in the AWS account.
 
-### Tipos de eventos
+### Event Types
 
-| Tipo | Descripción | Habilitado por defecto | Ejemplo |
+| Type | Description | Enabled by Default | Example |
 |---|---|---|---|
-| **Management Events** | Operaciones sobre recursos AWS (crear, configurar, eliminar) | Sí (90 días gratis) | CreateBucket, TerminateInstances, AttachRolePolicy |
-| **Data Events** | Operaciones sobre los datos dentro de los recursos | No (alto volumen, coste adicional) | GetObject en S3, Invoke en Lambda |
-| **Insights Events** | Detección de actividad inusual | No (debe habilitarse) | Picos anormales de API calls |
+| **Management Events** | Operations on AWS resources (create, configure, delete) | Yes (90 days free) | CreateBucket, TerminateInstances, AttachRolePolicy |
+| **Data Events** | Operations on data within resources | No (high volume, additional cost) | GetObject on S3, Invoke on Lambda |
+| **Insights Events** | Detection of unusual activity | No (must be enabled) | Abnormal spikes in API calls |
 
-### Management Events - Detalle
+### Management Events - Detail
 
-- **Read Events**: Operaciones de lectura que no modifican recursos (ej: `DescribeInstances`, `ListBuckets`).
-- **Write Events**: Operaciones que modifican recursos (ej: `CreateBucket`, `DeleteTable`).
-- Se pueden separar para optimizar costes (solo registrar write events).
+- **Read Events**: Read operations that do not modify resources (e.g., `DescribeInstances`, `ListBuckets`).
+- **Write Events**: Operations that modify resources (e.g., `CreateBucket`, `DeleteTable`).
+- Can be separated to optimize costs (only log write events).
 
 ### CloudTrail Insights
 
-- Analiza management events para detectar **actividad inusual**.
-- Establece una línea base de actividad normal.
-- Detecta: picos en la creación de recursos, uso inusual de APIs, gaps en actividad.
-- Los insights se pueden enviar a S3, EventBridge, o la consola de CloudTrail.
+- Analyzes management events to detect **unusual activity**.
+- Establishes a baseline of normal activity.
+- Detects: spikes in resource creation, unusual API usage, gaps in activity.
+- Insights can be sent to S3, EventBridge, or the CloudTrail console.
 
-### Configuración multi-región y organización
+### Multi-Region and Organization Configuration
 
-| Configuración | Descripción |
+| Configuration | Description |
 |---|---|
-| **Multi-region trail** | Un solo trail que captura eventos de TODAS las regiones. Recomendado siempre. |
-| **Organization trail** | Un trail para TODAS las cuentas de la organización. Se almacena en un bucket S3 centralizado. |
-| **Log file integrity** | Validación de integridad de los logs usando SHA-256 hash. Detecta si los logs han sido modificados o eliminados. |
+| **Multi-region trail** | A single trail that captures events from ALL regions. Always recommended. |
+| **Organization trail** | A trail for ALL accounts in the organization. Stored in a centralized S3 bucket. |
+| **Log file integrity** | Log integrity validation using SHA-256 hash. Detects if logs have been modified or deleted. |
 
-### Almacenamiento y análisis
+### Storage and Analysis
 
-- Los eventos se almacenan en **S3** (logs comprimidos en JSON).
-- Retención en la consola de CloudTrail: **90 días** (gratis).
-- Para retención mayor: crear un Trail que envíe a S3.
-- Se puede enviar a **CloudWatch Logs** para crear metric filters y alarmas.
-- Se puede analizar con **Athena** (queries SQL directamente sobre los logs en S3).
+- Events are stored in **S3** (compressed JSON logs).
+- Retention in the CloudTrail console: **90 days** (free).
+- For longer retention: create a Trail that sends to S3.
+- Can be sent to **CloudWatch Logs** to create metric filters and alarms.
+- Can be analyzed with **Athena** (SQL queries directly on logs in S3).
 
 ```
-    API Call ──► CloudTrail ──► S3 Bucket (almacenamiento a largo plazo)
-                           ──► CloudWatch Logs (alarmas en tiempo real)
-                           ──► EventBridge (reaccionar a eventos)
+    API Call ──► CloudTrail ──► S3 Bucket (long-term storage)
+                           ──► CloudWatch Logs (real-time alarms)
+                           ──► EventBridge (react to events)
 ```
 
-> **Clave para el examen**: CloudTrail = "quién hizo qué y cuándo" (auditoría de API calls). CloudWatch = "cómo está funcionando el recurso" (métricas y logs operativos). Son complementarios.
+> **Key for the exam**: CloudTrail = "who did what and when" (API call auditing). CloudWatch = "how is the resource performing" (operational metrics and logs). They are complementary.
 
 ---
 
 ## AWS Config
 
-Servicio que evalúa, audita y registra la **configuración** de los recursos AWS. Permite verificar compliance de forma continua.
+Service that evaluates, audits, and records the **configuration** of AWS resources. Enables continuous compliance verification.
 
-### Conceptos clave
+### Key Concepts
 
-| Concepto | Descripción |
+| Concept | Description |
 |---|---|
-| **Config Rules** | Reglas que evalúan si los recursos cumplen con la configuración deseada |
-| **Configuration Items** | Snapshot de la configuración de un recurso en un punto en el tiempo |
-| **Configuration Recorder** | Registra los cambios de configuración |
-| **Compliance** | Estado de cumplimiento de las reglas (COMPLIANT / NON_COMPLIANT) |
+| **Config Rules** | Rules that evaluate whether resources comply with the desired configuration |
+| **Configuration Items** | Snapshot of a resource's configuration at a point in time |
+| **Configuration Recorder** | Records configuration changes |
+| **Compliance** | Compliance status of rules (COMPLIANT / NON_COMPLIANT) |
 
 ### Config Rules
 
-- **AWS Managed Rules**: Más de 75 reglas predefinidas (ej: `s3-bucket-versioning-enabled`, `ec2-instance-no-public-ip`, `rds-instance-public-access-check`).
-- **Custom Rules**: Definidas con Lambda o AWS CloudFormation Guard.
-- Se evalúan:
-  - Ante cada cambio de configuración (trigger de cambio).
-  - De forma periódica (cada 1, 3, 6, 12 o 24 horas).
-- **No previenen** acciones; solo evalúan y notifican.
+- **AWS Managed Rules**: More than 75 predefined rules (e.g., `s3-bucket-versioning-enabled`, `ec2-instance-no-public-ip`, `rds-instance-public-access-check`).
+- **Custom Rules**: Defined with Lambda or AWS CloudFormation Guard.
+- Evaluated:
+  - On each configuration change (change trigger).
+  - Periodically (every 1, 3, 6, 12, or 24 hours).
+- **Do not prevent** actions; they only evaluate and notify.
 
-### Remediación (Remediation)
+### Remediation
 
-- Acciones automáticas para corregir recursos no conformes.
-- Usa **SSM Automation Documents** para ejecutar la corrección.
-- Se puede configurar remediación automática con reintentos.
+- Automatic actions to correct non-compliant resources.
+- Uses **SSM Automation Documents** to execute the correction.
+- Automatic remediation with retries can be configured.
 
-**Ejemplo de flujo:**
+**Example flow:**
 
 ```
-    Recurso cambia ──► Config Rule evalúa ──► NON_COMPLIANT
-                                                  │
-                                                  ▼
-                                          Remediation Action
-                                          (SSM Automation)
-                                                  │
-                                                  ▼
-                                          Recurso corregido
+    Resource changes ──► Config Rule evaluates ──► NON_COMPLIANT
+                                                      │
+                                                      ▼
+                                              Remediation Action
+                                              (SSM Automation)
+                                                      │
+                                                      ▼
+                                              Resource corrected
 ```
 
 ### Conformance Packs
 
-- Colección de Config Rules y remediation actions empaquetadas como una sola unidad.
-- Se pueden desplegar en una cuenta o en toda la organización.
-- Ejemplo: Pack de compliance para PCI-DSS, HIPAA, etc.
+- Collection of Config Rules and remediation actions packaged as a single unit.
+- Can be deployed to an account or across the entire organization.
+- Example: Compliance pack for PCI-DSS, HIPAA, etc.
 
 ### Config Aggregator
 
-- Vista centralizada del estado de compliance de **múltiples cuentas y regiones**.
-- Recopila datos de Config de todas las cuentas de la organización.
-- No requiere permisos individuales si se usa AWS Organizations.
+- Centralized view of compliance status across **multiple accounts and regions**.
+- Collects Config data from all accounts in the organization.
+- Does not require individual permissions when using AWS Organizations.
 
-> **Clave**: Config = "cómo están configurados mis recursos y si cumplen las reglas". CloudTrail = "quién cambió la configuración". Son complementarios.
+> **Key**: Config = "how are my resources configured and do they comply with rules". CloudTrail = "who changed the configuration". They are complementary.
 
 ---
 
 ## AWS X-Ray
 
-Servicio de tracing distribuido para analizar y depurar aplicaciones en producción, especialmente arquitecturas de microservicios.
+Distributed tracing service for analyzing and debugging applications in production, especially microservices architectures.
 
-### Conceptos clave
+### Key Concepts
 
-| Concepto | Descripción |
+| Concept | Description |
 |---|---|
-| **Trace** | Rastro end-to-end de un request a través de múltiples servicios |
-| **Segment** | Bloque de trabajo realizado por un servicio individual |
-| **Subsegment** | Detalle granular dentro de un segmento (ej: llamada a DynamoDB desde Lambda) |
-| **Service Map** | Visualización gráfica de la arquitectura y latencias entre servicios |
-| **Annotations** | Key-value pairs indexados para filtrar traces |
-| **Metadata** | Key-value pairs NO indexados para información adicional |
-| **Sampling** | Controla el porcentaje de requests que se tracean (reducir coste) |
+| **Trace** | End-to-end trail of a request across multiple services |
+| **Segment** | Block of work performed by an individual service |
+| **Subsegment** | Granular detail within a segment (e.g., DynamoDB call from Lambda) |
+| **Service Map** | Graphical visualization of architecture and latencies between services |
+| **Annotations** | Indexed key-value pairs for filtering traces |
+| **Metadata** | Non-indexed key-value pairs for additional information |
+| **Sampling** | Controls the percentage of requests that are traced (to reduce cost) |
 
-### Arquitectura de X-Ray
+### X-Ray Architecture
 
 ```
-    Request del usuario
+    User request
          │
     ┌────▼────┐    ┌──────────┐    ┌──────────┐
     │   API   │───►│  Lambda  │───►│ DynamoDB │
     │ Gateway │    │          │    │          │
     └────┬────┘    └────┬─────┘    └────┬─────┘
          │              │               │
-    Segmento 1     Segmento 2     Subsegmento
+    Segment 1      Segment 2      Subsegment
          │              │               │
          └──────────────┴───────────────┘
                         │
@@ -397,49 +397,49 @@ Servicio de tracing distribuido para analizar y depurar aplicaciones en producci
                   └───────────┘
 ```
 
-### Integración con servicios AWS
+### Integration with AWS Services
 
-| Servicio | Integración |
+| Service | Integration |
 |---|---|
-| **Lambda** | Habilitación directa en la configuración de la función |
-| **API Gateway** | Se habilita en el stage |
-| **EC2** | Requiere instalar el X-Ray Daemon |
-| **ECS/EKS** | X-Ray Daemon como sidecar container |
-| **Elastic Beanstalk** | Configuración en `.ebextensions` |
-| **App Runner** | Habilitación directa |
+| **Lambda** | Direct enablement in the function configuration |
+| **API Gateway** | Enabled at the stage level |
+| **EC2** | Requires installing the X-Ray Daemon |
+| **ECS/EKS** | X-Ray Daemon as sidecar container |
+| **Elastic Beanstalk** | Configuration in `.ebextensions` |
+| **App Runner** | Direct enablement |
 
 ### Sampling Rules
 
-- **Default**: 1 request/segundo + 5% de requests adicionales.
-- Se pueden definir reglas personalizadas (ej: tracear 100% de errores, 1% de requests exitosos).
-- Reglas de reservoir (mínimo garantizado) + fixed rate (porcentaje adicional).
+- **Default**: 1 request/second + 5% of additional requests.
+- Custom rules can be defined (e.g., trace 100% of errors, 1% of successful requests).
+- Reservoir rules (guaranteed minimum) + fixed rate (additional percentage).
 
-> **Clave**: X-Ray ayuda a identificar cuellos de botella y errores en arquitecturas distribuidas. Si la pregunta menciona "tracing", "latencia entre microservicios", "mapa de servicios", la respuesta es X-Ray.
+> **Key**: X-Ray helps identify bottlenecks and errors in distributed architectures. If the question mentions "tracing", "latency between microservices", "service map", the answer is X-Ray.
 
 ---
 
-## Amazon EventBridge como herramienta de monitorización
+## Amazon EventBridge as a Monitoring Tool
 
-Además de su uso como bus de eventos, EventBridge es útil para monitorización:
+In addition to its use as an event bus, EventBridge is useful for monitoring:
 
-### Casos de uso de monitorización
+### Monitoring Use Cases
 
-| Evento | Origen | Acción |
+| Event | Source | Action |
 |---|---|---|
-| Cambio de estado de EC2 (running → stopped) | EC2 | SNS → notificación al equipo |
-| Console sign-in | CloudTrail | Lambda → verificar IP y alertar |
-| API call inusual | CloudTrail + EventBridge | Step Functions → workflow de investigación |
-| Pipeline de CI/CD fallido | CodePipeline | SNS → notificación a devs |
-| Scheduled health check | EventBridge Scheduler | Lambda → verificar endpoints |
-| Config rule non-compliant | AWS Config | SNS → alerta de compliance |
-| GuardDuty finding | GuardDuty | Lambda → remediation automática |
+| EC2 state change (running → stopped) | EC2 | SNS → notify the team |
+| Console sign-in | CloudTrail | Lambda → verify IP and alert |
+| Unusual API call | CloudTrail + EventBridge | Step Functions → investigation workflow |
+| CI/CD pipeline failed | CodePipeline | SNS → notify devs |
+| Scheduled health check | EventBridge Scheduler | Lambda → verify endpoints |
+| Config rule non-compliant | AWS Config | SNS → compliance alert |
+| GuardDuty finding | GuardDuty | Lambda → automatic remediation |
 
 ### EventBridge + CloudTrail
 
-- Todos los management events de CloudTrail generan eventos en el **default event bus**.
-- Se pueden crear reglas para reaccionar a API calls específicas.
+- All management events from CloudTrail generate events on the **default event bus**.
+- Rules can be created to react to specific API calls.
 
-**Ejemplo**: Detectar cuando alguien elimina una tabla DynamoDB:
+**Example**: Detect when someone deletes a DynamoDB table:
 
 ```json
 {
@@ -452,127 +452,127 @@ Además de su uso como bus de eventos, EventBridge es útil para monitorización
 }
 ```
 
-> **Clave**: EventBridge es el pegamento entre servicios de monitorización. Permite crear flujos reactivos ante cualquier cambio en la infraestructura.
+> **Key**: EventBridge is the glue between monitoring services. It enables creating reactive flows for any infrastructure change.
 
 ---
 
 ## AWS Trusted Advisor
 
-Servicio que inspecciona el entorno AWS y proporciona recomendaciones en tiempo real basadas en mejores prácticas.
+Service that inspects the AWS environment and provides real-time recommendations based on best practices.
 
-### Categorías de checks
+### Check Categories
 
-| Categoría | Ejemplo de checks |
+| Category | Example Checks |
 |---|---|
-| **Cost Optimization** | Instancias EC2 infrautilizadas, EBS volumes no adjuntos, IPs elásticas no usadas, Reserved Instance optimization |
-| **Performance** | EC2 con alto uso de CPU, CloudFront con distribuciones subóptimas, provisionamiento insuficiente |
-| **Security** | Security Groups con puertos abiertos al mundo, IAM sin MFA, S3 buckets públicos, claves de acceso sin rotar |
-| **Fault Tolerance** | EBS snapshots no recientes, RDS sin Multi-AZ, ASG sin multi-AZ, Route 53 sin health checks |
-| **Service Limits** | Porcentaje de uso de cuotas de servicio (80%+ genera warning) |
-| **Operational Excellence** | (Solo con planes avanzados) CloudFormation stack notifications, etc. |
+| **Cost Optimization** | Underutilized EC2 instances, unattached EBS volumes, unused Elastic IPs, Reserved Instance optimization |
+| **Performance** | EC2 with high CPU usage, CloudFront with suboptimal distributions, insufficient provisioning |
+| **Security** | Security Groups with ports open to the world, IAM without MFA, public S3 buckets, unrotated access keys |
+| **Fault Tolerance** | Non-recent EBS snapshots, RDS without Multi-AZ, ASG without multi-AZ, Route 53 without health checks |
+| **Service Limits** | Service quota usage percentage (80%+ generates warning) |
+| **Operational Excellence** | (Advanced plans only) CloudFormation stack notifications, etc. |
 
-### Checks por nivel de Support Plan
+### Checks by Support Plan Level
 
 | Check | Basic / Developer | Business | Enterprise |
 |---|---|---|---|
-| **S3 Bucket Permissions** (público) | Disponible | Disponible | Disponible |
-| **Security Groups - Unrestricted Ports** | Disponible | Disponible | Disponible |
-| **IAM Use** | Disponible | Disponible | Disponible |
-| **MFA on Root Account** | Disponible | Disponible | Disponible |
-| **EBS Public Snapshots** | Disponible | Disponible | Disponible |
-| **RDS Public Snapshots** | Disponible | Disponible | Disponible |
-| **Service Limits** | Disponible | Disponible | Disponible |
-| **Todos los demás checks (~115+)** | NO disponible | Disponible | Disponible |
-| **API access** (`aws support describe-trusted-advisor-checks`) | NO | Disponible | Disponible |
-| **CloudWatch integration** | NO | Disponible | Disponible |
+| **S3 Bucket Permissions** (public) | Available | Available | Available |
+| **Security Groups - Unrestricted Ports** | Available | Available | Available |
+| **IAM Use** | Available | Available | Available |
+| **MFA on Root Account** | Available | Available | Available |
+| **EBS Public Snapshots** | Available | Available | Available |
+| **RDS Public Snapshots** | Available | Available | Available |
+| **Service Limits** | Available | Available | Available |
+| **All other checks (~115+)** | NOT available | Available | Available |
+| **API access** (`aws support describe-trusted-advisor-checks`) | NO | Available | Available |
+| **CloudWatch integration** | NO | Available | Available |
 
-> **Clave para el examen**: Con el plan **Basic/Developer** solo se tienen los 7 core checks (principalmente seguridad y service limits). Para el set completo se necesita **Business o Enterprise**.
+> **Key for the exam**: With the **Basic/Developer** plan you only get the 7 core checks (primarily security and service limits). For the full set you need **Business or Enterprise**.
 
 ### Trusted Advisor + EventBridge
 
-- Los cambios de estado de Trusted Advisor checks generan eventos en EventBridge.
-- Se pueden crear alarmas y flujos automáticos de remediación.
+- Trusted Advisor check state changes generate events in EventBridge.
+- Alarms and automatic remediation flows can be created.
 
 ---
 
 ## AWS Health Dashboard
 
-Proporciona visibilidad sobre el estado de los servicios AWS y cómo afectan a tu cuenta.
+Provides visibility into the status of AWS services and how they affect your account.
 
 ### Service Health Dashboard vs Personal Health Dashboard
 
-| Característica | Service Health Dashboard | AWS Health Dashboard (Personal) |
+| Feature | Service Health Dashboard | AWS Health Dashboard (Personal) |
 |---|---|---|
-| **URL** | `health.aws.amazon.com` | Dentro de la consola AWS |
-| **Alcance** | Estado global de todos los servicios AWS | Solo eventos que afectan a TU cuenta |
-| **Información** | Interrupciones y problemas de servicio generales | Impacto en tus recursos específicos |
-| **Notificaciones** | RSS feed | EventBridge, notificaciones proactivas |
-| **Historial** | Sí (incidentes pasados) | Sí (eventos de los últimos 90 días) |
-| **API** | No | Sí (`aws health` API, requiere Business/Enterprise) |
+| **URL** | `health.aws.amazon.com` | Within the AWS console |
+| **Scope** | Global status of all AWS services | Only events affecting YOUR account |
+| **Information** | General service outages and issues | Impact on your specific resources |
+| **Notifications** | RSS feed | EventBridge, proactive notifications |
+| **History** | Yes (past incidents) | Yes (events from the last 90 days) |
+| **API** | No | Yes (`aws health` API, requires Business/Enterprise) |
 
-### AWS Health Dashboard (Personal) - Detalles
+### AWS Health Dashboard (Personal) - Details
 
-- **Eventos programados**: Mantenimiento planificado que afectará a tus recursos.
-- **Eventos operativos**: Problemas actuales en servicios que afectan a tus recursos.
-- **Notificaciones proactivas**: Alertas sobre cambios que podrían afectarte.
-- **Integración con EventBridge**: Automatizar respuestas ante eventos de salud.
+- **Scheduled events**: Planned maintenance that will affect your resources.
+- **Operational events**: Current service issues affecting your resources.
+- **Proactive notifications**: Alerts about changes that could affect you.
+- **EventBridge integration**: Automate responses to health events.
 
 ```
-    AWS Health ──► EventBridge Rule ──► Lambda ──► Migrar instancia afectada
-                                   ──► SNS ──► Notificar al equipo
+    AWS Health ──► EventBridge Rule ──► Lambda ──► Migrate affected instance
+                                   ──► SNS ──► Notify the team
 ```
 
-> **Clave**: Si la pregunta menciona "saber si un problema de AWS afecta a mis recursos específicos", la respuesta es **AWS Health Dashboard** (Personal). Para el estado general de los servicios, es el **Service Health Dashboard**.
+> **Key**: If the question mentions "know if an AWS issue affects my specific resources", the answer is **AWS Health Dashboard** (Personal). For the general status of services, it's the **Service Health Dashboard**.
 
 ---
 
 ## VPC Flow Logs
 
-Capturan información sobre el tráfico IP que entra y sale de las interfaces de red en la VPC.
+Capture information about IP traffic entering and leaving network interfaces in the VPC.
 
-### Niveles de captura
+### Capture Levels
 
-| Nivel | Descripción |
+| Level | Description |
 |---|---|
-| **VPC** | Captura todo el tráfico de todas las ENIs en la VPC |
-| **Subnet** | Captura el tráfico de todas las ENIs en la subnet |
-| **ENI (Network Interface)** | Captura el tráfico de una interfaz de red específica |
+| **VPC** | Captures all traffic from all ENIs in the VPC |
+| **Subnet** | Captures traffic from all ENIs in the subnet |
+| **ENI (Network Interface)** | Captures traffic from a specific network interface |
 
-### Formato del log
+### Log Format
 
 ```
 version account-id interface-id srcaddr dstaddr srcport dstport protocol packets bytes start end action log-status
 ```
 
-**Campos clave:**
+**Key fields:**
 
-| Campo | Descripción |
+| Field | Description |
 |---|---|
-| `srcaddr` / `dstaddr` | IP origen y destino |
-| `srcport` / `dstport` | Puerto origen y destino |
-| `protocol` | Protocolo (6=TCP, 17=UDP, 1=ICMP) |
-| `action` | **ACCEPT** o **REJECT** |
+| `srcaddr` / `dstaddr` | Source and destination IP |
+| `srcport` / `dstport` | Source and destination port |
+| `protocol` | Protocol (6=TCP, 17=UDP, 1=ICMP) |
+| `action` | **ACCEPT** or **REJECT** |
 | `log-status` | OK, NODATA, SKIPDATA |
 
-### Destinos de almacenamiento
+### Storage Destinations
 
-| Destino | Caso de uso |
+| Destination | Use Case |
 |---|---|
-| **CloudWatch Logs** | Análisis con Logs Insights, metric filters, alarmas |
-| **S3** | Almacenamiento a largo plazo, análisis con Athena |
-| **Kinesis Data Firehose** | Análisis en tiempo real, entrega a OpenSearch |
+| **CloudWatch Logs** | Analysis with Logs Insights, metric filters, alarms |
+| **S3** | Long-term storage, analysis with Athena |
+| **Kinesis Data Firehose** | Real-time analysis, delivery to OpenSearch |
 
-### Tráfico NO capturado por Flow Logs
+### Traffic NOT Captured by Flow Logs
 
-- Tráfico DNS a Amazon DNS server (sí se captura si usas tu propio DNS).
-- Tráfico de metadatos de instancia (`169.254.169.254`).
-- Tráfico DHCP.
-- Tráfico al VPC router.
-- Tráfico a la dirección reservada del VPC (Network+1 address).
+- DNS traffic to Amazon DNS server (captured if you use your own DNS).
+- Instance metadata traffic (`169.254.169.254`).
+- DHCP traffic.
+- Traffic to the VPC router.
+- Traffic to the VPC reserved address (Network+1 address).
 
-### Análisis de VPC Flow Logs
+### VPC Flow Logs Analysis
 
-**Con Athena (S3):**
+**With Athena (S3):**
 
 ```sql
 SELECT srcaddr, dstaddr, dstport, protocol, action, COUNT(*) as count
@@ -583,7 +583,7 @@ ORDER BY count DESC
 LIMIT 10;
 ```
 
-**Con CloudWatch Logs Insights:**
+**With CloudWatch Logs Insights:**
 
 ```
 fields @timestamp, srcAddr, dstAddr, dstPort, action
@@ -593,40 +593,40 @@ fields @timestamp, srcAddr, dstAddr, dstPort, action
 | limit 10
 ```
 
-> **Clave**: Si la pregunta pide "analizar tráfico rechazado" o "troubleshoot conectividad de red", piensa en **VPC Flow Logs**. Si necesita análisis con SQL, piensa en Athena sobre los logs en S3.
+> **Key**: If the question asks to "analyze rejected traffic" or "troubleshoot network connectivity", think **VPC Flow Logs**. If it needs SQL analysis, think Athena on logs in S3.
 
 ---
 
 ## AWS Systems Manager
 
-Servicio unificado para gestionar la infraestructura AWS y on-premises a escala.
+Unified service for managing AWS and on-premises infrastructure at scale.
 
-### Requisitos previos
+### Prerequisites
 
-- Las instancias EC2 y servidores on-premises necesitan el **SSM Agent** instalado.
-- El SSM Agent viene preinstalado en Amazon Linux 2, Amazon Linux 2023 y algunas AMIs de Ubuntu.
-- Las instancias necesitan un **IAM Instance Profile** con permisos de SSM (`AmazonSSMManagedInstanceCore`).
+- EC2 instances and on-premises servers need the **SSM Agent** installed.
+- The SSM Agent comes pre-installed on Amazon Linux 2, Amazon Linux 2023, and some Ubuntu AMIs.
+- Instances need an **IAM Instance Profile** with SSM permissions (`AmazonSSMManagedInstanceCore`).
 
 ### Parameter Store
 
-Almacén centralizado y seguro para datos de configuración y secretos.
+Centralized and secure store for configuration data and secrets.
 
-| Característica | Standard | Advanced |
+| Feature | Standard | Advanced |
 |---|---|---|
-| **Número de parámetros** | 10,000 | 100,000+ |
-| **Tamaño máximo** | 4 KB | 8 KB |
-| **Políticas de parámetro** | No | Sí (TTL, notificaciones) |
-| **Coste** | Gratuito | De pago |
+| **Number of parameters** | 10,000 | 100,000+ |
+| **Maximum size** | 4 KB | 8 KB |
+| **Parameter policies** | No | Yes (TTL, notifications) |
+| **Cost** | Free | Paid |
 
-**Tipos de parámetros:**
-- **String**: Texto plano.
-- **StringList**: Lista de valores separados por comas.
-- **SecureString**: Cifrado con KMS.
+**Parameter types:**
+- **String**: Plain text.
+- **StringList**: Comma-separated list of values.
+- **SecureString**: Encrypted with KMS.
 
-**Organización jerárquica:**
+**Hierarchical organization:**
 
 ```
-/mi-app/
+/my-app/
     /dev/
         /db-url         → "dev-db.example.com"
         /db-password    → (SecureString) "xxx"
@@ -637,160 +637,160 @@ Almacén centralizado y seguro para datos de configuración y secretos.
 
 **Parameter Store vs Secrets Manager:**
 
-| Característica | Parameter Store | Secrets Manager |
+| Feature | Parameter Store | Secrets Manager |
 |---|---|---|
-| **Rotación automática** | No nativa (se puede con Lambda) | Sí, integrada (RDS, Redshift, DocumentDB) |
-| **Coste** | Gratuito (Standard) | $0.40/secreto/mes |
-| **Cross-account** | No nativo | Sí |
-| **Cifrado** | Opcional (SecureString con KMS) | Siempre cifrado |
-| **Caso de uso** | Configuraciones generales y secretos simples | Secretos con rotación, credenciales de DB |
+| **Automatic rotation** | Not native (can be done with Lambda) | Yes, built-in (RDS, Redshift, DocumentDB) |
+| **Cost** | Free (Standard) | $0.40/secret/month |
+| **Cross-account** | Not native | Yes |
+| **Encryption** | Optional (SecureString with KMS) | Always encrypted |
+| **Use case** | General configurations and simple secrets | Secrets with rotation, DB credentials |
 
-> **Clave**: Si la pregunta necesita **rotación automática de credenciales de base de datos**, la respuesta es **Secrets Manager**. Para configuraciones generales, **Parameter Store**.
+> **Key**: If the question requires **automatic rotation of database credentials**, the answer is **Secrets Manager**. For general configurations, **Parameter Store**.
 
 ### Session Manager
 
-- Acceso shell seguro a instancias EC2 y on-premises **sin SSH, sin bastion host, sin abrir el puerto 22**.
-- Todo el tráfico va a través de SSM (puerto 443 HTTPS).
-- **Auditoría completa**: Se puede registrar toda la sesión en S3 y CloudWatch Logs.
-- Integración con IAM para control de acceso.
-- Compatible con Linux, Windows y macOS.
+- Secure shell access to EC2 and on-premises instances **without SSH, without bastion host, without opening port 22**.
+- All traffic goes through SSM (port 443 HTTPS).
+- **Complete auditing**: Entire sessions can be logged to S3 and CloudWatch Logs.
+- IAM integration for access control.
+- Compatible with Linux, Windows, and macOS.
 
 ```
-    Usuario ──► IAM Auth ──► SSM Session Manager ──► SSM Agent ──► Instancia
+    User ──► IAM Auth ──► SSM Session Manager ──► SSM Agent ──► Instance
                                      │
-                              (Puerto 443, HTTPS)
+                              (Port 443, HTTPS)
                                      │
-                              Sin necesidad de:
+                              No need for:
                               - SSH key pairs
                               - Bastion hosts
-                              - Puerto 22 abierto
-                              - IP pública en la instancia
+                              - Port 22 open
+                              - Public IP on the instance
 ```
 
-> **Clave para el examen**: Si la pregunta pide "acceso seguro a EC2 sin SSH" o "sin bastion host" o "auditar comandos ejecutados", la respuesta es **Session Manager**.
+> **Key for the exam**: If the question asks for "secure EC2 access without SSH" or "without bastion host" or "audit executed commands", the answer is **Session Manager**.
 
 ### Patch Manager
 
-- Automatiza el proceso de parcheo de instancias gestionadas.
-- Soporta OS (Linux, Windows) y aplicaciones.
-- **Patch Baseline**: Define qué parches aprobar automáticamente (por clasificación, severidad).
-  - Predefinidas por AWS para cada OS.
-  - Se pueden crear custom baselines.
-- **Patch Group**: Agrupa instancias por tag para aplicar baselines específicas.
-- **Maintenance Window**: Ventana de tiempo para ejecutar el parcheo.
-- **Compliance reporting**: Estado de parcheo de todas las instancias.
+- Automates the patching process for managed instances.
+- Supports OS (Linux, Windows) and applications.
+- **Patch Baseline**: Defines which patches to automatically approve (by classification, severity).
+  - Predefined by AWS for each OS.
+  - Custom baselines can be created.
+- **Patch Group**: Groups instances by tag to apply specific baselines.
+- **Maintenance Window**: Time window for executing patching.
+- **Compliance reporting**: Patching status of all instances.
 
 ### Run Command
 
-- Ejecuta comandos o scripts en instancias gestionadas (EC2 y on-premises) **sin SSH**.
-- Usa **SSM Documents** (JSON/YAML) que definen las acciones a ejecutar.
-- Se puede ejecutar en instancias individuales, por tags, o por resource groups.
-- Integración con IAM, CloudTrail y EventBridge.
-- Los resultados se pueden enviar a S3 o CloudWatch Logs.
-- Control de rate (concurrencia máxima y porcentaje de error).
+- Executes commands or scripts on managed instances (EC2 and on-premises) **without SSH**.
+- Uses **SSM Documents** (JSON/YAML) that define the actions to execute.
+- Can be run on individual instances, by tags, or by resource groups.
+- Integration with IAM, CloudTrail, and EventBridge.
+- Results can be sent to S3 or CloudWatch Logs.
+- Rate control (maximum concurrency and error percentage).
 
-**Documentos comunes:**
-- `AWS-RunShellScript`: Ejecutar comandos shell en Linux.
-- `AWS-RunPowerShellScript`: Ejecutar PowerShell en Windows.
-- `AWS-ConfigureAWSPackage`: Instalar/desinstalar paquetes.
+**Common documents:**
+- `AWS-RunShellScript`: Execute shell commands on Linux.
+- `AWS-RunPowerShellScript`: Execute PowerShell on Windows.
+- `AWS-ConfigureAWSPackage`: Install/uninstall packages.
 
 ### Automation
 
-- Automatiza tareas comunes de mantenimiento y despliegue.
-- Usa **Automation Runbooks** (SSM Documents de tipo Automation).
-- Se puede activar manualmente, por EventBridge, por Config remediation, o por mantenimiento programado.
+- Automates common maintenance and deployment tasks.
+- Uses **Automation Runbooks** (SSM Documents of Automation type).
+- Can be triggered manually, by EventBridge, by Config remediation, or by scheduled maintenance.
 
-**Ejemplos de runbooks:**
-- `AWS-RestartEC2Instance`: Reiniciar una instancia.
-- `AWS-CreateImage`: Crear una AMI de una instancia.
-- `AWS-StopEC2InstancesWithApproval`: Parar instancias con aprobación manual.
+**Example runbooks:**
+- `AWS-RestartEC2Instance`: Restart an instance.
+- `AWS-CreateImage`: Create an AMI from an instance.
+- `AWS-StopEC2InstancesWithApproval`: Stop instances with manual approval.
 
-**Integración con Config:**
+**Integration with Config:**
 
 ```
     Config Rule (NON_COMPLIANT) ──► Remediation Action ──► SSM Automation Runbook
                                                               │
-                                                         Corrige el recurso
+                                                         Corrects the resource
 ```
 
-### Otros componentes de Systems Manager
+### Other Systems Manager Components
 
-| Componente | Descripción |
+| Component | Description |
 |---|---|
-| **Inventory** | Recopila metadatos de instancias (software instalado, configuración de red, etc.) |
-| **State Manager** | Mantiene instancias en un estado deseado (ej: antivirus instalado) |
-| **Compliance** | Vista centralizada del estado de parcheo y configuración |
-| **OpsCenter** | Centraliza items operativos (OpsItems) para investigación |
-| **Explorer** | Dashboard operativo con métricas y datos de la cuenta |
-| **Fleet Manager** | Gestión de flotas de instancias desde la consola |
+| **Inventory** | Collects instance metadata (installed software, network configuration, etc.) |
+| **State Manager** | Maintains instances in a desired state (e.g., antivirus installed) |
+| **Compliance** | Centralized view of patching and configuration status |
+| **OpsCenter** | Centralizes operational items (OpsItems) for investigation |
+| **Explorer** | Operational dashboard with account metrics and data |
+| **Fleet Manager** | Fleet management of instances from the console |
 
 ---
 
-## Tips para el examen
+## Exam Tips
 
 ### CloudWatch
 
-1. **"Monitorizar CPU de EC2"** → CloudWatch (métrica por defecto).
-2. **"Monitorizar RAM o disco de EC2"** → CloudWatch Agent (NO disponible por defecto).
-3. **"Alarma cuando CPU > 80% durante 5 minutos"** → CloudWatch Alarm.
-4. **"Alarma que combine múltiples condiciones"** → Composite Alarm.
-5. **"Resolución de métricas de 1 segundo"** → High-Resolution Custom Metrics.
-6. **"Dashboard con métricas de múltiples regiones"** → CloudWatch Dashboard (global).
+1. **"Monitor EC2 CPU"** → CloudWatch (default metric).
+2. **"Monitor EC2 RAM or disk"** → CloudWatch Agent (NOT available by default).
+3. **"Alarm when CPU > 80% for 5 minutes"** → CloudWatch Alarm.
+4. **"Alarm combining multiple conditions"** → Composite Alarm.
+5. **"1-second metric resolution"** → High-Resolution Custom Metrics.
+6. **"Dashboard with metrics from multiple regions"** → CloudWatch Dashboard (global).
 
 ### CloudWatch Logs
 
-7. **"Centralizar logs de múltiples servicios"** → CloudWatch Logs.
-8. **"Enviar logs a S3 en tiempo real"** → Subscription Filter → Kinesis Firehose → S3 (NO CreateExportTask).
-9. **"Crear alarma basada en patrones en logs"** → Metric Filter → CloudWatch Alarm.
-10. **"Analizar logs con queries tipo SQL"** → CloudWatch Logs Insights.
-11. **"Enviar logs de EC2"** → CloudWatch Unified Agent.
+7. **"Centralize logs from multiple services"** → CloudWatch Logs.
+8. **"Send logs to S3 in real-time"** → Subscription Filter → Kinesis Firehose → S3 (NOT CreateExportTask).
+9. **"Create alarm based on log patterns"** → Metric Filter → CloudWatch Alarm.
+10. **"Analyze logs with SQL-like queries"** → CloudWatch Logs Insights.
+11. **"Send EC2 logs"** → CloudWatch Unified Agent.
 
 ### CloudTrail
 
-12. **"Quién eliminó el recurso"** → CloudTrail (management events).
-13. **"Quién accedió al objeto de S3"** → CloudTrail (data events, NO habilitado por defecto).
-14. **"Auditoría de todas las cuentas de la organización"** → Organization Trail.
-15. **"Detectar actividad inusual de API"** → CloudTrail Insights.
-16. **"Verificar integridad de logs"** → CloudTrail Log File Integrity Validation.
-17. **"Analizar logs de CloudTrail con SQL"** → Athena (sobre logs en S3).
+12. **"Who deleted the resource"** → CloudTrail (management events).
+13. **"Who accessed the S3 object"** → CloudTrail (data events, NOT enabled by default).
+14. **"Audit all accounts in the organization"** → Organization Trail.
+15. **"Detect unusual API activity"** → CloudTrail Insights.
+16. **"Verify log integrity"** → CloudTrail Log File Integrity Validation.
+17. **"Analyze CloudTrail logs with SQL"** → Athena (on logs in S3).
 
 ### Config
 
-18. **"Verificar que todos los buckets tengan cifrado"** → AWS Config Rule.
-19. **"Remediar automáticamente recursos no conformes"** → Config + SSM Automation.
-20. **"Vista centralizada de compliance multi-cuenta"** → Config Aggregator.
-21. **"Historial de cambios de configuración"** → AWS Config (configuration timeline).
-22. **"Config vs CloudTrail"** → Config = "QUÉ configuración tiene el recurso". CloudTrail = "QUIÉN cambió el recurso".
+18. **"Verify all buckets have encryption"** → AWS Config Rule.
+19. **"Automatically remediate non-compliant resources"** → Config + SSM Automation.
+20. **"Centralized multi-account compliance view"** → Config Aggregator.
+21. **"History of configuration changes"** → AWS Config (configuration timeline).
+22. **"Config vs CloudTrail"** → Config = "WHAT configuration does the resource have". CloudTrail = "WHO changed the resource".
 
 ### X-Ray
 
-23. **"Identificar cuellos de botella en microservicios"** → X-Ray.
-24. **"Mapa visual de la arquitectura y latencias"** → X-Ray Service Map.
-25. **"Tracing distribuido"** → X-Ray.
+23. **"Identify bottlenecks in microservices"** → X-Ray.
+24. **"Visual map of architecture and latencies"** → X-Ray Service Map.
+25. **"Distributed tracing"** → X-Ray.
 
 ### Trusted Advisor
 
-26. **"Recomendaciones de mejores prácticas AWS"** → Trusted Advisor.
-27. **"Solo 7 checks disponibles"** → Plan Basic/Developer.
-28. **"Todos los checks disponibles"** → Plan Business o Enterprise.
-29. **"Verificar service limits/cuotas"** → Trusted Advisor (disponible en todos los planes).
+26. **"AWS best practice recommendations"** → Trusted Advisor.
+27. **"Only 7 checks available"** → Basic/Developer plan.
+28. **"All checks available"** → Business or Enterprise plan.
+29. **"Verify service limits/quotas"** → Trusted Advisor (available on all plans).
 
 ### Health Dashboard
 
-30. **"Un servicio AWS está teniendo problemas, afecta a mis recursos?"** → AWS Health Dashboard (Personal).
-31. **"Automatizar respuesta ante eventos de mantenimiento de AWS"** → Health Dashboard + EventBridge.
+30. **"An AWS service is having issues, does it affect my resources?"** → AWS Health Dashboard (Personal).
+31. **"Automate response to AWS maintenance events"** → Health Dashboard + EventBridge.
 
 ### VPC Flow Logs
 
-32. **"Analizar tráfico rechazado en la VPC"** → VPC Flow Logs.
-33. **"Troubleshoot por qué una instancia no se conecta"** → VPC Flow Logs (verificar ACCEPT/REJECT).
-34. **"Análisis de Flow Logs con SQL"** → Athena sobre logs en S3.
+32. **"Analyze rejected traffic in the VPC"** → VPC Flow Logs.
+33. **"Troubleshoot why an instance can't connect"** → VPC Flow Logs (verify ACCEPT/REJECT).
+34. **"SQL analysis of Flow Logs"** → Athena on logs in S3.
 
 ### Systems Manager
 
-35. **"Acceso a EC2 sin SSH ni bastion"** → Session Manager.
-36. **"Almacenar configuraciones y secretos"** → Parameter Store.
-37. **"Rotación automática de credenciales de DB"** → Secrets Manager (NO Parameter Store).
-38. **"Ejecutar comandos en múltiples instancias"** → Run Command.
-39. **"Automatizar parcheo de instancias"** → Patch Manager.
-40. **"Remediation automática de Config rules"** → SSM Automation.
+35. **"EC2 access without SSH or bastion"** → Session Manager.
+36. **"Store configurations and secrets"** → Parameter Store.
+37. **"Automatic DB credential rotation"** → Secrets Manager (NOT Parameter Store).
+38. **"Execute commands on multiple instances"** → Run Command.
+39. **"Automate instance patching"** → Patch Manager.
+40. **"Automatic Config rule remediation"** → SSM Automation.

@@ -1,184 +1,184 @@
-# Databases - Cheat Sheet Rápido
+# Databases - Quick Cheat Sheet
 
 ## RDS vs Aurora vs DynamoDB
 
-| Característica | RDS | Aurora | DynamoDB |
-|---------------|-----|--------|----------|
-| **Tipo** | Relacional (SQL) | Relacional (SQL) | NoSQL (Key-Value / Document) |
-| **Engines** | MySQL, PostgreSQL, MariaDB, Oracle, SQL Server | MySQL, PostgreSQL | Propietario AWS |
-| **Almacenamiento máx** | 64 TB | 128 TB (auto-scaling) | Ilimitado |
-| **Read Replicas** | Hasta 15 (5 por defecto) | Hasta 15 (auto-scaling) | Global Tables (multi-region) |
-| **Multi-AZ** | Standby (failover) | Multi-AZ nativo (6 copias en 3 AZs) | Multi-AZ nativo (3 AZs) |
-| **Failover** | 1-2 minutos | **< 30 segundos** | Automático (transparente) |
-| **Auto-scaling storage** | Manual (hasta 64TB) | **Automático** (10GB incrementos) | Automático (on-demand mode) |
-| **Serverless** | No | **Sí (Aurora Serverless v2)** | **Sí (on-demand mode)** |
-| **Backups** | Automáticos (35 días máx) | Automáticos (35 días) + backtrack | Backups continuos (PITR 35 días) |
-| **Precio** | Menor | ~20% más que RDS | Por lectura/escritura + almacenamiento |
-| **Caso ideal** | Apps relacionales, motores específicos | Alta disponibilidad, auto-scaling relacional | Masiva escala, baja latencia, key-value |
+| Feature | RDS | Aurora | DynamoDB |
+|---------|-----|--------|----------|
+| **Type** | Relational (SQL) | Relational (SQL) | NoSQL (Key-Value / Document) |
+| **Engines** | MySQL, PostgreSQL, MariaDB, Oracle, SQL Server | MySQL, PostgreSQL | AWS proprietary |
+| **Max storage** | 64 TB | 128 TB (auto-scaling) | Unlimited |
+| **Read Replicas** | Up to 15 (5 by default) | Up to 15 (auto-scaling) | Global Tables (multi-region) |
+| **Multi-AZ** | Standby (failover) | Native Multi-AZ (6 copies in 3 AZs) | Native Multi-AZ (3 AZs) |
+| **Failover** | 1-2 minutes | **< 30 seconds** | Automatic (transparent) |
+| **Auto-scaling storage** | Manual (up to 64TB) | **Automatic** (10GB increments) | Automatic (on-demand mode) |
+| **Serverless** | No | **Yes (Aurora Serverless v2)** | **Yes (on-demand mode)** |
+| **Backups** | Automatic (35 days max) | Automatic (35 days) + backtrack | Continuous backups (PITR 35 days) |
+| **Price** | Lower | ~20% more than RDS | Per read/write + storage |
+| **Ideal case** | Relational apps, specific engines | High availability, auto-scaling relational | Massive scale, low latency, key-value |
 
 ---
 
-## Engines Disponibles en RDS
+## Available RDS Engines
 
-| Engine | Versiones notables | Notas para el examen |
-|--------|--------------------|---------------------|
-| **MySQL** | 5.7, 8.0 | Compatible con Aurora MySQL |
-| **PostgreSQL** | 13, 14, 15, 16 | Compatible con Aurora PostgreSQL |
-| **MariaDB** | 10.x | Fork de MySQL, no compatible con Aurora |
-| **Oracle** | SE2, EE | Requiere licencia (BYOL o License Included) |
-| **SQL Server** | SE, EE, Express, Web | Requiere licencia. Multi-AZ usa mirroring/Always On |
-| **Db2** | 11.5 | IBM Db2 gestionado en RDS |
+| Engine | Notable Versions | Exam Notes |
+|--------|------------------|------------|
+| **MySQL** | 5.7, 8.0 | Compatible with Aurora MySQL |
+| **PostgreSQL** | 13, 14, 15, 16 | Compatible with Aurora PostgreSQL |
+| **MariaDB** | 10.x | MySQL fork, not compatible with Aurora |
+| **Oracle** | SE2, EE | Requires license (BYOL or License Included) |
+| **SQL Server** | SE, EE, Express, Web | Requires license. Multi-AZ uses mirroring/Always On |
+| **Db2** | 11.5 | IBM Db2 managed on RDS |
 
-> **Clave examen:** Si piden **Oracle o SQL Server** en AWS gestionado → solo **RDS** (no Aurora). Si piden MySQL/PostgreSQL con mejor rendimiento → **Aurora**.
+> **Exam key:** If they ask for **Oracle or SQL Server** on AWS managed → only **RDS** (not Aurora). If they ask for MySQL/PostgreSQL with better performance → **Aurora**.
 
 ---
 
-## Aurora - Features Rápido
+## Aurora - Quick Features
 
-| Feature | Descripción |
+| Feature | Description |
 |---------|-------------|
-| **6 copias en 3 AZs** | Datos replicados automáticamente. Tolera pérdida de 2 copias para escrituras, 3 para lecturas |
-| **Storage auto-scaling** | Crece automáticamente de 10 GB hasta 128 TB en incrementos de 10 GB |
-| **Hasta 15 Read Replicas** | Con Auto Scaling. Failover automático al replica con mayor prioridad |
-| **Aurora Serverless v2** | Escala automáticamente la capacidad compute (ACUs). Pago por uso real |
-| **Aurora Global Database** | Replicación cross-region en < 1 segundo. RPO de 1s, RTO < 1 min |
-| **Backtrack** | Rebobinar la base de datos a un punto en el tiempo **sin restaurar desde backup** (solo MySQL) |
-| **Multi-Master** | Múltiples nodos de escritura (caso de uso: escrituras continuas sin failover) |
-| **Cloning** | Crear copia de la BD usando copy-on-write — rápido y sin costo de almacenamiento inicial |
-| **Custom Endpoints** | Dirigir tráfico a subgrupos de replicas (ej: analytics a replicas más grandes) |
-| **Parallel Query** | Distribuye query processing al storage layer para queries analíticas grandes |
+| **6 copies in 3 AZs** | Data replicated automatically. Tolerates loss of 2 copies for writes, 3 for reads |
+| **Storage auto-scaling** | Grows automatically from 10 GB to 128 TB in 10 GB increments |
+| **Up to 15 Read Replicas** | With Auto Scaling. Automatic failover to replica with highest priority |
+| **Aurora Serverless v2** | Automatically scales compute capacity (ACUs). Pay for actual use |
+| **Aurora Global Database** | Cross-region replication in < 1 second. RPO of 1s, RTO < 1 min |
+| **Backtrack** | Rewind the database to a point in time **without restoring from backup** (MySQL only) |
+| **Multi-Master** | Multiple write nodes (use case: continuous writes without failover) |
+| **Cloning** | Create a copy of the DB using copy-on-write — fast with no initial storage cost |
+| **Custom Endpoints** | Direct traffic to subgroups of replicas (e.g.: analytics to larger replicas) |
+| **Parallel Query** | Distributes query processing to the storage layer for large analytical queries |
 
-> **Truco examen:** "Base de datos relacional con **auto-scaling**, **alta disponibilidad** y **serverless**" → **Aurora Serverless v2**.
+> **Exam trick:** "Relational database with **auto-scaling**, **high availability** and **serverless**" → **Aurora Serverless v2**.
 
 ---
 
-## DynamoDB - Capacity Modes y Límites
+## DynamoDB - Capacity Modes and Limits
 
-### Modos de Capacidad
+### Capacity Modes
 
-| Modo | Descripción | Cuándo usarlo |
-|------|-------------|---------------|
-| **On-Demand** | Pago por lectura/escritura real. Sin planificación | Cargas impredecibles, nuevas apps, tráfico variable |
-| **Provisioned** | Defines RCU/WCU. Más económico para cargas estables | Tráfico predecible, optimización de costos |
+| Mode | Description | When to Use |
+|------|-------------|-------------|
+| **On-Demand** | Pay per actual read/write. No planning | Unpredictable workloads, new apps, variable traffic |
+| **Provisioned** | You define RCU/WCU. More economical for stable workloads | Predictable traffic, cost optimization |
 
-### Unidades de Capacidad
+### Capacity Units
 
-| Unidad | Definición |
-|--------|-----------|
-| **1 RCU** | 1 lectura strongly consistent de hasta 4 KB/s **O** 2 lecturas eventually consistent de hasta 4 KB/s |
-| **1 WCU** | 1 escritura de hasta 1 KB/s |
+| Unit | Definition |
+|------|-----------|
+| **1 RCU** | 1 strongly consistent read of up to 4 KB/s **OR** 2 eventually consistent reads of up to 4 KB/s |
+| **1 WCU** | 1 write of up to 1 KB/s |
 
-### Límites Importantes
+### Important Limits
 
-| Parámetro | Límite |
-|-----------|--------|
-| **Tamaño máximo de item** | 400 KB |
-| **Partition key** | Hasta 2,048 bytes |
-| **Sort key** | Hasta 1,024 bytes |
-| **GSI por tabla** | 20 (default) |
-| **LSI por tabla** | 5 (deben crearse al crear la tabla) |
-| **Tamaño resultado de Query/Scan** | 1 MB por llamada (paginar si hay más) |
-| **Transacciones** | Hasta 100 items o 4 MB por transacción |
+| Parameter | Limit |
+|-----------|-------|
+| **Max item size** | 400 KB |
+| **Partition key** | Up to 2,048 bytes |
+| **Sort key** | Up to 1,024 bytes |
+| **GSI per table** | 20 (default) |
+| **LSI per table** | 5 (must be created when creating the table) |
+| **Query/Scan result size** | 1 MB per call (paginate if more) |
+| **Transactions** | Up to 100 items or 4 MB per transaction |
 
-> **Claves examen:**
-> - **DAX** (DynamoDB Accelerator): Cache in-memory para DynamoDB. Latencia de microsegundos. Para lecturas intensivas.
-> - **Global Tables**: Replicación multi-region activa-activa. Requiere DynamoDB Streams habilitado.
-> - **DynamoDB Streams**: Captura cambios (CDC). Se integra con Lambda para triggers.
+> **Exam keys:**
+> - **DAX** (DynamoDB Accelerator): In-memory cache for DynamoDB. Microsecond latency. For read-intensive workloads.
+> - **Global Tables**: Multi-region active-active replication. Requires DynamoDB Streams enabled.
+> - **DynamoDB Streams**: Captures changes (CDC). Integrates with Lambda for triggers.
 
 ---
 
 ## ElastiCache: Redis vs Memcached
 
-| Característica | Redis | Memcached |
-|---------------|-------|-----------|
-| **Persistencia** | **Sí** (snapshots, AOF) | No |
-| **Replicación** | **Sí** (Multi-AZ con failover) | No |
-| **Clustering** | Sí (hasta 500 nodos) | Sí (sharding simple) |
-| **Tipos de datos** | Strings, hashes, lists, sets, sorted sets, streams | Strings simples |
-| **Pub/Sub** | **Sí** | No |
-| **Lua scripting** | **Sí** | No |
-| **Multi-threaded** | No (single-threaded) | **Sí** |
-| **Backup/Restore** | **Sí** | No |
-| **Caso de uso** | Sesiones, leaderboards, colas, HA cache, real-time analytics | Cache simple, objetos grandes, escalado horizontal puro |
+| Feature | Redis | Memcached |
+|---------|-------|-----------|
+| **Persistence** | **Yes** (snapshots, AOF) | No |
+| **Replication** | **Yes** (Multi-AZ with failover) | No |
+| **Clustering** | Yes (up to 500 nodes) | Yes (simple sharding) |
+| **Data types** | Strings, hashes, lists, sets, sorted sets, streams | Simple strings |
+| **Pub/Sub** | **Yes** | No |
+| **Lua scripting** | **Yes** | No |
+| **Multi-threaded** | No (single-threaded) | **Yes** |
+| **Backup/Restore** | **Yes** | No |
+| **Use case** | Sessions, leaderboards, queues, HA cache, real-time analytics | Simple cache, large objects, pure horizontal scaling |
 
-> **Regla examen:**
-> - Si necesitas **persistencia, replicación o tipos de datos complejos** → **Redis**
-> - Si solo necesitas un **cache simple y multi-threaded** → **Memcached**
-> - **Casi siempre la respuesta es Redis** en el examen (a menos que explícitamente pidan multi-threading simple).
+> **Exam rule:**
+> - If you need **persistence, replication, or complex data types** → **Redis**
+> - If you only need a **simple and multi-threaded cache** → **Memcached**
+> - **Almost always the answer is Redis** on the exam (unless they explicitly ask for simple multi-threading).
 
 ---
 
-## Cuándo Usar Cada Base de Datos
+## When to Use Each Database
 
-| Servicio | Cuándo usarlo (1 línea) |
-|----------|------------------------|
-| **RDS** | Necesitas base de datos relacional gestionada con engine específico (Oracle, SQL Server, etc.) |
-| **Aurora** | Relacional con auto-scaling, alta disponibilidad y rendimiento superior a RDS estándar |
-| **DynamoDB** | NoSQL key-value con latencia de milisegundos a cualquier escala, schema flexible |
-| **ElastiCache** | Cache in-memory para reducir latencia de lecturas frecuentes en base de datos |
-| **Redshift** | Data warehouse para analytics y consultas OLAP sobre petabytes de datos |
-| **Neptune** | Base de datos de grafos para relaciones complejas (redes sociales, fraud detection) |
-| **DocumentDB** | Base de datos documental compatible con MongoDB gestionado en AWS |
-| **QLDB** | Ledger inmutable con historial verificable criptográficamente (finanzas, supply chain) |
-| **Timestream** | Series temporales para IoT, métricas de aplicación, datos de sensores |
-| **Keyspaces** | Compatible con Apache Cassandra gestionado — cargas wide-column existentes |
-| **MemoryDB** | Redis-compatible con durabilidad (multi-AZ) — reemplaza Redis + base de datos |
+| Service | When to Use (1 line) |
+|---------|---------------------|
+| **RDS** | Need a managed relational database with a specific engine (Oracle, SQL Server, etc.) |
+| **Aurora** | Relational with auto-scaling, high availability, and performance superior to standard RDS |
+| **DynamoDB** | NoSQL key-value with millisecond latency at any scale, flexible schema |
+| **ElastiCache** | In-memory cache to reduce latency of frequent reads from the database |
+| **Redshift** | Data warehouse for analytics and OLAP queries over petabytes of data |
+| **Neptune** | Graph database for complex relationships (social networks, fraud detection) |
+| **DocumentDB** | Document database compatible with MongoDB managed on AWS |
+| **QLDB** | Immutable ledger with cryptographically verifiable history (finance, supply chain) |
+| **Timestream** | Time series for IoT, application metrics, sensor data |
+| **Keyspaces** | Apache Cassandra-compatible managed — existing wide-column workloads |
+| **MemoryDB** | Redis-compatible with durability (multi-AZ) — replaces Redis + database |
 
 ---
 
 ## Read Replicas vs Multi-AZ
 
-| Característica | Read Replicas | Multi-AZ |
-|---------------|---------------|----------|
-| **Propósito** | **Rendimiento** (escalar lecturas) | **Disponibilidad** (failover automático) |
-| **Tipo de replicación** | **Asíncrona** | **Síncrona** |
-| **Acceso de lectura** | **Sí** — se pueden usar para lecturas | **No** — standby no acepta tráfico |
-| **Regiones** | Misma región o **cross-region** | Misma región (otra AZ) |
-| **Failover automático** | No (se puede promover manualmente) | **Sí** (DNS automático) |
-| **Número máximo** | Hasta 15 (Aurora) / 5 (RDS) | 1 standby por instancia |
-| **Costo de red** | Gratis en misma región. Costo cross-region | Gratis (misma región) |
-| **Caso de uso** | Reportes, analytics, distribuir carga de lectura | Producción HA, disaster recovery intra-region |
+| Feature | Read Replicas | Multi-AZ |
+|---------|---------------|----------|
+| **Purpose** | **Performance** (scale reads) | **Availability** (automatic failover) |
+| **Replication type** | **Asynchronous** | **Synchronous** |
+| **Read access** | **Yes** — can be used for reads | **No** — standby does not accept traffic |
+| **Regions** | Same region or **cross-region** | Same region (different AZ) |
+| **Automatic failover** | No (can be promoted manually) | **Yes** (automatic DNS) |
+| **Max number** | Up to 15 (Aurora) / 5 (RDS) | 1 standby per instance |
+| **Network cost** | Free in same region. Cross-region cost | Free (same region) |
+| **Use case** | Reports, analytics, distribute read load | Production HA, intra-region disaster recovery |
 
 ```
                     ┌─────────────┐
-    Escrituras ────→│   PRIMARY   │
+    Writes ────────→│   PRIMARY   │
                     │  (Master)   │
                     └──────┬──────┘
                            │
               ┌────────────┼────────────┐
-              │ Síncrona   │            │ Asíncrona
+              │ Synchronous │            │ Asynchronous
               ▼            │            ▼
      ┌────────────┐        │    ┌──────────────┐
-     │  STANDBY   │        │    │ READ REPLICA │ ← Lecturas
+     │  STANDBY   │        │    │ READ REPLICA │ ← Reads
      │ (Multi-AZ) │        │    │  (scaling)   │
-     │ NO tráfico │        │    └──────────────┘
+     │ NO traffic │        │    └──────────────┘
      └────────────┘        │
-                           │ Asíncrona
+                           │ Asynchronous
                            ▼
                    ┌──────────────┐
-                   │ READ REPLICA │ ← Lecturas
+                   │ READ REPLICA │ ← Reads
                    │ (cross-region)│
                    └──────────────┘
 ```
 
-> **Clave examen:** "Mejorar rendimiento de lectura" → **Read Replicas**. "Alta disponibilidad / disaster recovery" → **Multi-AZ**. Puedes tener **ambos** a la vez.
+> **Exam key:** "Improve read performance" → **Read Replicas**. "High availability / disaster recovery" → **Multi-AZ**. You can have **both** at the same time.
 
 ---
 
-## Resumen de Decisiones Rápidas - Databases
+## Quick Decision Summary - Databases
 
 ```
-PREGUNTA DEL EXAMEN                                    → RESPUESTA
+EXAM QUESTION                                        → ANSWER
 ────────────────────────────────────────────────────────────────────
-"BD relacional, alta disponibilidad, auto-scaling"      → Aurora
-"BD relacional, Oracle o SQL Server"                    → RDS
-"NoSQL, key-value, latencia ms, escala masiva"          → DynamoDB
-"Cache in-memory para reducir latencia"                 → ElastiCache Redis
-"Data warehouse, OLAP, analytics sobre PBs"             → Redshift
-"Relaciones complejas, grafos"                          → Neptune
-"Compatible MongoDB gestionado"                         → DocumentDB
-"Registro inmutable, auditoría criptográfica"           → QLDB
-"Series temporales, IoT, métricas"                      → Timestream
-"Replicación multi-region relacional"                   → Aurora Global Database
-"Cache DynamoDB con microsegundos de latencia"          → DAX
+"Relational DB, high availability, auto-scaling"      → Aurora
+"Relational DB, Oracle or SQL Server"                 → RDS
+"NoSQL, key-value, ms latency, massive scale"         → DynamoDB
+"In-memory cache to reduce latency"                   → ElastiCache Redis
+"Data warehouse, OLAP, analytics over PBs"            → Redshift
+"Complex relationships, graphs"                       → Neptune
+"MongoDB-compatible managed"                          → DocumentDB
+"Immutable ledger, cryptographic auditing"            → QLDB
+"Time series, IoT, metrics"                           → Timestream
+"Multi-region relational replication"                 → Aurora Global Database
+"DynamoDB cache with microsecond latency"             → DAX
 ```

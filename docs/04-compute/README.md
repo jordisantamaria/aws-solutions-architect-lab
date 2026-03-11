@@ -1,19 +1,19 @@
-# Compute en AWS
+# Compute in AWS
 
-## Tabla de Contenidos
+## Table of Contents
 
 - [EC2 Instance Types](#ec2-instance-types)
 - [EC2 Purchasing Options](#ec2-purchasing-options)
 - [EC2 Placement Groups](#ec2-placement-groups)
 - [EC2 Networking](#ec2-networking)
 - [AMIs](#amis)
-- [User Data e Instance Metadata](#user-data-e-instance-metadata)
+- [User Data and Instance Metadata](#user-data-and-instance-metadata)
 - [Auto Scaling Groups](#auto-scaling-groups)
 - [AWS Lambda](#aws-lambda)
 - [ECS vs EKS vs Fargate](#ecs-vs-eks-vs-fargate)
 - [Elastic Beanstalk](#elastic-beanstalk)
 - [AWS Batch](#aws-batch)
-- [AWS Outposts, Wavelength y Local Zones](#aws-outposts-wavelength-y-local-zones)
+- [AWS Outposts, Wavelength and Local Zones](#aws-outposts-wavelength-and-local-zones)
 - [Compute Exam Tips](#compute-exam-tips)
 
 ---
@@ -22,152 +22,152 @@
 
 ### Naming Convention
 
-El nombre de un tipo de instancia sigue el formato: `m5a.xlarge`
+The name of an instance type follows the format: `m5a.xlarge`
 
-| Parte | Significado | Ejemplo |
+| Part | Meaning | Example |
 |-------|-------------|---------|
-| **m** | Familia de instancia | m = general purpose |
-| **5** | Generación | 5ta generación |
-| **a** | Atributo adicional (opcional) | a = AMD, g = Graviton (ARM), n = networking optimized, d = NVMe local storage |
-| **xlarge** | Tamaño | nano, micro, small, medium, large, xlarge, 2xlarge... metal |
+| **m** | Instance family | m = general purpose |
+| **5** | Generation | 5th generation |
+| **a** | Additional attribute (optional) | a = AMD, g = Graviton (ARM), n = networking optimized, d = NVMe local storage |
+| **xlarge** | Size | nano, micro, small, medium, large, xlarge, 2xlarge... metal |
 
-### Familias de instancias
+### Instance Families
 
-#### General Purpose (Propósito general) - Familias: M, T, A
+#### General Purpose - Families: M, T, A
 
-| Familia | Procesador | Caso de uso |
+| Family | Processor | Use Case |
 |---------|-----------|-------------|
-| **M7g, M7i, M6i, M5** | Intel/AMD/Graviton | Aplicaciones balanceadas (web servers, repositorios de código, entornos de desarrollo) |
-| **T3, T3a, T2** | Intel/AMD | Cargas con ráfagas (burstable). Acumulan créditos de CPU |
-| **A1** | Graviton (ARM) | Cargas ligeras ARM-compatible |
+| **M7g, M7i, M6i, M5** | Intel/AMD/Graviton | Balanced applications (web servers, code repositories, development environments) |
+| **T3, T3a, T2** | Intel/AMD | Burstable workloads. Accumulate CPU credits |
+| **A1** | Graviton (ARM) | Lightweight ARM-compatible workloads |
 
-> **T instances (burstable):** Tienen un nivel de rendimiento base de CPU. Cuando la carga es baja, acumulan créditos. Cuando necesitan más CPU, gastan créditos. Si se agotan los créditos y está en modo `standard`, el rendimiento se degrada. En modo `unlimited`, se cobra extra por créditos adicionales.
+> **T instances (burstable):** They have a baseline CPU performance level. When the load is low, they accumulate credits. When they need more CPU, they spend credits. If credits are exhausted and the instance is in `standard` mode, performance degrades. In `unlimited` mode, extra charges apply for additional credits.
 
-#### Compute Optimized (Optimizadas para cómputo) - Familia: C
+#### Compute Optimized - Family: C
 
-| Familia | Caso de uso |
+| Family | Use Case |
 |---------|-------------|
-| **C7g, C7i, C6i, C5** | Procesamiento por lotes, HPC, machine learning inference, gaming servers, transcodificación de media, modelos científicos, servidores de anuncios |
+| **C7g, C7i, C6i, C5** | Batch processing, HPC, machine learning inference, gaming servers, media transcoding, scientific models, ad servers |
 
-- Mayor ratio de vCPU a memoria.
-- Ideal cuando el cuello de botella es la CPU.
+- Higher vCPU to memory ratio.
+- Ideal when the bottleneck is the CPU.
 
-#### Memory Optimized (Optimizadas para memoria) - Familias: R, X, z
+#### Memory Optimized - Families: R, X, z
 
-| Familia | Caso de uso |
+| Family | Use Case |
 |---------|-------------|
-| **R7g, R7i, R6i, R5** | Bases de datos en memoria, caches distribuidos (ElastiCache), análisis en tiempo real |
-| **X2idn, X2iedn, X1** | SAP HANA, Apache Spark, bases de datos in-memory de gran escala |
-| **z1d** | Aplicaciones EDA (Electronic Design Automation), bases de datos con alta frecuencia de CPU |
+| **R7g, R7i, R6i, R5** | In-memory databases, distributed caches (ElastiCache), real-time analytics |
+| **X2idn, X2iedn, X1** | SAP HANA, Apache Spark, large-scale in-memory databases |
+| **z1d** | EDA (Electronic Design Automation) applications, databases with high CPU frequency |
 
-- Gran cantidad de RAM.
-- **R** = RAM (nemotécnico para recordar).
+- Large amount of RAM.
+- **R** = RAM (mnemonic to remember).
 
-#### Storage Optimized (Optimizadas para almacenamiento) - Familias: I, D, H
+#### Storage Optimized - Families: I, D, H
 
-| Familia | Caso de uso |
+| Family | Use Case |
 |---------|-------------|
-| **I4i, I3, I3en** | Bases de datos NoSQL (Cassandra, MongoDB), data warehousing, sistemas de archivos distribuidos. Altísimo IOPS (NVMe SSD local) |
-| **D3, D3en** | MapReduce, HDFS, sistemas de archivos distribuidos. HDD de alta densidad |
-| **H1** | MapReduce, HDFS. HDD con alto throughput secuencial |
+| **I4i, I3, I3en** | NoSQL databases (Cassandra, MongoDB), data warehousing, distributed file systems. Very high IOPS (local NVMe SSD) |
+| **D3, D3en** | MapReduce, HDFS, distributed file systems. High-density HDD |
+| **H1** | MapReduce, HDFS. HDD with high sequential throughput |
 
-- Ideal cuando necesitas alto IOPS local o gran capacidad de disco.
+- Ideal when you need high local IOPS or large disk capacity.
 
-#### Accelerated Computing (Cómputo acelerado) - Familias: P, G, Inf, Trn, F, VT
+#### Accelerated Computing - Families: P, G, Inf, Trn, F, VT
 
-| Familia | Acelerador | Caso de uso |
+| Family | Accelerator | Use Case |
 |---------|-----------|-------------|
-| **P5, P4d, P3** | GPU NVIDIA (training) | Machine learning training, HPC, análisis computacional |
-| **G5, G4dn, G4ad** | GPU NVIDIA/AMD (gráficos) | Machine learning inference, gráficos 3D, gaming streaming, transcodificación de video |
-| **Inf2, Inf1** | AWS Inferentia | Machine learning inference de alto rendimiento |
-| **Trn1** | AWS Trainium | Machine learning training optimizado |
-| **F1** | FPGA | Genómica, análisis financiero, codificación de video |
-| **VT1** | Xilinx | Transcodificación de video en tiempo real |
+| **P5, P4d, P3** | NVIDIA GPU (training) | Machine learning training, HPC, computational analysis |
+| **G5, G4dn, G4ad** | NVIDIA/AMD GPU (graphics) | Machine learning inference, 3D graphics, gaming streaming, video transcoding |
+| **Inf2, Inf1** | AWS Inferentia | High-performance machine learning inference |
+| **Trn1** | AWS Trainium | Optimized machine learning training |
+| **F1** | FPGA | Genomics, financial analysis, video encoding |
+| **VT1** | Xilinx | Real-time video transcoding |
 
 ---
 
 ## EC2 Purchasing Options
 
-| Opción | Descripción | Descuento | Compromiso | Interrupción | Ideal para |
+| Option | Description | Discount | Commitment | Interruption | Ideal For |
 |--------|-------------|-----------|------------|-------------|------------|
-| **On-Demand** | Pago por segundo (Linux) o por hora (Windows) | 0% (base) | Ninguno | No | Dev/test, cargas impredecibles, primer uso |
-| **Reserved Instances (Standard)** | Reserva de tipo específico en una región | Hasta ~72% | 1 o 3 años | No | Bases de datos, workloads estables 24/7 |
-| **Reserved Instances (Convertible)** | RI que permite cambiar tipo, familia, SO, tenancy | Hasta ~54% | 1 o 3 años | No | Workloads estables pero con posibilidad de cambiar requerimientos |
-| **Savings Plans (Compute)** | Compromiso de $/hora. Flexible en familia, región, SO, tenancy | Hasta ~66% | 1 o 3 años | No | Uso flexible entre EC2, Lambda, Fargate |
-| **Savings Plans (EC2 Instance)** | Compromiso de $/hora. Fijo a familia + región | Hasta ~72% | 1 o 3 años | No | EC2 con familia y región conocidas |
-| **Spot Instances** | Capacidad sobrante de AWS | Hasta ~90% | Ninguno | **Sí** (2 min aviso) | Batch, CI/CD, data analysis, cargas tolerantes a fallos |
-| **Dedicated Hosts** | Servidor físico dedicado completo | Bajo demanda o Reserved | Ninguno o 1-3 años | No | Licencias BYOL (por socket/core), compliance estricto |
-| **Dedicated Instances** | Instancia en hardware dedicado a tu cuenta | Menor que Dedicated Host | Ninguno | No | Aislamiento a nivel de hardware sin necesidad de control del servidor |
-| **Capacity Reservations** | Reserva capacidad en una AZ específica | 0% (pagas On-Demand) | Ninguno | No | Garantizar disponibilidad en AZ para eventos o DR |
+| **On-Demand** | Pay per second (Linux) or per hour (Windows) | 0% (base) | None | No | Dev/test, unpredictable workloads, first-time use |
+| **Reserved Instances (Standard)** | Reservation of a specific type in a region | Up to ~72% | 1 or 3 years | No | Databases, stable 24/7 workloads |
+| **Reserved Instances (Convertible)** | RI that allows changing type, family, OS, tenancy | Up to ~54% | 1 or 3 years | No | Stable workloads with possible changing requirements |
+| **Savings Plans (Compute)** | Commitment of $/hour. Flexible in family, region, OS, tenancy | Up to ~66% | 1 or 3 years | No | Flexible usage across EC2, Lambda, Fargate |
+| **Savings Plans (EC2 Instance)** | Commitment of $/hour. Fixed to family + region | Up to ~72% | 1 or 3 years | No | EC2 with known family and region |
+| **Spot Instances** | AWS surplus capacity | Up to ~90% | None | **Yes** (2 min notice) | Batch, CI/CD, data analysis, fault-tolerant workloads |
+| **Dedicated Hosts** | Complete dedicated physical server | On-Demand or Reserved | None or 1-3 years | No | BYOL licensing (per socket/core), strict compliance |
+| **Dedicated Instances** | Instance on hardware dedicated to your account | Less than Dedicated Host | None | No | Hardware-level isolation without needing server control |
+| **Capacity Reservations** | Reserve capacity in a specific AZ | 0% (pay On-Demand) | None | No | Guarantee availability in AZ for events or DR |
 
-### Spot Instances - Detalle
+### Spot Instances - Detail
 
-- **Spot Price**: Precio variable según oferta/demanda. Tú defines un **max price**.
-- **Spot Request**: One-time (se lanza y termina) o Persistent (se relanza automáticamente si se interrumpe).
-- **Spot Fleet**: Colección de Spot Instances (y opcionalmente On-Demand) que cumple una capacidad target.
-  - Estrategias: `lowestPrice`, `diversified`, `capacityOptimized`, `priceCapacityOptimized` (recomendado).
-- **Interrupción**: AWS da un aviso de **2 minutos** antes de reclamar la instancia.
-  - Acciones posibles: `terminate`, `stop`, `hibernate`.
-- **Spot Block** (deprecated en muchas regiones): Reserva Spot por 1-6 horas sin interrupción.
+- **Spot Price**: Variable price based on supply/demand. You define a **max price**.
+- **Spot Request**: One-time (launches and terminates) or Persistent (automatically relaunches if interrupted).
+- **Spot Fleet**: Collection of Spot Instances (and optionally On-Demand) that meets a target capacity.
+  - Strategies: `lowestPrice`, `diversified`, `capacityOptimized`, `priceCapacityOptimized` (recommended).
+- **Interruption**: AWS gives a **2-minute** notice before reclaiming the instance.
+  - Possible actions: `terminate`, `stop`, `hibernate`.
+- **Spot Block** (deprecated in many regions): Reserve Spot for 1-6 hours without interruption.
 
-### Spot Instances en ETL y procesamiento con SLA
+### Spot Instances in ETL and Processing with SLA
 
-Spot es hasta 90% más barato, pero la interrupción de 2 minutos impide dar SLA de hora exacta con Spot puro. Estrategias para mitigarlo:
+Spot is up to 90% cheaper, but the 2-minute interruption prevents giving an exact-time SLA with pure Spot. Strategies to mitigate this:
 
-- **Spot con fallback a On-Demand**: AWS Batch permite mezclar ambos en el Compute Environment. Intenta Spot primero, si falla usa On-Demand. Mayoría de días: barato. Días de mala suerte: cumples SLA igualmente.
-- **Margen de tiempo**: Si el ETL debe estar listo a las 08:00, lanzar a las 04:00 con Spot. Aunque se interrumpa 2-3 veces, sobra tiempo.
-- **Checkpointing + transacciones por batch**: El job procesa datos en chunks (ej: 10K registros) dentro de transacciones de DB. Cada chunk completado se marca en una tabla de control. Si Spot se interrumpe, la transacción en curso hace rollback (sin datos parciales) y el job relanzado retoma desde el último chunk completado.
-- **SIGTERM handler**: Cuando Spot va a interrumpir, envía señal SIGTERM al contenedor. Tu código captura la señal y termina el chunk actual limpiamente antes de los 2 min de gracia (luego AWS envía SIGKILL).
-- **Staging table pattern**: El ETL escribe en una tabla temporal (staging). Solo cuando TODO está procesado, una operación atómica (INSERT INTO final SELECT FROM staging) mueve los datos a la tabla real. Si muere durante staging → tabla final intacta.
-- **Diversificación de tipos de instancia**: Configurar múltiples tipos (c5.xlarge, c5a.xlarge, c6i.xlarge). Si un tipo se reclama, Batch usa otro. Reduce la tasa de interrupción real.
+- **Spot with fallback to On-Demand**: AWS Batch allows mixing both in the Compute Environment. Tries Spot first, if it fails uses On-Demand. Most days: cheap. Unlucky days: you still meet the SLA.
+- **Time margin**: If the ETL must be ready at 08:00, launch at 04:00 with Spot. Even if interrupted 2-3 times, there is plenty of time.
+- **Checkpointing + batch transactions**: The job processes data in chunks (e.g., 10K records) within DB transactions. Each completed chunk is marked in a control table. If Spot interrupts, the in-progress transaction rolls back (no partial data) and the relaunched job resumes from the last completed chunk.
+- **SIGTERM handler**: When Spot is about to interrupt, it sends a SIGTERM signal to the container. Your code catches the signal and finishes the current chunk cleanly within the 2-minute grace period (then AWS sends SIGKILL).
+- **Staging table pattern**: The ETL writes to a temporary table (staging). Only when EVERYTHING is processed, an atomic operation (INSERT INTO final SELECT FROM staging) moves the data to the real table. If it dies during staging, the final table remains intact.
+- **Instance type diversification**: Configure multiple types (c5.xlarge, c5a.xlarge, c6i.xlarge). If one type is reclaimed, Batch uses another. Reduces the actual interruption rate.
 
-Cuándo usar cada opción:
-- ETL crítico con hora exacta (facturación, compliance) → **On-Demand** o Spot+fallback.
-- ETL con ventana amplia (noche entera) → **Spot** con reintentos.
-- ETL de backfill sin deadline → **Spot puro** (máximo ahorro).
+When to use each option:
+- Critical ETL with exact time (billing, compliance) -> **On-Demand** or Spot+fallback.
+- ETL with wide window (entire night) -> **Spot** with retries.
+- Backfill ETL without deadline -> **Pure Spot** (maximum savings).
 
-¿Cuándo compensa el esfuerzo de ingeniería de Spot?
-- Spot requiere diseñar para interrupción (checkpointing, idempotencia, SIGTERM handling). Ese esfuerzo solo se amortiza a **gran escala** (cientos/miles de $/mes de compute).
-- Para un ETL diario de 30 min, el ahorro Spot es ~$1.8/mes. No compensa la complejidad adicional. Mejor usar **On-Demand** o **Savings Plans** (~66% descuento sin interrupciones, compromiso 1-3 años).
-- Para clusters de decenas de instancias, pipelines masivos, ML training o CI/CD a escala → Spot con patrones de resiliencia compensa con creces (ahorros de miles de $/mes).
+When does the Spot engineering effort pay off?
+- Spot requires designing for interruption (checkpointing, idempotency, SIGTERM handling). That effort only pays off at **large scale** (hundreds/thousands of $/month of compute).
+- For a daily 30-min ETL, Spot savings are ~$1.8/month. Not worth the extra complexity. Better to use **On-Demand** or **Savings Plans** (~66% discount without interruptions, 1-3 year commitment).
+- For clusters of dozens of instances, massive pipelines, ML training or CI/CD at scale -> Spot with resilience patterns more than pays off (savings of thousands of $/month).
 
-> **Tip para el examen:** Si la pregunta dice "tolerante a fallos" o "puede interrumpirse" → Spot. Si dice "debe completarse a una hora exacta" → On-Demand o Spot con fallback a On-Demand. Si dice "reducir costes sin interrupción y con compromiso" → Savings Plans o Reserved Instances.
+> **Exam tip:** If the question says "fault-tolerant" or "can be interrupted" -> Spot. If it says "must complete at an exact time" -> On-Demand or Spot with fallback to On-Demand. If it says "reduce costs without interruption and with commitment" -> Savings Plans or Reserved Instances.
 
 ### Dedicated Hosts vs Dedicated Instances
 
-| Característica | Dedicated Host | Dedicated Instance |
+| Feature | Dedicated Host | Dedicated Instance |
 |---------------|---------------|-------------------|
-| **Control del servidor** | Sí (visibilidad de sockets, cores, host ID) | No |
-| **Licencias BYOL** | Sí (por socket/core/VM) | No |
-| **Afinidad a servidor** | Sí (puedes elegir el host) | No |
-| **Placement control** | Sí | No |
-| **Coste** | Más caro | Menos caro que Dedicated Host |
+| **Server control** | Yes (visibility of sockets, cores, host ID) | No |
+| **BYOL licensing** | Yes (per socket/core/VM) | No |
+| **Server affinity** | Yes (you can choose the host) | No |
+| **Placement control** | Yes | No |
+| **Cost** | More expensive | Less expensive than Dedicated Host |
 
-> **Tip para el examen:** Si la pregunta menciona "licencias existentes por socket/core" o "BYOL", la respuesta es **Dedicated Hosts**.
+> **Exam tip:** If the question mentions "existing licenses per socket/core" or "BYOL", the answer is **Dedicated Hosts**.
 
 ---
 
 ## EC2 Placement Groups
 
-Los Placement Groups controlan cómo se colocan las instancias EC2 en el hardware subyacente.
+Placement Groups control how EC2 instances are placed on the underlying hardware.
 
-| Estrategia | Descripción | Pros | Contras | Caso de uso |
+| Strategy | Description | Pros | Cons | Use Case |
 |-----------|-------------|------|---------|-------------|
-| **Cluster** | Agrupa instancias en la **misma AZ, mismo rack** | Baja latencia de red (10 Gbps entre instancias), alto throughput | Si el rack falla, todas las instancias fallan | HPC, Big Data jobs, aplicaciones con comunicación inter-nodo intensa |
-| **Spread** | Distribuye instancias en **hardware distinto** (diferentes racks) | Máximo aislamiento de fallos de hardware | **Máximo 7 instancias por AZ** por placement group | Aplicaciones críticas que necesitan alta disponibilidad |
-| **Partition** | Distribuye instancias en **particiones lógicas** (cada partición en un rack diferente) | Aislamiento de fallos por partición. Hasta 7 particiones por AZ | Las instancias en la misma partición comparten hardware | HDFS, HBase, Cassandra, Kafka (sistemas distribuidos big data) |
+| **Cluster** | Groups instances in the **same AZ, same rack** | Low network latency (10 Gbps between instances), high throughput | If the rack fails, all instances fail | HPC, Big Data jobs, applications with intensive inter-node communication |
+| **Spread** | Distributes instances on **different hardware** (different racks) | Maximum hardware failure isolation | **Maximum 7 instances per AZ** per placement group | Critical applications that need high availability |
+| **Partition** | Distributes instances in **logical partitions** (each partition on a different rack) | Failure isolation per partition. Up to 7 partitions per AZ | Instances in the same partition share hardware | HDFS, HBase, Cassandra, Kafka (distributed big data systems) |
 
-### Diferencias clave
+### Key Differences
 
 ```
-Cluster:     [Rack 1: i1, i2, i3, i4, i5]         -> Todo junto, rápido pero arriesgado
+Cluster:     [Rack 1: i1, i2, i3, i4, i5]         -> All together, fast but risky
 
-Spread:      [Rack 1: i1] [Rack 2: i2] [Rack 3: i3]  -> Separados, seguro pero limitado a 7/AZ
+Spread:      [Rack 1: i1] [Rack 2: i2] [Rack 3: i3]  -> Separated, safe but limited to 7/AZ
 
-Partition:   [Rack 1: i1,i2,i3] [Rack 2: i4,i5,i6] [Rack 3: i7,i8,i9]  -> Grupos en racks separados
+Partition:   [Rack 1: i1,i2,i3] [Rack 2: i4,i5,i6] [Rack 3: i7,i8,i9]  -> Groups in separate racks
 ```
 
-> **Tip para el examen:** Si preguntan por "baja latencia entre instancias" -> Cluster. Si preguntan "máximo aislamiento de hardware" -> Spread. Si preguntan "Kafka, HDFS, Cassandra con aislamiento" -> Partition.
+> **Exam tip:** If they ask about "low latency between instances" -> Cluster. If they ask "maximum hardware isolation" -> Spread. If they ask "Kafka, HDFS, Cassandra with isolation" -> Partition.
 
 ---
 
@@ -175,90 +175,90 @@ Partition:   [Rack 1: i1,i2,i3] [Rack 2: i4,i5,i6] [Rack 3: i7,i8,i9]  -> Grupos
 
 ### ENI (Elastic Network Interface)
 
-- Componente lógico de red en una VPC que representa una **tarjeta de red virtual**.
-- Atributos: IP privada principal, IPs privadas secundarias, Elastic IP, IP pública, MAC address, Security Groups.
-- Se puede **mover entre instancias** (en la misma AZ) para failover.
-- Cada instancia tiene una ENI primaria (`eth0`) que no se puede desadjuntar.
-- Puedes adjuntar ENIs adicionales para escenarios de multi-homing o gestión de red.
+- Logical network component in a VPC that represents a **virtual network card**.
+- Attributes: Primary private IP, secondary private IPs, Elastic IP, public IP, MAC address, Security Groups.
+- Can be **moved between instances** (in the same AZ) for failover.
+- Each instance has a primary ENI (`eth0`) that cannot be detached.
+- You can attach additional ENIs for multi-homing or network management scenarios.
 
 ### ENA (Elastic Network Adapter)
 
-- Proporciona **Enhanced Networking** usando SR-IOV (Single Root I/O Virtualization).
-- Hasta **100 Gbps** de throughput.
-- Mayor PPS (packets per second) y menor latencia que la interfaz estándar.
-- Soportado en la mayoría de instancias modernas.
-- **Sin coste adicional** (viene habilitado en tipos de instancia soportados).
+- Provides **Enhanced Networking** using SR-IOV (Single Root I/O Virtualization).
+- Up to **100 Gbps** throughput.
+- Higher PPS (packets per second) and lower latency than the standard interface.
+- Supported on most modern instances.
+- **No additional cost** (comes enabled on supported instance types).
 
 ### EFA (Elastic Fabric Adapter)
 
-- Interfaz de red para **HPC (High Performance Computing)** y **machine learning** en EC2.
-- Proporciona comunicación inter-nodo de baja latencia y alto throughput.
-- Soporta **OS-bypass** que permite a la aplicación comunicarse directamente con el hardware de red (solo Linux).
-- Utilizado con **MPI (Message Passing Interface)** para aplicaciones HPC.
+- Network interface for **HPC (High Performance Computing)** and **machine learning** on EC2.
+- Provides low-latency, high-throughput inter-node communication.
+- Supports **OS-bypass** which allows the application to communicate directly with the network hardware (Linux only).
+- Used with **MPI (Message Passing Interface)** for HPC applications.
 
-### Resumen de networking
+### Networking Summary
 
-| Interfaz | Velocidad | Caso de uso |
+| Interface | Speed | Use Case |
 |----------|-----------|-------------|
-| **ENI** | Estándar | Uso general, failover de red, logging |
-| **ENA** | Hasta 100 Gbps (enhanced networking) | Aplicaciones que necesitan alto throughput/bajo latencia |
-| **EFA** | Máximo rendimiento + OS-bypass | HPC, machine learning distribuido |
+| **ENI** | Standard | General use, network failover, logging |
+| **ENA** | Up to 100 Gbps (enhanced networking) | Applications that need high throughput/low latency |
+| **EFA** | Maximum performance + OS-bypass | HPC, distributed machine learning |
 
 ---
 
 ## AMIs
 
-### Qué es una AMI
+### What is an AMI
 
-Una **Amazon Machine Image (AMI)** es una plantilla que contiene la configuración de software (SO, aplicaciones, configuraciones) necesaria para lanzar una instancia.
+An **Amazon Machine Image (AMI)** is a template that contains the software configuration (OS, applications, configurations) needed to launch an instance.
 
-### Tipos de AMI
+### AMI Types
 
-| Tipo | Descripción |
+| Type | Description |
 |------|-------------|
-| **AWS-provided** | AMIs oficiales mantenidas por AWS (Amazon Linux, Ubuntu, Windows Server) |
-| **Marketplace** | AMIs de terceros (con o sin coste de licencia) |
-| **Community** | AMIs compartidas por la comunidad (verificar seguridad) |
-| **Custom (propia)** | AMIs creadas por ti a partir de una instancia configurada |
+| **AWS-provided** | Official AMIs maintained by AWS (Amazon Linux, Ubuntu, Windows Server) |
+| **Marketplace** | Third-party AMIs (with or without license cost) |
+| **Community** | AMIs shared by the community (verify security) |
+| **Custom (own)** | AMIs created by you from a configured instance |
 
-### Crear una AMI personalizada
+### Creating a Custom AMI
 
-1. Lanzar una instancia y configurarla (instalar software, aplicar parches).
-2. Detener la instancia (recomendado para consistencia de datos).
-3. Crear la AMI (AWS crea snapshots de los volúmenes EBS).
-4. La AMI está disponible para lanzar nuevas instancias idénticas.
+1. Launch an instance and configure it (install software, apply patches).
+2. Stop the instance (recommended for data consistency).
+3. Create the AMI (AWS creates snapshots of the EBS volumes).
+4. The AMI is available to launch new identical instances.
 
 ### Cross-Region Copy
 
-- Las AMIs son **regionales** (solo disponibles en la región donde se crean).
-- Puedes **copiar** una AMI a otra región para usarla allí.
-- La copia incluye los snapshots EBS subyacentes.
-- Las AMIs cifradas pueden copiarse entre regiones (con re-cifrado usando una KMS key de la región destino).
+- AMIs are **regional** (only available in the region where they are created).
+- You can **copy** an AMI to another region to use it there.
+- The copy includes the underlying EBS snapshots.
+- Encrypted AMIs can be copied across regions (with re-encryption using a KMS key from the destination region).
 
 ### AMI Sharing
 
-- Puedes compartir una AMI con cuentas AWS específicas o hacerla pública.
-- Si la AMI usa EBS cifrado con CMK, debes compartir la KMS key con la cuenta destino.
-- Compartir una AMI **no copia** la AMI a la otra cuenta; se referencia desde la cuenta original.
-- La otra cuenta puede copiar la AMI compartida a su propia cuenta (y re-cifrarla con su propia clave).
+- You can share an AMI with specific AWS accounts or make it public.
+- If the AMI uses EBS encrypted with CMK, you must share the KMS key with the destination account.
+- Sharing an AMI **does not copy** the AMI to the other account; it is referenced from the original account.
+- The other account can copy the shared AMI to its own account (and re-encrypt it with its own key).
 
 ---
 
-## User Data e Instance Metadata
+## User Data and Instance Metadata
 
 ### EC2 User Data
 
-- Script que se ejecuta **una sola vez** al primer arranque de la instancia.
-- Se ejecuta como **root** (con privilegios de administrador).
-- Se usa para:
-  - Instalar software y actualizaciones.
-  - Descargar archivos de configuración.
-  - Iniciar servicios.
-  - Registrar la instancia en un servicio de descubrimiento.
-- Máximo **16 KB** de tamaño.
-- Accesible desde `http://169.254.169.254/latest/user-data`.
+- Script that runs **only once** at the first boot of the instance.
+- Runs as **root** (with administrator privileges).
+- Used for:
+  - Installing software and updates.
+  - Downloading configuration files.
+  - Starting services.
+  - Registering the instance in a discovery service.
+- Maximum **16 KB** in size.
+- Accessible from `http://169.254.169.254/latest/user-data`.
 
-**Ejemplo de User Data:**
+**User Data Example:**
 
 ```bash
 #!/bin/bash
@@ -271,248 +271,248 @@ echo "Hello from $(hostname -f)" > /var/www/html/index.html
 
 ### EC2 Instance Metadata (IMDS)
 
-- Datos sobre la instancia accesibles desde la propia instancia.
+- Data about the instance accessible from the instance itself.
 - URL: `http://169.254.169.254/latest/meta-data/`
-- Información disponible: instance-id, instance-type, AMI-id, hostname, IP local, IP pública, IAM role credentials, placement (AZ), security-groups, etc.
+- Available information: instance-id, instance-type, AMI-id, hostname, local IP, public IP, IAM role credentials, placement (AZ), security-groups, etc.
 
 #### IMDSv1 vs IMDSv2
 
-| Característica | IMDSv1 | IMDSv2 |
+| Feature | IMDSv1 | IMDSv2 |
 |---------------|--------|--------|
-| **Método** | GET request simple | Requiere token de sesión (PUT + GET) |
-| **Seguridad** | Vulnerable a SSRF (Server-Side Request Forgery) | Protegido contra SSRF |
-| **Recomendación** | No recomendado | **Recomendado** (puede configurarse como obligatorio) |
+| **Method** | Simple GET request | Requires session token (PUT + GET) |
+| **Security** | Vulnerable to SSRF (Server-Side Request Forgery) | Protected against SSRF |
+| **Recommendation** | Not recommended | **Recommended** (can be configured as mandatory) |
 
-**IMDSv2 - Flujo:**
+**IMDSv2 - Flow:**
 
 ```bash
-# Paso 1: Obtener token (PUT)
+# Step 1: Get token (PUT)
 TOKEN=$(curl -X PUT "http://169.254.169.254/latest/api/token" \
   -H "X-aws-ec2-metadata-token-ttl-seconds: 21600")
 
-# Paso 2: Usar token para consultar metadata (GET)
+# Step 2: Use token to query metadata (GET)
 curl -H "X-aws-ec2-metadata-token: $TOKEN" \
   http://169.254.169.254/latest/meta-data/instance-id
 ```
 
-> **Tip para el examen:** Si la pregunta menciona protección contra SSRF o seguridad del metadata service, la respuesta es **IMDSv2**. Puedes hacer obligatorio IMDSv2 a nivel de instancia o a nivel de cuenta.
+> **Exam tip:** If the question mentions protection against SSRF or metadata service security, the answer is **IMDSv2**. You can make IMDSv2 mandatory at the instance level or at the account level.
 
 ---
 
 ## Auto Scaling Groups
 
-Un Auto Scaling Group (ASG) permite escalar automáticamente el número de instancias EC2 según la demanda.
+An Auto Scaling Group (ASG) allows automatically scaling the number of EC2 instances based on demand.
 
-### Componentes principales
+### Main Components
 
-| Componente | Descripción |
+| Component | Description |
 |-----------|-------------|
-| **Launch Template** (recomendado) | Define la configuración de la instancia (AMI, tipo, SGs, User Data, IAM role, etc.) |
-| **Launch Configuration** (legacy) | Similar al Launch Template pero sin versionado ni funcionalidades avanzadas |
-| **Min/Max/Desired capacity** | Mínimo, máximo y número deseado de instancias |
-| **Scaling Policies** | Reglas que definen cuándo escalar |
-| **Health Checks** | EC2 (default) o ELB health checks |
-| **Cooldown Period** | Tiempo de espera después de un scaling action antes de evaluar más acciones (default: 300s) |
+| **Launch Template** (recommended) | Defines the instance configuration (AMI, type, SGs, User Data, IAM role, etc.) |
+| **Launch Configuration** (legacy) | Similar to Launch Template but without versioning or advanced features |
+| **Min/Max/Desired capacity** | Minimum, maximum and desired number of instances |
+| **Scaling Policies** | Rules that define when to scale |
+| **Health Checks** | EC2 (default) or ELB health checks |
+| **Cooldown Period** | Wait time after a scaling action before evaluating more actions (default: 300s) |
 
 ### Launch Template vs Launch Configuration
 
-| Característica | Launch Template | Launch Configuration |
+| Feature | Launch Template | Launch Configuration |
 |---------------|----------------|---------------------|
-| **Versionado** | Sí | No |
-| **Múltiples tipos de instancia** | Sí (mixed instances) | No |
-| **Spot + On-Demand mix** | Sí | No |
-| **Placement groups** | Sí | Limitado |
-| **T2/T3 unlimited** | Sí | No |
-| **Capacity Reservations** | Sí | No |
-| **Recomendación** | **Usar siempre** | Legacy, no usar |
+| **Versioning** | Yes | No |
+| **Multiple instance types** | Yes (mixed instances) | No |
+| **Spot + On-Demand mix** | Yes | No |
+| **Placement groups** | Yes | Limited |
+| **T2/T3 unlimited** | Yes | No |
+| **Capacity Reservations** | Yes | No |
+| **Recommendation** | **Always use** | Legacy, do not use |
 
 ### Scaling Policies
 
 #### 1. Target Tracking Scaling
 
-- La más simple y recomendada.
-- Define un **valor objetivo** para una métrica y el ASG ajusta la capacidad para mantener ese valor.
-- Ejemplo: "Mantener el CPU promedio al 50%".
-- Métricas predefinidas: `ASGAverageCPUUtilization`, `ASGAverageNetworkIn`, `ASGAverageNetworkOut`, `ALBRequestCountPerTarget`.
-- También soporta métricas personalizadas de CloudWatch.
+- The simplest and recommended.
+- Define a **target value** for a metric and the ASG adjusts capacity to maintain that value.
+- Example: "Keep average CPU at 50%".
+- Predefined metrics: `ASGAverageCPUUtilization`, `ASGAverageNetworkIn`, `ASGAverageNetworkOut`, `ALBRequestCountPerTarget`.
+- Also supports custom CloudWatch metrics.
 
 #### 2. Step Scaling
 
-- Define acciones de escalado basadas en **umbrales de alarmas CloudWatch**.
-- Permite definir múltiples pasos con diferentes acciones según la severidad.
-- Ejemplo:
-  - CPU > 70%: añadir 1 instancia.
-  - CPU > 85%: añadir 3 instancias.
-  - CPU < 30%: eliminar 1 instancia.
-- Mayor control que Target Tracking pero más complejo de configurar.
+- Defines scaling actions based on **CloudWatch alarm thresholds**.
+- Allows defining multiple steps with different actions based on severity.
+- Example:
+  - CPU > 70%: add 1 instance.
+  - CPU > 85%: add 3 instances.
+  - CPU < 30%: remove 1 instance.
+- More control than Target Tracking but more complex to configure.
 
 #### 3. Scheduled Scaling
 
-- Escala en momentos predefinidos (schedule).
-- Basado en **cron expressions** o fecha/hora específica.
-- Ejemplo: "Aumentar a 10 instancias todos los viernes a las 17:00" (para picos de tráfico conocidos).
-- Ideal para patrones de tráfico predecibles y recurrentes.
+- Scales at predefined times (schedule).
+- Based on **cron expressions** or specific date/time.
+- Example: "Increase to 10 instances every Friday at 17:00" (for known traffic peaks).
+- Ideal for predictable and recurring traffic patterns.
 
 #### 4. Predictive Scaling
 
-- Usa **machine learning** para predecir tráfico futuro basado en patrones históricos.
-- Analiza datos de los últimos 14 días de CloudWatch.
-- Provisiona capacidad **proactivamente** antes de que llegue el pico de tráfico.
-- Se combina bien con Target Tracking para ajustes en tiempo real.
-- Ideal para cargas con patrones cíclicos (ej: tráfico diario, semanal).
+- Uses **machine learning** to predict future traffic based on historical patterns.
+- Analyzes the last 14 days of CloudWatch data.
+- Provisions capacity **proactively** before the traffic peak arrives.
+- Combines well with Target Tracking for real-time adjustments.
+- Ideal for workloads with cyclical patterns (e.g., daily, weekly traffic).
 
 ### Lifecycle Hooks
 
-- Permiten ejecutar acciones personalizadas cuando una instancia entra o sale del ASG.
-- Estados:
-  - `Pending:Wait` -> Instancia lanzándose (antes de ponerse en servicio).
-  - `Terminating:Wait` -> Instancia terminando (antes de eliminarse).
-- Caso de uso: Instalar software adicional, registrar en servicio externo, guardar logs antes de terminar.
-- Timeout por defecto: 1 hora (configurable hasta 48 horas o heartbeat).
+- Allow executing custom actions when an instance enters or leaves the ASG.
+- States:
+  - `Pending:Wait` -> Instance launching (before entering service).
+  - `Terminating:Wait` -> Instance terminating (before being removed).
+- Use case: Install additional software, register with external service, save logs before terminating.
+- Default timeout: 1 hour (configurable up to 48 hours or heartbeat).
 
 ### Warm Pools
 
-- Mantiene un pool de instancias pre-inicializadas en estado **Stopped** o **Running** (pero fuera de servicio).
-- Cuando el ASG necesita escalar, usa instancias del warm pool en lugar de lanzar nuevas desde cero.
-- Reduce significativamente el **tiempo de arranque** (boot time).
-- Coste: las instancias en estado Stopped no incurren en coste de cómputo (solo EBS).
+- Maintains a pool of pre-initialized instances in **Stopped** or **Running** state (but out of service).
+- When the ASG needs to scale, it uses instances from the warm pool instead of launching new ones from scratch.
+- Significantly reduces **boot time**.
+- Cost: instances in Stopped state do not incur compute cost (only EBS).
 
 ### Instance Refresh
 
-- Permite actualizar todas las instancias del ASG con una nueva configuración (nueva AMI, nuevo launch template).
-- Define un **minimum healthy percentage** (ej: 90%) para mantener disponibilidad durante la actualización.
-- El ASG reemplaza instancias gradualmente respetando el porcentaje mínimo.
+- Allows updating all instances in the ASG with a new configuration (new AMI, new launch template).
+- Defines a **minimum healthy percentage** (e.g., 90%) to maintain availability during the update.
+- The ASG replaces instances gradually respecting the minimum percentage.
 
 ---
 
 ## AWS Lambda
 
-AWS Lambda es un servicio de cómputo **serverless** que ejecuta código en respuesta a eventos sin aprovisionar ni gestionar servidores.
+AWS Lambda is a **serverless** compute service that runs code in response to events without provisioning or managing servers.
 
-### Características principales
+### Main Features
 
-| Característica | Detalle |
+| Feature | Detail |
 |---------------|---------|
-| **Lenguajes** | Node.js, Python, Java, Go, C#/.NET, Ruby, PowerShell, Custom Runtime (via Lambda Layers o container images) |
-| **Memoria** | 128 MB a 10,240 MB (10 GB), en incrementos de 1 MB |
-| **CPU** | Proporcional a la memoria configurada (a más memoria, más CPU) |
-| **Timeout** | Máximo **15 minutos** (900 segundos) |
-| **Almacenamiento efímero** | `/tmp` hasta **10 GB** |
-| **Tamaño del paquete** | 50 MB (zip comprimido) o 250 MB (descomprimido). Hasta **10 GB** con container images |
-| **Variables de entorno** | Máximo 4 KB en total |
-| **Concurrencia** | 1,000 ejecuciones simultáneas por región (soft limit, incrementable) |
-| **Modelo de precio** | Por número de invocaciones + duración (GB-segundo). Free tier: 1M requests + 400,000 GB-s/mes |
+| **Languages** | Node.js, Python, Java, Go, C#/.NET, Ruby, PowerShell, Custom Runtime (via Lambda Layers or container images) |
+| **Memory** | 128 MB to 10,240 MB (10 GB), in 1 MB increments |
+| **CPU** | Proportional to configured memory (more memory, more CPU) |
+| **Timeout** | Maximum **15 minutes** (900 seconds) |
+| **Ephemeral storage** | `/tmp` up to **10 GB** |
+| **Package size** | 50 MB (compressed zip) or 250 MB (uncompressed). Up to **10 GB** with container images |
+| **Environment variables** | Maximum 4 KB total |
+| **Concurrency** | 1,000 simultaneous executions per region (soft limit, increasable) |
+| **Pricing model** | Per number of invocations + duration (GB-second). Free tier: 1M requests + 400,000 GB-s/month |
 
-### Concurrencia
+### Concurrency
 
-| Tipo | Descripción |
+| Type | Description |
 |------|-------------|
-| **Unreserved Concurrency** | Pool compartido de concurrencia para todas las funciones de la cuenta |
-| **Reserved Concurrency** | Reserva un número fijo de ejecuciones concurrentes para una función (sin coste extra). Limita la concurrencia máxima de esa función |
-| **Provisioned Concurrency** | Pre-inicializa un número de entornos de ejecución para **eliminar cold starts**. Tiene coste adicional |
+| **Unreserved Concurrency** | Shared concurrency pool for all functions in the account |
+| **Reserved Concurrency** | Reserves a fixed number of concurrent executions for a function (no extra cost). Limits the maximum concurrency for that function |
+| **Provisioned Concurrency** | Pre-initializes a number of execution environments to **eliminate cold starts**. Has additional cost |
 
-- **Cold Start**: Cuando Lambda debe inicializar un nuevo entorno de ejecución (descarga código, inicia runtime). Puede añadir latencia (ms a segundos, según runtime y tamaño del paquete).
-- **Warm Start**: Reutiliza un entorno de ejecución existente. Mucho más rápido.
+- **Cold Start**: When Lambda must initialize a new execution environment (downloads code, starts runtime). Can add latency (ms to seconds, depending on runtime and package size).
+- **Warm Start**: Reuses an existing execution environment. Much faster.
 
 ### Lambda Layers
 
-- Paquetes de código o datos adicionales que se montan en `/opt` del entorno de ejecución.
-- Permiten compartir librerías, SDKs, o dependencias entre funciones sin incluirlas en cada paquete.
-- Máximo **5 layers** por función.
-- Tamaño total (función + layers) no puede exceder 250 MB (descomprimido).
+- Packages of additional code or data mounted at `/opt` in the execution environment.
+- Allow sharing libraries, SDKs, or dependencies between functions without including them in each package.
+- Maximum **5 layers** per function.
+- Total size (function + layers) cannot exceed 250 MB (uncompressed).
 
 ### Lambda SnapStart vs Provisioned Concurrency
 
-Dos soluciones para el problema del **cold start**, pero con enfoques muy diferentes:
+Two solutions for the **cold start** problem, but with very different approaches:
 
-| Característica | Lambda SnapStart | Provisioned Concurrency |
+| Feature | Lambda SnapStart | Provisioned Concurrency |
 |---------------|-----------------|------------------------|
-| **Mecanismo** | Toma un snapshot del entorno inicializado (después del init) y lo reutiliza | Mantiene entornos de ejecución pre-inicializados 24/7 |
-| **Runtimes** | Solo **Java** (Corretto) | Todos los runtimes |
-| **Coste** | **Gratis** (sin coste adicional) | Coste por hora por cada entorno provisionado |
-| **Reducción de cold start** | De ~5-10s a ~200ms (Java) | Elimina cold start completamente |
-| **Caso de uso** | Funciones Java con cold start inaceptable | Funciones en cualquier runtime que necesitan latencia consistente |
+| **Mechanism** | Takes a snapshot of the initialized environment (after init) and reuses it | Keeps pre-initialized execution environments 24/7 |
+| **Runtimes** | Only **Java** (Corretto) | All runtimes |
+| **Cost** | **Free** (no additional cost) | Cost per hour for each provisioned environment |
+| **Cold start reduction** | From ~5-10s to ~200ms (Java) | Eliminates cold start completely |
+| **Use case** | Java functions with unacceptable cold start | Functions in any runtime that need consistent latency |
 
-> **Tip para el examen:** Si la pregunta dice "reducir cold start de función Java sin coste adicional" → **SnapStart**. Si dice "eliminar cold start en cualquier runtime" o "latencia consistente para función crítica" → **Provisioned Concurrency** (con coste). Si la función va a estar invocándose constantemente 24/7, considerar si **EC2/Fargate** es más económico que Provisioned Concurrency.
+> **Exam tip:** If the question says "reduce cold start of Java function at no additional cost" -> **SnapStart**. If it says "eliminate cold start in any runtime" or "consistent latency for critical function" -> **Provisioned Concurrency** (with cost). If the function will be invoked constantly 24/7, consider whether **EC2/Fargate** is more economical than Provisioned Concurrency.
 
 ### Lambda Function URL
 
-- Endpoint HTTP(S) dedicado para una función Lambda, **sin necesidad de API Gateway ni ALB**.
-- URL con formato: `https://<url-id>.lambda-url.<region>.on.aws`.
-- Soporta autenticación IAM (`AWS_IAM`) o acceso público (`NONE`).
-- Soporta CORS configurable.
-- Solo invocación síncrona.
-- **Caso de uso**: APIs simples, webhooks, formularios, donde API Gateway sería excesivo.
+- Dedicated HTTP(S) endpoint for a Lambda function, **without needing API Gateway or ALB**.
+- URL format: `https://<url-id>.lambda-url.<region>.on.aws`.
+- Supports IAM authentication (`AWS_IAM`) or public access (`NONE`).
+- Supports configurable CORS.
+- Synchronous invocation only.
+- **Use case**: Simple APIs, webhooks, forms, where API Gateway would be overkill.
 
-> **Tip para el examen:** Si la pregunta dice "exponer Lambda como endpoint HTTP con el mínimo overhead" o "sin API Gateway" → **Lambda Function URL**.
+> **Exam tip:** If the question says "expose Lambda as HTTP endpoint with minimum overhead" or "without API Gateway" -> **Lambda Function URL**.
 
-### Lambda y VPC
+### Lambda and VPC
 
-- Por defecto, Lambda se ejecuta **fuera de tu VPC** (en la VPC de AWS).
-- Para acceder a recursos en tu VPC (RDS, ElastiCache, EC2): configura Lambda con una VPC, subnets y SGs.
-- Lambda crea ENIs (Hyperplane ENIs) en las subnets especificadas.
-- Para acceder a Internet desde Lambda en VPC: necesitas un **NAT Gateway** en una subnet pública.
-- Para acceder a servicios AWS desde Lambda en VPC sin Internet: usa **VPC Endpoints**.
+- By default, Lambda runs **outside your VPC** (in the AWS VPC).
+- To access resources in your VPC (RDS, ElastiCache, EC2): configure Lambda with a VPC, subnets and SGs.
+- Lambda creates ENIs (Hyperplane ENIs) in the specified subnets.
+- To access the Internet from Lambda in VPC: you need a **NAT Gateway** in a public subnet.
+- To access AWS services from Lambda in VPC without Internet: use **VPC Endpoints**.
 
-### Lambda + EFS: superar el límite de 10 GB de librerías
+### Lambda + EFS: Overcoming the 10 GB Library Limit
 
-- Lambda puede montar un **EFS (Elastic File System)** como filesystem.
-- Caso de uso: librerías Python que pesan más de 10 GB (límite de container image). Instalas las librerías en EFS una vez, Lambda las importa desde ahí con `PYTHONPATH=/mnt/libs`.
-- EFS no tiene límite práctico de tamaño (petabytes).
-- **Requisito**: Lambda debe estar en VPC (para acceder a EFS).
-- **Tradeoff**: Cold start más lento (montar EFS + cargar libs grandes). En warm start, EFS ya está montado y es rápido.
-- Si se invoca frecuentemente (warm starts) → buena opción. Si es esporádico y el cold start de 30-60s no es aceptable → mejor Fargate Task con imagen Docker grande (sin límite de tamaño).
+- Lambda can mount an **EFS (Elastic File System)** as a filesystem.
+- Use case: Python libraries weighing more than 10 GB (container image limit). You install the libraries on EFS once, Lambda imports them from there with `PYTHONPATH=/mnt/libs`.
+- EFS has no practical size limit (petabytes).
+- **Requirement**: Lambda must be in a VPC (to access EFS).
+- **Tradeoff**: Slower cold start (mounting EFS + loading large libs). On warm start, EFS is already mounted and is fast.
+- If invoked frequently (warm starts) -> good option. If sporadic and a 30-60s cold start is not acceptable -> better to use a Fargate Task with a large Docker image (no size limit).
 
 ### Lambda Permissions: Execution Role vs Resource Policy
 
-Lambda tiene **dos tipos de permisos** que se confunden frecuentemente en el examen:
+Lambda has **two types of permissions** that are frequently confused on the exam:
 
 | | Execution Role | Resource Policy |
 |---|---|---|
-| **Qué define** | Qué puede hacer **Lambda** (qué servicios puede llamar) | Quién puede **invocar** Lambda |
-| **Dirección** | Lambda → otros servicios | Otros servicios → Lambda |
-| **Tipo de policy** | Identity-based (IAM Role adjunto a Lambda) | Resource-based (adjunta a la función Lambda) |
-| **Ejemplo** | Lambda necesita leer de S3 y escribir en DynamoDB | S3 necesita invocar Lambda cuando se sube un objeto |
+| **What it defines** | What **Lambda** can do (what services it can call) | Who can **invoke** Lambda |
+| **Direction** | Lambda -> other services | Other services -> Lambda |
+| **Policy type** | Identity-based (IAM Role attached to Lambda) | Resource-based (attached to the Lambda function) |
+| **Example** | Lambda needs to read from S3 and write to DynamoDB | S3 needs to invoke Lambda when an object is uploaded |
 
 ```
-Execution Role (lo que Lambda PUEDE HACER):
-  Lambda ──► S3 (GetObject)        ← necesita execution role con s3:GetObject
-  Lambda ──► DynamoDB (PutItem)    ← necesita execution role con dynamodb:PutItem
+Execution Role (what Lambda CAN DO):
+  Lambda --> S3 (GetObject)        <- needs execution role with s3:GetObject
+  Lambda --> DynamoDB (PutItem)    <- needs execution role with dynamodb:PutItem
 
-Resource Policy (quién PUEDE INVOCAR Lambda):
-  S3 event ──► Lambda              ← necesita resource policy que permita a S3 invocar
-  SNS ──► Lambda                   ← necesita resource policy que permita a SNS invocar
-  Otra cuenta AWS ──► Lambda       ← necesita resource policy con cross-account principal
+Resource Policy (who CAN INVOKE Lambda):
+  S3 event --> Lambda              <- needs resource policy allowing S3 to invoke
+  SNS --> Lambda                   <- needs resource policy allowing SNS to invoke
+  Another AWS account --> Lambda   <- needs resource policy with cross-account principal
 ```
 
-> **Tip para el examen:** Si la pregunta dice "Lambda necesita acceder a S3/DynamoDB/SQS" → **Execution Role**. Si dice "S3/SNS/otra cuenta necesita invocar Lambda" → **Resource Policy**. Para invocación cross-account, siempre es **resource policy**.
+> **Exam tip:** If the question says "Lambda needs to access S3/DynamoDB/SQS" -> **Execution Role**. If it says "S3/SNS/another account needs to invoke Lambda" -> **Resource Policy**. For cross-account invocation, it is always **resource policy**.
 
 ### Lambda Destinations
 
-- Configuran a dónde enviar el resultado de una invocación (exitosa o fallida).
-- Destinos soportados: SQS, SNS, Lambda, EventBridge.
-- Alternativa recomendada a DLQ (Dead Letter Queue) para invocaciones asíncronas.
-- **On Success**: Envía el resultado de la ejecución exitosa a un destino.
-- **On Failure**: Envía información del error a un destino (similar a DLQ pero más flexible).
+- Configure where to send the result of an invocation (successful or failed).
+- Supported destinations: SQS, SNS, Lambda, EventBridge.
+- Recommended alternative to DLQ (Dead Letter Queue) for asynchronous invocations.
+- **On Success**: Sends the result of a successful execution to a destination.
+- **On Failure**: Sends error information to a destination (similar to DLQ but more flexible).
 
 ### Event Source Mappings
 
-Lambda puede consumir eventos de servicios como SQS, Kinesis, DynamoDB Streams y otros sin intermediarios.
+Lambda can consume events from services like SQS, Kinesis, DynamoDB Streams and others without intermediaries.
 
-| Fuente | Tipo de lectura | Particularidades |
+| Source | Read Type | Specifics |
 |--------|----------------|------------------|
-| **SQS / SQS FIFO** | Polling (long polling) | Batch size configurable. Para FIFO: respeta el orden |
-| **Kinesis Data Streams** | Polling del shard | Lee por shard. Soporta paralelización por shard |
-| **DynamoDB Streams** | Polling del shard | Lee cambios en la tabla. Soporta paralelización |
-| **Amazon MQ / MSK** | Polling | Consume mensajes del broker |
+| **SQS / SQS FIFO** | Polling (long polling) | Configurable batch size. For FIFO: respects order |
+| **Kinesis Data Streams** | Shard polling | Reads per shard. Supports parallelization per shard |
+| **DynamoDB Streams** | Shard polling | Reads table changes. Supports parallelization |
+| **Amazon MQ / MSK** | Polling | Consumes messages from the broker |
 
 ### Invocation Types
 
-| Tipo | Descripción | Reintentos | Ejemplo |
+| Type | Description | Retries | Example |
 |------|-------------|-----------|---------|
-| **Synchronous** | Espera la respuesta | No (el caller maneja) | API Gateway, ALB, CloudFront |
-| **Asynchronous** | No espera respuesta | 2 reintentos automáticos | S3 events, SNS, EventBridge, CloudWatch Events |
-| **Event Source Mapping** | Lambda hace polling | Depende de la fuente | SQS, Kinesis, DynamoDB Streams |
+| **Synchronous** | Waits for the response | No (the caller handles) | API Gateway, ALB, CloudFront |
+| **Asynchronous** | Does not wait for the response | 2 automatic retries | S3 events, SNS, EventBridge, CloudWatch Events |
+| **Event Source Mapping** | Lambda does polling | Depends on the source | SQS, Kinesis, DynamoDB Streams |
 
 ---
 
@@ -520,430 +520,430 @@ Lambda puede consumir eventos de servicios como SQS, Kinesis, DynamoDB Streams y
 
 ### Amazon ECS (Elastic Container Service)
 
-- Servicio de orquestación de contenedores **propio de AWS**.
-- Ejecuta contenedores Docker en un **cluster**.
-- Tipos de lanzamiento:
-  - **EC2 Launch Type**: Tú gestionas las instancias EC2 del cluster.
-  - **Fargate Launch Type**: AWS gestiona la infraestructura (serverless).
-- Conceptos:
-  - **Task Definition**: Plantilla JSON que describe los contenedores (imagen, CPU, memoria, puertos, volúmenes).
-  - **Task**: Instancia en ejecución de una Task Definition.
-  - **Service**: Mantiene un número deseado de Tasks corriendo y las registra en un Load Balancer.
-  - **Cluster**: Agrupación lógica de tasks o services.
+- **AWS-native** container orchestration service.
+- Runs Docker containers in a **cluster**.
+- Launch types:
+  - **EC2 Launch Type**: You manage the EC2 instances of the cluster.
+  - **Fargate Launch Type**: AWS manages the infrastructure (serverless).
+- Concepts:
+  - **Task Definition**: JSON template that describes the containers (image, CPU, memory, ports, volumes).
+  - **Task**: Running instance of a Task Definition.
+  - **Service**: Maintains a desired number of Tasks running and registers them with a Load Balancer.
+  - **Cluster**: Logical grouping of tasks or services.
 
 ### Amazon EKS (Elastic Kubernetes Service)
 
-- Servicio gestionado de **Kubernetes** en AWS.
-- Compatible con el ecosistema Kubernetes (herramientas, plugins, operadores existentes).
-- Tipos de nodos:
-  - **Managed Node Groups**: AWS gestiona los nodos EC2.
-  - **Self-managed nodes**: Tú gestionas los nodos EC2.
-  - **Fargate**: Serverless (sin nodos que gestionar).
-- El **control plane** (API server, etcd) es gestionado por AWS y distribuido en múltiples AZs.
+- Managed **Kubernetes** service on AWS.
+- Compatible with the Kubernetes ecosystem (existing tools, plugins, operators).
+- Node types:
+  - **Managed Node Groups**: AWS manages the EC2 nodes.
+  - **Self-managed nodes**: You manage the EC2 nodes.
+  - **Fargate**: Serverless (no nodes to manage).
+- The **control plane** (API server, etcd) is managed by AWS and distributed across multiple AZs.
 
 ### AWS Fargate
 
-- Motor de cómputo **serverless** para contenedores.
-- Funciona con **ECS** y **EKS**.
-- No necesitas aprovisionar ni gestionar servidores.
-- Pagas por los recursos (vCPU + memoria) que tus contenedores consumen.
+- **Serverless** compute engine for containers.
+- Works with **ECS** and **EKS**.
+- No need to provision or manage servers.
+- You pay for the resources (vCPU + memory) your containers consume.
 
-### Tabla comparativa
+### Comparison Table
 
-| Característica | ECS (EC2) | ECS (Fargate) | EKS (EC2) | EKS (Fargate) |
+| Feature | ECS (EC2) | ECS (Fargate) | EKS (EC2) | EKS (Fargate) |
 |---------------|-----------|---------------|-----------|---------------|
-| **Orquestador** | ECS (AWS nativo) | ECS (AWS nativo) | Kubernetes | Kubernetes |
-| **Infraestructura** | Tú gestionas EC2 | Serverless | Tú gestionas EC2 | Serverless |
-| **Portabilidad** | AWS lock-in | AWS lock-in | Multi-cloud/on-prem | AWS + K8s compatible |
-| **Coste** | EC2 instances | Por vCPU + memoria del task | EC2 + EKS fee ($0.10/h) | vCPU + memoria + EKS fee |
-| **Complejidad** | Baja | Muy baja | Alta (Kubernetes) | Media |
-| **Escalado** | Service Auto Scaling + EC2 ASG | Service Auto Scaling | HPA/VPA + Cluster Autoscaler | HPA/VPA |
-| **Acceso al SO** | Sí | No | Sí | No |
-| **GPUs** | Sí | No | Sí | No |
-| **Volúmenes persistentes** | EBS, EFS, FSx | EFS | EBS, EFS, FSx | EFS |
-| **Ideal para** | Apps AWS-first, simples | Serverless containers sin K8s | Equipos con experiencia K8s | K8s serverless |
+| **Orchestrator** | ECS (AWS native) | ECS (AWS native) | Kubernetes | Kubernetes |
+| **Infrastructure** | You manage EC2 | Serverless | You manage EC2 | Serverless |
+| **Portability** | AWS lock-in | AWS lock-in | Multi-cloud/on-prem | AWS + K8s compatible |
+| **Cost** | EC2 instances | Per vCPU + task memory | EC2 + EKS fee ($0.10/h) | vCPU + memory + EKS fee |
+| **Complexity** | Low | Very low | High (Kubernetes) | Medium |
+| **Scaling** | Service Auto Scaling + EC2 ASG | Service Auto Scaling | HPA/VPA + Cluster Autoscaler | HPA/VPA |
+| **OS access** | Yes | No | Yes | No |
+| **GPUs** | Yes | No | Yes | No |
+| **Persistent volumes** | EBS, EFS, FSx | EFS | EBS, EFS, FSx | EFS |
+| **Ideal for** | AWS-first, simple apps | Serverless containers without K8s | Teams with K8s experience | Serverless K8s |
 
-> **Tip para el examen:** Si la pregunta dice "Kubernetes" o "portabilidad multi-cloud" o "equipo con experiencia Kubernetes" -> EKS. Si dice "contenedores sin gestionar servidores" -> Fargate. Si dice "contenedores simples en AWS" -> ECS.
+> **Exam tip:** If the question says "Kubernetes" or "multi-cloud portability" or "team with Kubernetes experience" -> EKS. If it says "containers without managing servers" -> Fargate. If it says "simple containers on AWS" -> ECS.
 
-### ECS - Escalado en dos niveles
+### ECS - Two-Level Scaling
 
-ECS con EC2 Launch Type tiene un modelo de escalado en **dos niveles** similar a EKS:
-
-```
-Nivel 1 - TASKS (scaling de la aplicación):
-  "Necesito más copias de mi contenedor"
-  → ECS Service Auto Scaling (Target Tracking, Step, Scheduled)
-  → Métricas: CPU/Memory del servicio, ALBRequestCountPerTarget, SQS queue depth
-
-Nivel 2 - EC2 INSTANCES (scaling de la infraestructura):
-  "Necesito más servidores donde corran los tasks"
-  → EC2 Auto Scaling Group
-  → Métricas: ECS Cluster CapacityProviderReservation
-  → ECS Capacity Providers (recomendado, gestiona el ASG automáticamente)
-```
-
-**Con Fargate**: Solo necesitas Nivel 1 (Task scaling). AWS gestiona la infraestructura automáticamente.
-
-**Para el examen:**
-```
-"ECS con EC2 scaling"            → Service Auto Scaling (tasks) + Capacity Provider (EC2s)
-"ECS scaling sin gestionar EC2"  → Fargate + Service Auto Scaling
-"ECS + SQS scaling"              → Service Auto Scaling basado en ApproximateNumberOfMessages
-```
-
-### Conceptos básicos de Kubernetes (EKS)
+ECS with EC2 Launch Type has a **two-level** scaling model similar to EKS:
 
 ```
-Concepto     Qué es                                 Analogía
-─────────────────────────────────────────────────────────────
-Container    App empaquetada (Docker image)          Una app ejecutable
-Pod          Unidad mínima de K8s (1+ containers)    Un apartamento
-Node         Servidor (EC2) donde corren pods        Un edificio
-Cluster      Conjunto de nodes                       El barrio
+Level 1 - TASKS (application scaling):
+  "I need more copies of my container"
+  -> ECS Service Auto Scaling (Target Tracking, Step, Scheduled)
+  -> Metrics: Service CPU/Memory, ALBRequestCountPerTarget, SQS queue depth
+
+Level 2 - EC2 INSTANCES (infrastructure scaling):
+  "I need more servers to run the tasks on"
+  -> EC2 Auto Scaling Group
+  -> Metrics: ECS Cluster CapacityProviderReservation
+  -> ECS Capacity Providers (recommended, manages the ASG automatically)
+```
+
+**With Fargate**: You only need Level 1 (Task scaling). AWS manages the infrastructure automatically.
+
+**For the exam:**
+```
+"ECS with EC2 scaling"            -> Service Auto Scaling (tasks) + Capacity Provider (EC2s)
+"ECS scaling without managing EC2" -> Fargate + Service Auto Scaling
+"ECS + SQS scaling"               -> Service Auto Scaling based on ApproximateNumberOfMessages
+```
+
+### Basic Kubernetes Concepts (EKS)
+
+```
+Concept      What it is                              Analogy
+-------------------------------------------------------------
+Container    Packaged app (Docker image)              An executable app
+Pod          Minimum K8s unit (1+ containers)         An apartment
+Node         Server (EC2) where pods run              A building
+Cluster      Set of nodes                             The neighborhood
 ```
 
 ```
 EKS Cluster
-  ├── Node 1 (EC2)
-  │   ├── Pod (web-app)
-  │   ├── Pod (api)
-  │   └── Pod (worker)
-  └── Node 2 (EC2)
-      ├── Pod (web-app)     ← réplica
-      └── Pod (api)         ← réplica
+  |-- Node 1 (EC2)
+  |   |-- Pod (web-app)
+  |   |-- Pod (api)
+  |   +-- Pod (worker)
+  +-- Node 2 (EC2)
+      |-- Pod (web-app)     <- replica
+      +-- Pod (api)         <- replica
 ```
 
-### Scaling en EKS: dos niveles
+### Scaling in EKS: Two Levels
 
 ```
-Nivel 1 - PODS (scaling de la aplicación):
-  "Necesito más copias de mi app"
+Level 1 - PODS (application scaling):
+  "I need more copies of my app"
 
-Nivel 2 - NODES (scaling de la infraestructura):
-  "Necesito más servidores donde corran los pods"
+Level 2 - NODES (infrastructure scaling):
+  "I need more servers to run the pods on"
 ```
 
-**Scaling de Pods:**
+**Pod Scaling:**
 
 ```
 Horizontal Pod Autoscaler (HPA):
-  - Crea MÁS pods cuando hay demanda (más copias de la app)
-  - Basado en métricas (CPU, memoria, custom)
-  - Requiere: Kubernetes Metrics Server instalado
-  - Para: tráfico variable, apps stateless
-  → Equivalente a Auto Scaling en EC2
+  - Creates MORE pods when there is demand (more copies of the app)
+  - Based on metrics (CPU, memory, custom)
+  - Requires: Kubernetes Metrics Server installed
+  - For: variable traffic, stateless apps
+  -> Equivalent to Auto Scaling in EC2
 
 Vertical Pod Autoscaler (VPA):
-  - Hace el pod MÁS GRANDE (más CPU/RAM al mismo pod)
-  - Requiere reiniciar el pod → disruptivo
-  - Para: apps que no pueden escalar horizontalmente
-  → Menos común en el examen
+  - Makes the pod BIGGER (more CPU/RAM for the same pod)
+  - Requires restarting the pod -> disruptive
+  - For: apps that cannot scale horizontally
+  -> Less common on the exam
 ```
 
-**Scaling de Nodes:**
+**Node Scaling:**
 
 ```
-Karpenter (recomendado):
-  - Diseñado por AWS para EKS
-  - Aprovisiona nodes en segundos (directo con EC2, sin ASG)
-  - Elige instance type óptimo automáticamente
-  - Menos configuración = menos overhead operativo
-  - ✅ Preferido en el examen cuando dice "least operational overhead"
+Karpenter (recommended):
+  - Designed by AWS for EKS
+  - Provisions nodes in seconds (direct with EC2, without ASG)
+  - Automatically chooses optimal instance type
+  - Less configuration = less operational overhead
+  - Preferred on the exam when it says "least operational overhead"
 
 Cluster Autoscaler (legacy):
-  - Herramienta original de Kubernetes
-  - Funciona via Auto Scaling Groups (ASG)
-  - Más lento (minutos vs segundos)
-  - Más configuración manual (node groups, instance types)
+  - Original Kubernetes tool
+  - Works via Auto Scaling Groups (ASG)
+  - Slower (minutes vs seconds)
+  - More manual configuration (node groups, instance types)
 ```
 
-**Flujo completo de scaling:**
+**Complete Scaling Flow:**
 
 ```
-Tráfico sube
-  → HPA detecta CPU alta → crea más pods
-  → Pods no caben en nodes actuales → pending pods
-  → Karpenter detecta pending pods → lanza nuevos nodes (EC2)
-  → Pods se programan en los nuevos nodes
+Traffic increases
+  -> HPA detects high CPU -> creates more pods
+  -> Pods don't fit on current nodes -> pending pods
+  -> Karpenter detects pending pods -> launches new nodes (EC2)
+  -> Pods are scheduled on the new nodes
 
-Tráfico baja
-  → HPA reduce pods
-  → Karpenter detecta nodes infrautilizados → los termina
+Traffic decreases
+  -> HPA reduces pods
+  -> Karpenter detects underutilized nodes -> terminates them
 ```
 
-**Para el examen:**
+**For the exam:**
 ```
-"Scale pods based on demand"              → HPA + Metrics Server
-"Scale nodes automatically"               → Karpenter (least overhead)
-"EKS scaling with least overhead"         → Karpenter + HPA
-"Kubernetes autoscaling"                  → HPA (pods) + Karpenter (nodes)
-"Resize pods without adding replicas"     → VPA (menos común)
+"Scale pods based on demand"              -> HPA + Metrics Server
+"Scale nodes automatically"               -> Karpenter (least overhead)
+"EKS scaling with least overhead"         -> Karpenter + HPA
+"Kubernetes autoscaling"                  -> HPA (pods) + Karpenter (nodes)
+"Resize pods without adding replicas"     -> VPA (less common)
 ```
 
 ---
 
 ## Elastic Beanstalk
 
-AWS Elastic Beanstalk es un servicio **PaaS** que facilita el despliegue y gestión de aplicaciones web, abstrayendo la infraestructura subyacente.
+AWS Elastic Beanstalk is a **PaaS** service that facilitates the deployment and management of web applications, abstracting the underlying infrastructure.
 
-### Conceptos
+### Concepts
 
-| Concepto | Descripción |
+| Concept | Description |
 |----------|-------------|
-| **Application** | Colección lógica de componentes (environments, versions, configurations) |
-| **Application Version** | Iteración específica del código de tu app (almacenada en S3) |
-| **Environment** | Colección de recursos AWS que ejecutan una version de la app |
-| **Environment Tier** | Web Server (HTTP requests) o Worker (procesa tareas de SQS) |
+| **Application** | Logical collection of components (environments, versions, configurations) |
+| **Application Version** | Specific iteration of your app's code (stored in S3) |
+| **Environment** | Collection of AWS resources that run a version of the app |
+| **Environment Tier** | Web Server (HTTP requests) or Worker (processes SQS tasks) |
 
-### Plataformas soportadas
+### Supported Platforms
 
 - Go, Java, .NET, Node.js, PHP, Python, Ruby, Packer Builder, Docker (single/multi-container), Preconfigured Docker.
 
 ### Deployment Strategies
 
-| Estrategia | Descripción | Downtime | Tiempo deploy | Rollback | Coste |
+| Strategy | Description | Downtime | Deploy Time | Rollback | Cost |
 |-----------|-------------|----------|---------------|----------|-------|
-| **All at Once** | Despliega en todas las instancias simultáneamente | **Sí** | Rápido | Re-deploy manual | Sin coste extra |
-| **Rolling** | Despliega en batches. Cada batch se actualiza y vuelve a servicio | No (pero capacidad reducida) | Medio | Re-deploy manual | Sin coste extra |
-| **Rolling with Additional Batch** | Como Rolling, pero lanza un batch extra primero para mantener capacidad completa | No | Medio-largo | Re-deploy manual | Coste del batch extra (temporal) |
-| **Immutable** | Lanza instancias nuevas en un nuevo ASG, verifica health, y luego mueve al ASG original | No | Largo | Rápido (terminar nuevas instancias) | Coste doble (temporal) |
-| **Traffic Splitting** | Como Immutable pero envía un % del tráfico a las nuevas instancias (canary) | No | Largo | Rápido | Coste doble (temporal) |
-| **Blue/Green** | Crea un environment nuevo completo y cambia DNS (swap URL) | No | Largo | Swap URL de vuelta | Coste del environment extra |
+| **All at Once** | Deploys to all instances simultaneously | **Yes** | Fast | Manual re-deploy | No extra cost |
+| **Rolling** | Deploys in batches. Each batch is updated and returns to service | No (but reduced capacity) | Medium | Manual re-deploy | No extra cost |
+| **Rolling with Additional Batch** | Like Rolling, but launches an extra batch first to maintain full capacity | No | Medium-long | Manual re-deploy | Cost of extra batch (temporary) |
+| **Immutable** | Launches new instances in a new ASG, verifies health, then moves to the original ASG | No | Long | Fast (terminate new instances) | Double cost (temporary) |
+| **Traffic Splitting** | Like Immutable but sends a % of traffic to new instances (canary) | No | Long | Fast | Double cost (temporary) |
+| **Blue/Green** | Creates a complete new environment and switches DNS (swap URL) | No | Long | Swap URL back | Cost of extra environment |
 
-### Diferencias clave entre estrategias
+### Key Differences Between Strategies
 
 ```
-All at Once:      [v1,v1,v1,v1] -> [v2,v2,v2,v2]   (downtime momentáneo)
+All at Once:      [v1,v1,v1,v1] -> [v2,v2,v2,v2]   (momentary downtime)
 
 Rolling:          [v1,v1,v1,v1] -> [v2,v1,v1,v1] -> [v2,v2,v1,v1] -> [v2,v2,v2,v2]
 
 Rolling+Batch:    [v1,v1,v1,v1] + [v2] -> [v2,v1,v1,v1,v2] -> ... -> [v2,v2,v2,v2]
 
-Immutable:        [v1,v1,v1,v1] + nuevo ASG[v2,v2,v2,v2] -> merge -> [v2,v2,v2,v2]
+Immutable:        [v1,v1,v1,v1] + new ASG[v2,v2,v2,v2] -> merge -> [v2,v2,v2,v2]
 
-Blue/Green:       env-blue[v1] | env-green[v2] -> swap URL -> env-green[v2] activo
+Blue/Green:       env-blue[v1] | env-green[v2] -> swap URL -> env-green[v2] active
 ```
 
-### Beanstalk con Docker
+### Beanstalk with Docker
 
-- **Single Docker**: Una sola instancia con un contenedor Docker. No necesita ECS.
-- **Multi-Docker**: Múltiples contenedores por instancia. Usa **ECS** bajo el capó. Requiere un `Dockerrun.aws.json` (v2).
+- **Single Docker**: A single instance with one Docker container. Does not need ECS.
+- **Multi-Docker**: Multiple containers per instance. Uses **ECS** under the hood. Requires a `Dockerrun.aws.json` (v2).
 
-> **Tip para el examen:** Si preguntan por "despliegue más rápido" -> All at Once (pero tiene downtime). Si preguntan "sin downtime y rollback rápido" -> Immutable o Blue/Green. Rolling with Additional Batch si quieres mantener capacidad completa sin coste doble prolongado.
+> **Exam tip:** If they ask about "fastest deployment" -> All at Once (but has downtime). If they ask "no downtime and fast rollback" -> Immutable or Blue/Green. Rolling with Additional Batch if you want to maintain full capacity without prolonged double cost.
 
 ---
 
 ## AWS Batch
 
-AWS Batch permite ejecutar **trabajos de procesamiento por lotes** (batch jobs) a cualquier escala de forma eficiente.
+AWS Batch allows running **batch processing jobs** at any scale efficiently.
 
-### Por qué existe AWS Batch: el límite de 15 minutos de Lambda
+### Why AWS Batch Exists: Lambda's 15-Minute Limit
 
-AWS Lambda tiene un **timeout máximo de 15 minutos**. Para cualquier procesamiento que supere ese límite, necesitas otra solución. AWS Batch es la respuesta natural cuando tienes **trabajos de larga duración, intensivos en recursos y orientados a lotes** (no sirven peticiones HTTP, sino procesamiento en background).
+AWS Lambda has a **maximum timeout of 15 minutes**. For any processing that exceeds that limit, you need another solution. AWS Batch is the natural answer when you have **long-running, resource-intensive, batch-oriented jobs** (not HTTP requests, but background processing).
 
-Ejemplos típicos:
-- ETL masivos que procesan millones de registros (horas).
-- Rendering de video o animación 3D (minutos a horas por frame).
-- Simulaciones científicas y financieras (Monte Carlo, CFD, genómica).
-- Training de modelos ML que no justifican SageMaker.
-- Procesamiento de imágenes/datos satelitales a gran escala.
+Typical examples:
+- Massive ETL processing millions of records (hours).
+- Video rendering or 3D animation (minutes to hours per frame).
+- Scientific and financial simulations (Monte Carlo, CFD, genomics).
+- ML model training that doesn't justify SageMaker.
+- Large-scale image/satellite data processing.
 
-### Conceptos
+### Concepts
 
-| Concepto | Descripción |
+| Concept | Description |
 |----------|-------------|
-| **Job** | Unidad de trabajo que se envía a AWS Batch (shell script, contenedor Docker) |
-| **Job Definition** | Plantilla que define cómo ejecutar un job (imagen Docker, vCPU, memoria, variables de entorno, IAM role) |
-| **Job Queue** | Cola donde se envían los jobs. Asociada a uno o más Compute Environments con prioridades |
-| **Compute Environment** | Recursos de cómputo que ejecutan los jobs. Managed (AWS gestiona EC2/Spot) o Unmanaged (tú gestionas) |
-| **Array Jobs** | Un solo job que se divide en múltiples child jobs (ej: procesar 1000 archivos en paralelo) |
-| **Job Dependencies** | Un job puede depender de que otro(s) finalicen antes de ejecutarse |
+| **Job** | Unit of work submitted to AWS Batch (shell script, Docker container) |
+| **Job Definition** | Template that defines how to run a job (Docker image, vCPU, memory, environment variables, IAM role) |
+| **Job Queue** | Queue where jobs are submitted. Associated with one or more Compute Environments with priorities |
+| **Compute Environment** | Compute resources that execute the jobs. Managed (AWS manages EC2/Spot) or Unmanaged (you manage) |
+| **Array Jobs** | A single job that splits into multiple child jobs (e.g., process 1000 files in parallel) |
+| **Job Dependencies** | A job can depend on other(s) completing before executing |
 
-### Cómo funciona el flujo
+### How the Flow Works
 
 ```
-[Tu código envía job] → Job Queue → Scheduler → Compute Environment → Contenedor ejecuta el job
-                            ↑                          ↑
-                     Prioridades entre          EC2 On-Demand/Spot
-                     múltiples colas               o Fargate
+[Your code submits job] -> Job Queue -> Scheduler -> Compute Environment -> Container executes the job
+                            ^                          ^
+                     Priorities between          EC2 On-Demand/Spot
+                     multiple queues               or Fargate
 ```
 
-1. Defines un **Job Definition** (imagen Docker, recursos necesarios).
-2. Envías un **Job** a una **Job Queue**.
-3. AWS Batch **scheduler** evalúa las colas por prioridad y los recursos disponibles.
-4. AWS Batch aprovisiona/escala el **Compute Environment** automáticamente (si es Managed).
-5. El job se ejecuta en un contenedor. Cuando termina, los recursos se liberan.
-6. Si no hay más jobs, el Compute Environment puede escalar a **0 instancias** (coste cero).
+1. You define a **Job Definition** (Docker image, required resources).
+2. You submit a **Job** to a **Job Queue**.
+3. The AWS Batch **scheduler** evaluates queues by priority and available resources.
+4. AWS Batch provisions/scales the **Compute Environment** automatically (if Managed).
+5. The job runs in a container. When it finishes, resources are released.
+6. If there are no more jobs, the Compute Environment can scale to **0 instances** (zero cost).
 
 ### Batch vs Lambda
 
-| Característica | AWS Batch | AWS Lambda |
+| Feature | AWS Batch | AWS Lambda |
 |---------------|-----------|------------|
-| **Duración** | **Sin límite** | Máximo 15 minutos |
-| **Runtime** | Cualquier (contenedor Docker) | Runtimes soportados |
-| **Almacenamiento** | Volúmenes EBS montados (sin límite práctico) | 10 GB en /tmp |
-| **Servidor** | EC2 (gestionadas por Batch) o Fargate | Serverless |
-| **Inicio** | Lento (puede tardar minutos en aprovisionar EC2) | Rápido (cold start: ms a segundos) |
-| **GPUs** | Sí (instancias P/G) | No |
-| **Coste mínimo** | 0 (escala a 0 cuando no hay jobs) | 0 (pago por invocación) |
-| **Caso de uso** | Procesamiento largo, intensivo en recursos, por lotes | Procesamiento corto, event-driven, tiempo real |
+| **Duration** | **No limit** | Maximum 15 minutes |
+| **Runtime** | Any (Docker container) | Supported runtimes |
+| **Storage** | Mounted EBS volumes (no practical limit) | 10 GB in /tmp |
+| **Server** | EC2 (managed by Batch) or Fargate | Serverless |
+| **Startup** | Slow (can take minutes to provision EC2) | Fast (cold start: ms to seconds) |
+| **GPUs** | Yes (P/G instances) | No |
+| **Minimum cost** | 0 (scales to 0 when no jobs) | 0 (pay per invocation) |
+| **Use case** | Long, resource-intensive, batch processing | Short, event-driven, real-time processing |
 
-> **Tip para el examen:** Si el procesamiento dura más de 15 minutos o necesita más de 10 GB de disco o GPUs, no puede ser Lambda. Usa **AWS Batch**. Batch es ideal para ETL masivos, rendering de video, simulaciones científicas.
+> **Exam tip:** If processing lasts more than 15 minutes or needs more than 10 GB of disk or GPUs, it cannot be Lambda. Use **AWS Batch**. Batch is ideal for massive ETL, video rendering, scientific simulations.
 
-### Batch vs Fargate (standalone): cuándo usar cada uno
+### Batch vs Fargate (standalone): When to Use Each
 
-Esta es una distinción clave: **Fargate también puede ejecutar procesos largos** (no tiene límite de 15 minutos). Entonces, ¿cuándo usar Batch y cuándo Fargate directamente?
+This is a key distinction: **Fargate can also run long processes** (it has no 15-minute limit). So, when to use Batch and when to use Fargate directly?
 
-| Característica | AWS Batch | ECS/EKS con Fargate (standalone) |
+| Feature | AWS Batch | ECS/EKS with Fargate (standalone) |
 |---------------|-----------|----------------------------------|
-| **Modelo mental** | "Tengo 10,000 jobs que procesar" | "Tengo un servicio o tarea que ejecutar" |
-| **Orquestación de jobs** | Sí: colas, prioridades, dependencias entre jobs, array jobs | No nativo. Tú programas la orquestación (Step Functions, EventBridge, etc.) |
-| **Escala a 0** | Sí, automático cuando no hay jobs en la cola | Sí (si usas Fargate Tasks puntuales, no Services) |
-| **Scheduling de jobs** | Integrado (EventBridge + Job Queue) | Tú lo construyes (EventBridge → ECS RunTask) |
-| **Spot Instances** | Sí (Managed CE con Spot). Batch gestiona interrupciones y reintenta | Solo con EC2 launch type (Fargate no soporta Spot directamente en tasks) |
-| **GPUs** | Sí (con EC2 Compute Environment) | No (Fargate no soporta GPUs) |
-| **Compute** | EC2 (On-Demand/Spot) **o** Fargate | Solo Fargate |
-| **Dependencias entre tareas** | Nativo (job A depende de job B) | Via Step Functions o código propio |
-| **Reintentos automáticos** | Sí (configurable en Job Definition: attempts, timeout) | No nativo. Lo manejas tú |
-| **Coste** | EC2/Spot: más barato para cargas grandes. Fargate: igual precio que Fargate standalone | Fargate: pago por vCPU+memoria por segundo |
-| **Complejidad de setup** | Más conceptos (Job Def, Job Queue, CE) pero más automatizado | Menos conceptos pero más trabajo manual de orquestación |
-| **Ideal para** | **Procesamiento por lotes a gran escala**: miles de jobs independientes o con dependencias | **Tareas o servicios de larga duración**: una API, un worker, un cron job puntual |
+| **Mental model** | "I have 10,000 jobs to process" | "I have a service or task to run" |
+| **Job orchestration** | Yes: queues, priorities, dependencies between jobs, array jobs | Not native. You program the orchestration (Step Functions, EventBridge, etc.) |
+| **Scale to 0** | Yes, automatic when no jobs in queue | Yes (if using one-off Fargate Tasks, not Services) |
+| **Job scheduling** | Integrated (EventBridge + Job Queue) | You build it (EventBridge -> ECS RunTask) |
+| **Spot Instances** | Yes (Managed CE with Spot). Batch manages interruptions and retries | Only with EC2 launch type (Fargate doesn't support Spot directly in tasks) |
+| **GPUs** | Yes (with EC2 Compute Environment) | No (Fargate doesn't support GPUs) |
+| **Compute** | EC2 (On-Demand/Spot) **or** Fargate | Only Fargate |
+| **Inter-task dependencies** | Native (job A depends on job B) | Via Step Functions or custom code |
+| **Automatic retries** | Yes (configurable in Job Definition: attempts, timeout) | Not native. You handle it |
+| **Cost** | EC2/Spot: cheaper for large workloads. Fargate: same price as standalone Fargate | Fargate: pay per vCPU+memory per second |
+| **Setup complexity** | More concepts (Job Def, Job Queue, CE) but more automated | Fewer concepts but more manual orchestration work |
+| **Ideal for** | **Large-scale batch processing**: thousands of independent or dependent jobs | **Long-running tasks or services**: an API, a worker, a one-off cron job |
 
-### Cuándo elegir cada uno (decision tree)
-
-```
-¿Tu proceso dura más de 15 minutos?
-├── No → Lambda (si cabe en sus límites)
-└── Sí → ¿Es procesamiento por lotes (muchos jobs)?
-    ├── Sí → ¿Necesitas GPUs o Spot Instances?
-    │   ├── Sí → AWS Batch con EC2 Compute Environment
-    │   └── No → ¿Necesitas colas, prioridades, dependencias entre jobs?
-    │       ├── Sí → AWS Batch (con EC2 o Fargate CE)
-    │       └── No → Fargate Task (más simple si es un job puntual)
-    └── No → ¿Es un servicio long-running (API, worker permanente)?
-        └── Sí → ECS/EKS con Fargate (Service)
-```
-
-### Ejemplo práctico: procesar 10,000 imágenes
-
-**Con AWS Batch:**
-- Creas un Job Definition con tu contenedor que procesa una imagen.
-- Envías 10,000 jobs (o un Array Job de size 10,000).
-- Batch aprovisiona instancias Spot automáticamente, ejecuta los jobs en paralelo, gestiona fallos y reintentos.
-- Cuando terminan, escala a 0. Coste mínimo gracias a Spot.
-
-**Con Fargate standalone:**
-- Creas una Task Definition con tu contenedor.
-- Necesitas un orquestador (Step Functions, Lambda, o tu propia app) que lance 10,000 ECS RunTask.
-- Tú gestionas el paralelismo, los reintentos, el tracking del progreso.
-- No puedes usar Spot, pagas Fargate completo.
-
-**Conclusión:** Para lotes grandes, Batch simplifica enormemente la orquestación.
-
-### Ejemplo práctico: un worker que procesa mensajes de SQS continuamente
-
-**Con Fargate (mejor opción):**
-- ECS Service con Fargate, una Task que hace long-polling a SQS.
-- El Service mantiene la Task corriendo 24/7.
-- Escalas con Application Auto Scaling basado en la profundidad de la cola SQS.
-
-**Con AWS Batch (no ideal):**
-- Batch está diseñado para jobs que terminan. No para servicios permanentes.
-- Tendrías que relanzar jobs periódicamente, lo que complica la arquitectura.
-
-**Conclusión:** Para servicios long-running, Fargate con ECS/EKS es mejor.
-
-### Ejemplo práctico: webapp donde el usuario sube un Excel y se procesan simulaciones (30 min)
-
-El servidor web (EC2) no debe ejecutar el procesamiento pesado: bloquearía las peticiones de otros usuarios. Hay que **delegar** el trabajo a otro servicio.
-
-**Arquitectura general (independiente de la solución elegida):**
+### When to Choose Each (Decision Tree)
 
 ```
-Usuario sube Excel
-  → API (EC2/ALB) recibe el archivo
-  → Guarda el Excel en S3
-  → Dispara el procesamiento (Fargate Task o Batch Job)
-  → Responde al usuario: "Tu archivo se está procesando"
-  → [30 min después] El contenedor termina, escribe resultado en S3/RDS
-  → Notifica al usuario (WebSocket, SNS+email, o el usuario hace polling)
+Does your process last more than 15 minutes?
+|-- No -> Lambda (if it fits within its limits)
++-- Yes -> Is it batch processing (many jobs)?
+    |-- Yes -> Do you need GPUs or Spot Instances?
+    |   |-- Yes -> AWS Batch with EC2 Compute Environment
+    |   +-- No -> Do you need queues, priorities, dependencies between jobs?
+    |       |-- Yes -> AWS Batch (with EC2 or Fargate CE)
+    |       +-- No -> Fargate Task (simpler if it's a one-off job)
+    +-- No -> Is it a long-running service (API, permanent worker)?
+        +-- Yes -> ECS/EKS with Fargate (Service)
 ```
 
-**Si hay pocos uploads al día → Fargate Task (ECS RunTask):**
-- Tu API llama a `ecs:RunTask` con la referencia al archivo en S3.
-- Fargate lanza un contenedor, ejecuta los cálculos, muere al terminar.
-- Simple, directo, sin infraestructura permanente. Coste solo por los 30 min de vCPU+memoria.
+### Practical Example: Process 10,000 Images
 
-**Si hay decenas/cientos de uploads concurrentes → AWS Batch:**
-- Tu API envía un Job a una Job Queue con la referencia al S3 key.
-- Batch encola, prioriza (ej: usuarios premium primero), aprovisiona capacidad, ejecuta.
-- Reintentos automáticos si un job falla. Spot Instances para abaratar.
-- Escala a 0 cuando no hay jobs pendientes.
+**With AWS Batch:**
+- You create a Job Definition with your container that processes one image.
+- You submit 10,000 jobs (or an Array Job of size 10,000).
+- Batch provisions Spot instances automatically, runs jobs in parallel, manages failures and retries.
+- When they finish, it scales to 0. Minimum cost thanks to Spot.
 
-**Si los cálculos son matemáticos/paralelizables y necesitas GPU → AWS Batch con EC2 CE (GPU):**
-- Fargate **no soporta GPU**. Necesitas Batch con EC2 Compute Environment e instancias GPU (g4dn, g5, p3...).
-- GPU compensa si el workload es masivamente paralelo a nivel matemático: operaciones matriciales, ML inference, simulaciones Monte Carlo. La GPU tiene miles de CUDA cores que ejecutan la **misma operación sobre muchos datos** (SIMD).
-- GPU **no** compensa si el cálculo es lógica de negocio (if/else, lookups, validaciones). Los branches y la lógica condicional son lo peor para GPU.
-- Las instancias GPU son ~3-18x más caras por hora, pero si reducen el tiempo de 30 min a 2 min, el coste total por job es menor.
-- Ejemplo: CPU c5.xlarge 30 min = ~$0.085/job vs GPU g4dn.xlarge 2 min = ~$0.018/job. Pero si GPU solo reduce a 25 min = ~$0.22/job (más caro).
-- Usar **Spot Instances con GPU** (hasta ~70% descuento) abarata más aún. Batch gestiona las interrupciones.
+**With standalone Fargate:**
+- You create a Task Definition with your container.
+- You need an orchestrator (Step Functions, Lambda, or your own app) to launch 10,000 ECS RunTask.
+- You manage the parallelism, retries, and progress tracking.
+- You can't use Spot, you pay full Fargate price.
 
-**Si las filas son independientes pero los cálculos NO son GPU-friendly → Batch Array Jobs (CPU):**
-- Divide el fichero en N chunks y procesa cada uno en un contenedor CPU separado.
-- Ejemplo: 1000 filas / 10 contenedores = 100 filas/contenedor. Cálculo: ~3 min por contenedor.
-- **Ojo con el provisioning:** cada contenedor necesita tiempo de arranque (EC2: ~3-5 min, Fargate: ~1-2 min). El tiempo real es cálculo + provisioning.
-- El coste total es **mayor** que 1 solo contenedor (pagas el provisioning de cada uno), pero el usuario espera mucho menos. Es un tradeoff dinero vs tiempo de espera.
-- Ejemplo realista: 1 CPU 30 min = ~$0.085. 5 Fargate Tasks ~8 min = ~$0.10. Pagas un poco más por reducir la espera de 30 min a 8 min.
-- Mitigación: usar menos contenedores más grandes (3 en vez de 10) reduce el overhead de provisioning.
-- No requiere reescribir código para CUDA.
+**Conclusion:** For large batches, Batch enormously simplifies the orchestration.
 
-**Lo que NO usarías:**
-- **Lambda**: Límite de 15 min. No cabe un proceso de 30 min.
-- **EC2 dedicado para procesamiento**: Pagas 24/7 aunque nadie suba excels.
-- **Fargate Service (24/7)**: Un Service está corriendo siempre. Quieres Tasks puntuales que mueran al acabar.
+### Practical Example: A Worker That Continuously Processes SQS Messages
 
-> **Tip para el examen:** AWS Batch = muchos jobs por lotes, colas con prioridades, dependencias, Spot. Fargate Task = tarea puntual sin gestionar infraestructura. Si la pregunta menciona "batch processing", "job scheduling", "procesamiento masivo" → **AWS Batch**. Si menciona "ejecutar una tarea containerizada puntual sin gestionar servidores" → **Fargate Task (ECS RunTask)**.
+**With Fargate (better option):**
+- ECS Service with Fargate, a Task that does long-polling to SQS.
+- The Service keeps the Task running 24/7.
+- You scale with Application Auto Scaling based on SQS queue depth.
+
+**With AWS Batch (not ideal):**
+- Batch is designed for jobs that terminate. Not for permanent services.
+- You would have to relaunch jobs periodically, which complicates the architecture.
+
+**Conclusion:** For long-running services, Fargate with ECS/EKS is better.
+
+### Practical Example: Web App Where the User Uploads an Excel and Simulations Are Processed (30 min)
+
+The web server (EC2) should not run the heavy processing: it would block requests from other users. The work must be **delegated** to another service.
+
+**General architecture (regardless of the chosen solution):**
+
+```
+User uploads Excel
+  -> API (EC2/ALB) receives the file
+  -> Saves the Excel in S3
+  -> Triggers the processing (Fargate Task or Batch Job)
+  -> Responds to the user: "Your file is being processed"
+  -> [30 min later] The container finishes, writes result to S3/RDS
+  -> Notifies the user (WebSocket, SNS+email, or the user polls)
+```
+
+**If there are few uploads per day -> Fargate Task (ECS RunTask):**
+- Your API calls `ecs:RunTask` with the reference to the file in S3.
+- Fargate launches a container, runs the calculations, dies when finished.
+- Simple, direct, no permanent infrastructure. Cost only for the 30 min of vCPU+memory.
+
+**If there are dozens/hundreds of concurrent uploads -> AWS Batch:**
+- Your API submits a Job to a Job Queue with the reference to the S3 key.
+- Batch queues, prioritizes (e.g., premium users first), provisions capacity, executes.
+- Automatic retries if a job fails. Spot Instances to reduce cost.
+- Scales to 0 when there are no pending jobs.
+
+**If calculations are mathematical/parallelizable and you need GPU -> AWS Batch with EC2 CE (GPU):**
+- Fargate **does not support GPU**. You need Batch with EC2 Compute Environment and GPU instances (g4dn, g5, p3...).
+- GPU is worth it if the workload is massively parallel at the mathematical level: matrix operations, ML inference, Monte Carlo simulations. The GPU has thousands of CUDA cores that execute the **same operation on many data points** (SIMD).
+- GPU is **not** worth it if the calculation is business logic (if/else, lookups, validations). Branches and conditional logic are the worst for GPU.
+- GPU instances are ~3-18x more expensive per hour, but if they reduce time from 30 min to 2 min, the total cost per job is lower.
+- Example: CPU c5.xlarge 30 min = ~$0.085/job vs GPU g4dn.xlarge 2 min = ~$0.018/job. But if GPU only reduces to 25 min = ~$0.22/job (more expensive).
+- Using **Spot Instances with GPU** (up to ~70% discount) makes it even cheaper. Batch manages the interruptions.
+
+**If rows are independent but calculations are NOT GPU-friendly -> Batch Array Jobs (CPU):**
+- Split the file into N chunks and process each one in a separate CPU container.
+- Example: 1000 rows / 10 containers = 100 rows/container. Calculation: ~3 min per container.
+- **Watch out for provisioning:** each container needs startup time (EC2: ~3-5 min, Fargate: ~1-2 min). The real time is calculation + provisioning.
+- The total cost is **higher** than 1 single container (you pay for each one's provisioning), but the user waits much less. It's a money vs wait time tradeoff.
+- Realistic example: 1 CPU 30 min = ~$0.085. 5 Fargate Tasks ~8 min = ~$0.10. You pay a bit more to reduce waiting from 30 min to 8 min.
+- Mitigation: use fewer larger containers (3 instead of 10) to reduce provisioning overhead.
+- Does not require rewriting code for CUDA.
+
+**What you would NOT use:**
+- **Lambda**: 15 min limit. A 30-min process doesn't fit.
+- **Dedicated EC2 for processing**: You pay 24/7 even if nobody uploads excels.
+- **Fargate Service (24/7)**: A Service is always running. You want one-off Tasks that die when done.
+
+> **Exam tip:** AWS Batch = many batch jobs, queues with priorities, dependencies, Spot. Fargate Task = one-off task without managing infrastructure. If the question mentions "batch processing", "job scheduling", "massive processing" -> **AWS Batch**. If it mentions "run a containerized task without managing servers" -> **Fargate Task (ECS RunTask)**.
 
 ---
 
-## AWS Outposts, Wavelength y Local Zones
+## AWS Outposts, Wavelength and Local Zones
 
 ### AWS Outposts
 
-- Racks de hardware de AWS instalados en tu **data center on-premises**.
-- Ejecutan los mismos servicios de AWS con las mismas APIs, herramientas y el mismo control plane.
-- **Servicios disponibles**: EC2, EBS, S3 (Outposts), ECS, EKS, RDS, EMR.
-- Los datos pueden residir **localmente** en el Outpost.
-- El **control plane** sigue operando desde la Región de AWS (necesita conectividad).
-- Caso de uso: Residencia de datos local, baja latencia a sistemas on-premises, procesamiento local.
+- Racks of AWS hardware installed in your **on-premises data center**.
+- Run the same AWS services with the same APIs, tools and the same control plane.
+- **Available services**: EC2, EBS, S3 (Outposts), ECS, EKS, RDS, EMR.
+- Data can reside **locally** on the Outpost.
+- The **control plane** still operates from the AWS Region (requires connectivity).
+- Use case: Local data residency, low latency to on-premises systems, local processing.
 
 ### AWS Wavelength
 
-- Infraestructura AWS embebida en las **redes 5G de teleoperadores**.
-- Las **Wavelength Zones** están dentro del data center del operador de telecomunicaciones.
-- Proporciona latencia de **un dígito de milisegundos** desde dispositivos 5G.
-- Servicios disponibles: EC2, EBS, VPC, ECS, EKS, Lambda.
-- Caso de uso: Aplicaciones de realidad aumentada, gaming, streaming en tiempo real, IoT desde dispositivos 5G.
-- Las instancias en Wavelength Zones se conectan a la Región padre a través de la red del carrier.
+- AWS infrastructure embedded in the **5G networks of telecom operators**.
+- **Wavelength Zones** are within the telecom operator's data center.
+- Provides **single-digit millisecond** latency from 5G devices.
+- Available services: EC2, EBS, VPC, ECS, EKS, Lambda.
+- Use case: Augmented reality applications, gaming, real-time streaming, IoT from 5G devices.
+- Instances in Wavelength Zones connect to the parent Region through the carrier's network.
 
 ### AWS Local Zones
 
-- Extensiones de una Región de AWS colocadas **cerca de grandes ciudades**.
-- Proporcionan cómputo, almacenamiento y otros servicios con baja latencia.
-- Se conectan a la Región padre a través de la red dedicada de AWS.
-- Servicios disponibles: EC2, EBS, Amazon FSx, ELB, Amazon ECS, etc.
-- Caso de uso: Aplicaciones sensibles a latencia (gaming, media/entertainment, live streaming) en ciudades donde no hay una Región de AWS cercana.
+- Extensions of an AWS Region placed **near large cities**.
+- Provide compute, storage and other services with low latency.
+- Connect to the parent Region through AWS's dedicated network.
+- Available services: EC2, EBS, Amazon FSx, ELB, Amazon ECS, etc.
+- Use case: Latency-sensitive applications (gaming, media/entertainment, live streaming) in cities where there is no nearby AWS Region.
 
-### Comparación
+### Comparison
 
-| Característica | Outposts | Wavelength | Local Zones |
+| Feature | Outposts | Wavelength | Local Zones |
 |---------------|----------|------------|-------------|
-| **Ubicación** | Tu data center | Red del operador 5G | Cerca de grandes ciudades |
-| **Latencia** | Mínima a tu infra on-prem | Ultra baja desde 5G | Baja desde la ciudad |
-| **Hardware** | Racks de AWS en tus instalaciones | Infraestructura AWS en el operador | Data centers de AWS |
-| **Gestión** | AWS mantiene el hardware | AWS mantiene todo | AWS mantiene todo |
-| **Conectividad** | Via red al data center de la Región AWS | Via red del carrier a la Región | Via red AWS a la Región |
-| **Caso de uso** | Residencia de datos, legacy on-prem | Apps 5G en tiempo real | Apps sensibles a latencia en ciudades |
+| **Location** | Your data center | 5G operator's network | Near large cities |
+| **Latency** | Minimal to your on-prem infra | Ultra low from 5G | Low from the city |
+| **Hardware** | AWS racks in your facilities | AWS infrastructure at the operator | AWS data centers |
+| **Management** | AWS maintains the hardware | AWS maintains everything | AWS maintains everything |
+| **Connectivity** | Via network to the AWS Region data center | Via carrier's network to the Region | Via AWS network to the Region |
+| **Use case** | Data residency, legacy on-prem | Real-time 5G apps | Latency-sensitive apps in cities |
 
 ---
 
@@ -951,83 +951,83 @@ Usuario sube Excel
 
 ### EC2
 
-- Conocer las familias: **C** (Compute), **R** (RAM/Memory), **I/D/H** (Storage), **P/G** (GPU/Accelerated), **M/T** (General).
-- **T instances** son burstable. Si agotan créditos en modo `standard`, rendimiento se degrada. En `unlimited`, se cobra extra.
-- Naming: `m5a.xlarge` -> m=familia, 5=generación, a=AMD, xlarge=tamaño.
+- Know the families: **C** (Compute), **R** (RAM/Memory), **I/D/H** (Storage), **P/G** (GPU/Accelerated), **M/T** (General).
+- **T instances** are burstable. If they exhaust credits in `standard` mode, performance degrades. In `unlimited`, extra charges apply.
+- Naming: `m5a.xlarge` -> m=family, 5=generation, a=AMD, xlarge=size.
 
 ### Purchasing
 
-- **On-Demand**: Sin compromiso. Para cargas impredecibles.
-- **Reserved**: 1-3 años. Hasta 72% descuento. Para cargas estables.
-- **Savings Plans**: Más flexibles que RI. Compromiso en $/hora.
-- **Spot**: Hasta 90% descuento. Puede interrumpirse. Para cargas tolerantes a fallos.
-- **Dedicated Hosts**: Para licencias BYOL (por socket/core).
-- **Capacity Reservations**: Garantizar capacidad en AZ. Sin descuento.
+- **On-Demand**: No commitment. For unpredictable workloads.
+- **Reserved**: 1-3 years. Up to 72% discount. For stable workloads.
+- **Savings Plans**: More flexible than RI. Commitment in $/hour.
+- **Spot**: Up to 90% discount. Can be interrupted. For fault-tolerant workloads.
+- **Dedicated Hosts**: For BYOL licensing (per socket/core).
+- **Capacity Reservations**: Guarantee capacity in AZ. No discount.
 
 ### Placement Groups
 
-- **Cluster**: Mismo rack, baja latencia (HPC). No puede abarcar AZs.
-- **Spread**: Hardware diferente, max 7 instancias/AZ. Alta disponibilidad.
-- **Partition**: Racks separados por partición. Big data distribuido (Kafka, HDFS).
+- **Cluster**: Same rack, low latency (HPC). Cannot span AZs.
+- **Spread**: Different hardware, max 7 instances/AZ. High availability.
+- **Partition**: Separate racks per partition. Distributed big data (Kafka, HDFS).
 
 ### Networking
 
-- **ENI**: Interfaz de red básica. Movible entre instancias para failover.
-- **ENA**: Enhanced Networking (100 Gbps). Sin coste extra.
-- **EFA**: Para HPC y ML distribuido. OS-bypass (solo Linux).
+- **ENI**: Basic network interface. Movable between instances for failover.
+- **ENA**: Enhanced Networking (100 Gbps). No extra cost.
+- **EFA**: For HPC and distributed ML. OS-bypass (Linux only).
 
-### AMIs y Bootstrap
+### AMIs and Bootstrap
 
-- Las AMIs son regionales. Se pueden copiar cross-region.
-- **User Data** se ejecuta una sola vez al primer boot. Corre como root.
-- **IMDSv2** es más seguro (contra SSRF). Se accede con token.
+- AMIs are regional. Can be copied cross-region.
+- **User Data** runs only once at first boot. Runs as root.
+- **IMDSv2** is more secure (against SSRF). Accessed with token.
 
 ### Auto Scaling
 
-- Usar **Launch Templates** (no Launch Configurations).
-- **Target Tracking**: La más simple ("mantén CPU al 50%").
-- **Predictive Scaling**: ML para anticipar patrones.
-- **Cooldown**: Evita escalados prematuros (default 300s).
-- **Warm Pools**: Instancias pre-inicializadas para arranque rápido.
+- Use **Launch Templates** (not Launch Configurations).
+- **Target Tracking**: The simplest ("keep CPU at 50%").
+- **Predictive Scaling**: ML to anticipate patterns.
+- **Cooldown**: Prevents premature scaling (default 300s).
+- **Warm Pools**: Pre-initialized instances for fast startup.
 
 ### Lambda
 
-- **15 minutos** de timeout máximo. Si necesitas más, usa Batch, ECS o Step Functions.
-- **10 GB** de almacenamiento efímero en /tmp.
-- **Provisioned Concurrency** elimina cold starts (con coste).
-- En VPC: necesita NAT Gateway para acceder a Internet, o VPC Endpoints para servicios AWS.
-- **Destinations**: Reemplazo moderno de DLQ para invocaciones asíncronas.
-- Pago por número de invocaciones + duración en GB-s.
+- **15 minutes** maximum timeout. If you need more, use Batch, ECS or Step Functions.
+- **10 GB** of ephemeral storage in /tmp.
+- **Provisioned Concurrency** eliminates cold starts (with cost).
+- In VPC: needs NAT Gateway to access the Internet, or VPC Endpoints for AWS services.
+- **Destinations**: Modern replacement for DLQ for asynchronous invocations.
+- Pay per number of invocations + duration in GB-s.
 
-### Contenedores
+### Containers
 
-- **ECS**: Orquestador nativo de AWS. Simple. Para equipos AWS-first.
-- **EKS**: Kubernetes gestionado. Para equipos con experiencia K8s o requisitos de portabilidad.
-- **Fargate**: Serverless para contenedores. Sin gestionar infraestructura. Funciona con ECS y EKS.
-- Si la pregunta dice "sin gestionar servidores" para contenedores -> **Fargate**.
-- Si dice "Kubernetes" -> **EKS**.
+- **ECS**: AWS-native orchestrator. Simple. For AWS-first teams.
+- **EKS**: Managed Kubernetes. For teams with K8s experience or portability requirements.
+- **Fargate**: Serverless for containers. No infrastructure management. Works with ECS and EKS.
+- If the question says "without managing servers" for containers -> **Fargate**.
+- If it says "Kubernetes" -> **EKS**.
 
 ### Beanstalk
 
-- **All at Once**: Rápido pero con downtime.
-- **Rolling**: Sin downtime pero capacidad reducida.
-- **Rolling with Additional Batch**: Capacidad completa durante deploy.
-- **Immutable**: Rollback rápido, instancias nuevas.
-- **Blue/Green**: Environments separados, swap URL.
-- Beanstalk crea y gestiona los recursos (EC2, ALB, ASG, RDS, etc.) pero tú tienes control total sobre ellos.
+- **All at Once**: Fast but with downtime.
+- **Rolling**: No downtime but reduced capacity.
+- **Rolling with Additional Batch**: Full capacity during deploy.
+- **Immutable**: Fast rollback, new instances.
+- **Blue/Green**: Separate environments, swap URL.
+- Beanstalk creates and manages the resources (EC2, ALB, ASG, RDS, etc.) but you have full control over them.
 
-### Batch vs Fargate para procesos largos
+### Batch vs Fargate for Long Processes
 
-- **Lambda limit = 15 min**. Si necesitas más → Batch o Fargate.
-- **AWS Batch**: Para **lotes masivos** (miles de jobs). Ofrece colas, prioridades, dependencias, array jobs, reintentos y **Spot Instances**.
-- **Fargate (standalone)**: Para **servicios o tareas puntuales** long-running. Más simple pero sin orquestación de jobs nativa.
-- Batch puede usar **Fargate como Compute Environment** (no necesariamente EC2).
-- Batch puede usar **Spot Instances** (con EC2 CE) para reducir costes hasta 90%.
-- Si la pregunta dice "batch processing", "job queue", "miles de jobs" → **AWS Batch**.
-- Si dice "servicio containerizado sin gestionar servidores" → **Fargate con ECS/EKS**.
+- **Lambda limit = 15 min**. If you need more -> Batch or Fargate.
+- **AWS Batch**: For **massive batches** (thousands of jobs). Offers queues, priorities, dependencies, array jobs, retries and **Spot Instances**.
+- **Fargate (standalone)**: For **services or one-off long-running tasks**. Simpler but without native job orchestration.
+- Batch can use **Fargate as Compute Environment** (not necessarily EC2).
+- Batch can use **Spot Instances** (with EC2 CE) to reduce costs by up to 90%.
+- If the question says "batch processing", "job queue", "thousands of jobs" -> **AWS Batch**.
+- If it says "containerized service without managing servers" -> **Fargate with ECS/EKS**.
 
 ### Edge Computing
 
-- **Outposts** = AWS en tu data center (residencia de datos, latencia a on-prem).
-- **Wavelength** = AWS en redes 5G (latencia ultra baja desde dispositivos 5G).
-- **Local Zones** = AWS cerca de ciudades (latencia baja para aplicaciones en ciudades sin Región cercana).
+- **Outposts** = AWS in your data center (data residency, latency to on-prem).
+- **Wavelength** = AWS in 5G networks (ultra low latency from 5G devices).
+- **Local Zones** = AWS near cities (low latency for applications in cities without a nearby Region).

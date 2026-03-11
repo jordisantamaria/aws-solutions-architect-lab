@@ -1,95 +1,95 @@
-# Decision Tree: Selección de servicio de Analytics
+# Decision Tree: Analytics Service Selection
 
-## ¿Qué necesitas hacer con los datos?
+## What do you need to do with the data?
 
 ```
-¿Qué necesitas hacer?
+What do you need to do?
 │
-├── CONSULTAR datos
-│   ├── ¿Dónde están los datos?
-│   │   ├── En S3 → ¿Query ad-hoc o recurrente?
-│   │   │   ├── Ad-hoc, pago por query → Athena
-│   │   │   └── Queries complejos, recurrentes, joins masivos → Redshift (o Redshift Spectrum sobre S3)
-│   │   ├── En múltiples fuentes (S3 + RDS + DynamoDB) → Athena Federated Query
-│   │   └── Logs en CloudWatch → CloudWatch Logs Insights
+├── QUERY data
+│   ├── Where is the data?
+│   │   ├── In S3 → Ad-hoc or recurring query?
+│   │   │   ├── Ad-hoc, pay-per-query → Athena
+│   │   │   └── Complex, recurring queries, massive joins → Redshift (or Redshift Spectrum on S3)
+│   │   ├── In multiple sources (S3 + RDS + DynamoDB) → Athena Federated Query
+│   │   └── Logs in CloudWatch → CloudWatch Logs Insights
 │   │
-│   └── ¿Necesitas búsqueda full-text?
-│       └── Sí → OpenSearch
+│   └── Do you need full-text search?
+│       └── Yes → OpenSearch
 │
-├── TRANSFORMAR datos (ETL)
-│   ├── ¿Serverless o con control del cluster?
-│   │   ├── Serverless, integrado con catálogo → Glue ETL
-│   │   ├── Serverless, Spark sin gestionar → EMR Serverless
-│   │   ├── Control total (Spark/Hadoop custom) → EMR on EC2
-│   │   └── Transformación simple (< 15 min) → Lambda
+├── TRANSFORM data (ETL)
+│   ├── Serverless or cluster control?
+│   │   ├── Serverless, integrated with catalog → Glue ETL
+│   │   ├── Serverless, Spark without managing → EMR Serverless
+│   │   ├── Full control (custom Spark/Hadoop) → EMR on EC2
+│   │   └── Simple transformation (< 15 min) → Lambda
 │   │
-│   └── ¿Sin código?
+│   └── No-code?
 │       └── Glue DataBrew
 │
-├── STREAMING de datos
-│   ├── ¿Kafka o AWS-native?
-│   │   ├── Kafka (portabilidad, ecosistema existente) → MSK
+├── STREAMING data
+│   ├── Kafka or AWS-native?
+│   │   ├── Kafka (portability, existing ecosystem) → MSK
 │   │   ├── Kafka serverless → MSK Serverless
-│   │   ├── AWS-native, integración simple con Lambda/S3 → Kinesis Data Streams
-│   │   └── Delivery a S3/Redshift/OpenSearch sin código → Kinesis Data Firehose
+│   │   ├── AWS-native, simple integration with Lambda/S3 → Kinesis Data Streams
+│   │   └── Delivery to S3/Redshift/OpenSearch without code → Kinesis Data Firehose
 │   │
-│   └── ¿Análisis SQL en tiempo real sobre stream?
+│   └── Real-time SQL analysis on stream?
 │       └── Kinesis Data Analytics (Apache Flink)
 │
-├── VISUALIZAR datos (dashboards)
+├── VISUALIZE data (dashboards)
 │   └── QuickSight
-│       ├── Standard: básico
+│       ├── Standard: basic
 │       └── Enterprise: row-level security, embedded, AD integration
 │
-├── CATALOGAR datos
-│   ├── Solo metastore → Glue Data Catalog
-│   ├── Descubrir schema automáticamente → Glue Crawler
-│   └── Gobernanza + seguridad por columna/fila → Lake Formation
+├── CATALOG data
+│   ├── Metastore only → Glue Data Catalog
+│   ├── Discover schema automatically → Glue Crawler
+│   └── Governance + column/row-level security → Lake Formation
 │
-└── MOVER datos
-    ├── Base de datos → base de datos → DMS
-    ├── On-premises → S3 (red) → DataSync
-    ├── On-premises → S3 (físico, TB/PB) → Snow Family
+└── MOVE data
+    ├── Database → database → DMS
+    ├── On-premises → S3 (network) → DataSync
+    ├── On-premises → S3 (physical, TB/PB) → Snow Family
     └── Kafka → S3/OpenSearch → MSK Connect
 ```
 
-## Comparaciones frecuentes en el examen
+## Frequent Exam Comparisons
 
 ### Athena vs Redshift
 
-| Criterio | Athena | Redshift |
-|----------|--------|----------|
-| Modelo | Serverless | Cluster (o Serverless) |
-| Datos | En S3 (no los mueve) | Cargados en Redshift (o Spectrum sobre S3) |
-| Mejor para | Queries ad-hoc, análisis exploratorio | Data warehouse, queries recurrentes complejos |
-| Coste | $5/TB escaneado | Por nodo-hora (fijo) |
-| Rendimiento | Bueno para queries simples | Superior para joins masivos y queries complejos |
+| Criterion | Athena | Redshift |
+|-----------|--------|----------|
+| Model | Serverless | Cluster (or Serverless) |
+| Data | In S3 (does not move it) | Loaded into Redshift (or Spectrum on S3) |
+| Best for | Ad-hoc queries, exploratory analysis | Data warehouse, complex recurring queries |
+| Cost | $5/TB scanned | Per node-hour (fixed) |
+| Performance | Good for simple queries | Superior for massive joins and complex queries |
 
 ### Glue vs EMR
 
-| Criterio | Glue | EMR |
-|----------|------|-----|
-| Modelo | Serverless | Cluster gestionado (o serverless) |
-| Motor | Spark (gestionado) | Spark, Hadoop, Hive, Presto, Flink... |
-| Control | Limitado | Total (puedes instalar librerías, configurar cluster) |
-| Integración | Data Catalog nativo | Cualquier ecosistema Hadoop |
-| Mejor para | ETL estándar, conversión de formatos | Big data complejo, ML con Spark, custom frameworks |
+| Criterion | Glue | EMR |
+|-----------|------|-----|
+| Model | Serverless | Managed cluster (or serverless) |
+| Engine | Spark (managed) | Spark, Hadoop, Hive, Presto, Flink... |
+| Control | Limited | Full (you can install libraries, configure cluster) |
+| Integration | Native Data Catalog | Any Hadoop ecosystem |
+| Best for | Standard ETL, format conversion | Complex big data, ML with Spark, custom frameworks |
 
 ### Kinesis vs MSK
 
-| Criterio | Kinesis | MSK |
-|----------|---------|-----|
-| Protocolo | AWS API propietaria | Apache Kafka (open source) |
-| Modelo | Shards (serverless-like) | Brokers (cluster) o Serverless |
-| Portabilidad | AWS lock-in | Multi-cloud (Kafka estándar) |
-| Integración | Lambda, Firehose, Analytics (nativo AWS) | Kafka Connect, Kafka Streams, KSQL |
-| Mejor para | Integración simple con AWS | Equipos con experiencia Kafka, portabilidad |
+| Criterion | Kinesis | MSK |
+|-----------|---------|-----|
+| Protocol | AWS proprietary API | Apache Kafka (open source) |
+| Model | Shards (serverless-like) | Brokers (cluster) or Serverless |
+| Portability | AWS lock-in | Multi-cloud (standard Kafka) |
+| Integration | Lambda, Firehose, Analytics (native AWS) | Kafka Connect, Kafka Streams, KSQL |
+| Best for | Simple integration with AWS | Teams with Kafka experience, portability |
 
 ### OpenSearch vs CloudWatch Logs Insights
 
-| Criterio | OpenSearch | CloudWatch Logs Insights |
-|----------|-----------|------------------------|
-| Modelo | Cluster (o serverless) | Serverless (pay per query) |
-| Funcionalidad | Búsqueda full-text, dashboards, alertas | Queries de logs ad-hoc |
-| Setup | Medio-alto | Zero (ya integrado con CloudWatch) |
-| Mejor para | Logs a gran escala con dashboards en tiempo real | Análisis rápido de logs sin infra adicional |
+| Criterion | OpenSearch | CloudWatch Logs Insights |
+|-----------|-----------|------------------------|
+| Model | Cluster (or serverless) | Serverless (pay per query) |
+| Functionality | Full-text search, dashboards, alerts | Ad-hoc log queries |
+| Setup | Medium-high | Zero (already integrated with CloudWatch) |
+| Best for | Large-scale logs with real-time dashboards | Quick log analysis without additional infra |
